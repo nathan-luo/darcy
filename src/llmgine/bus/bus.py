@@ -39,7 +39,7 @@ class MessageBus:
 
     def __init__(self, obs_bus: Optional[ObservabilityBus] = None):
         """Initialize the message bus.
-        
+
         Args:
             obs_bus: The observability bus for logging and metrics
         """
@@ -47,14 +47,15 @@ class MessageBus:
         self._event_handlers: Dict[Type[Event], List[AsyncEventHandler]] = {}
         self._event_queue: asyncio.Queue = asyncio.Queue()
         self._processing_task: Optional[asyncio.Task] = None
-        
+
         # Connect to the observability bus
         self._obs_bus = obs_bus or ObservabilityBus()
-        
+
         # Initialize the tracer for command execution
         from llmgine.bus.observability import MessageBusTracer
+
         self._tracer = MessageBusTracer()
-        
+
         # Register with observability
         self._register_with_observability()
 
@@ -62,21 +63,19 @@ class MessageBus:
         """Register the message bus with the observability system."""
         # Add a message bus handler to the observability bus
         from llmgine.bus.observability import MessageBusHandler
-        
+
         # Don't add another handler if we're re-initializing
         for handler in self._obs_bus._handlers:
             if isinstance(handler, MessageBusHandler):
                 return
-                
+
         # Add the handler to observe message bus events
         handler = MessageBusHandler()
         self._obs_bus.add_handler(handler)
-        
+
         # Log initialization
         self._obs_bus.log(
-            LogLevel.INFO, 
-            "MessageBus initialized", 
-            {"component": "MessageBus"}
+            LogLevel.INFO, "MessageBus initialized", {"component": "MessageBus"}
         )
 
     async def start(self) -> None:
@@ -84,9 +83,7 @@ class MessageBus:
         if self._processing_task is None:
             self._processing_task = asyncio.create_task(self._process_events())
             self._obs_bus.log(
-                LogLevel.INFO, 
-                "MessageBus started", 
-                {"component": "MessageBus"}
+                LogLevel.INFO, "MessageBus started", {"component": "MessageBus"}
             )
 
     async def stop(self) -> None:
@@ -99,9 +96,7 @@ class MessageBus:
                 pass
             self._processing_task = None
             self._obs_bus.log(
-                LogLevel.INFO, 
-                "MessageBus stopped", 
-                {"component": "MessageBus"}
+                LogLevel.INFO, "MessageBus stopped", {"component": "MessageBus"}
             )
 
     def register_command_handler(
@@ -118,12 +113,12 @@ class MessageBus:
             raise ValueError(
                 f"Command handler for {command_type.__name__} already registered"
             )
-            
+
         self._command_handlers[command_type] = async_handler
         self._obs_bus.log(
-            LogLevel.DEBUG, 
+            LogLevel.DEBUG,
             f"Registered command handler for {command_type.__name__}",
-            {"component": "MessageBus", "handler_type": "sync"}
+            {"component": "MessageBus", "handler_type": "sync"},
         )
 
     def register_async_command_handler(
@@ -139,12 +134,12 @@ class MessageBus:
             raise ValueError(
                 f"Command handler for {command_type.__name__} already registered"
             )
-            
+
         self._command_handlers[command_type] = handler
         self._obs_bus.log(
-            LogLevel.DEBUG, 
+            LogLevel.DEBUG,
             f"Registered async command handler for {command_type.__name__}",
-            {"component": "MessageBus", "handler_type": "async"}
+            {"component": "MessageBus", "handler_type": "async"},
         )
 
     def register_event_handler(
@@ -161,9 +156,9 @@ class MessageBus:
             self._event_handlers[event_type] = []
         self._event_handlers[event_type].append(async_handler)
         self._obs_bus.log(
-            LogLevel.DEBUG, 
+            LogLevel.DEBUG,
             f"Registered event handler for {event_type.__name__}",
-            {"component": "MessageBus", "handler_type": "sync"}
+            {"component": "MessageBus", "handler_type": "sync"},
         )
 
     def register_async_event_handler(
@@ -179,9 +174,9 @@ class MessageBus:
             self._event_handlers[event_type] = []
         self._event_handlers[event_type].append(handler)
         self._obs_bus.log(
-            LogLevel.DEBUG, 
+            LogLevel.DEBUG,
             f"Registered async event handler for {event_type.__name__}",
-            {"component": "MessageBus", "handler_type": "async"}
+            {"component": "MessageBus", "handler_type": "async"},
         )
 
     async def execute(self, command: Command) -> CommandResult:
@@ -203,29 +198,29 @@ class MessageBus:
             raise ValueError(error_msg)
 
         handler = self._command_handlers[command_type]
-        
+
         # Emit command started event
         start_event = CommandEvent(
             command_type=command_type.__name__,
             command_id=command.id,
-            command_metadata=command.metadata
+            command_metadata=command.metadata,
         )
         await self.publish(start_event)
-        
+
         # Start tracing the command
         self._tracer.start_command_trace(command)
-        
+
         # Track execution time
         start_time = time.time()
-        
+
         try:
             # Execute the command
             result = await handler(command)
             execution_time_ms = (time.time() - start_time) * 1000
-            
+
             # End the trace
             self._tracer.end_command_trace(command.id, result.success, result.error)
-            
+
             # Emit command result event
             result_event = CommandResultEvent(
                 command_type=command_type.__name__,
@@ -233,45 +228,43 @@ class MessageBus:
                 success=result.success,
                 result=result.result,
                 error=result.error,
-                execution_time_ms=execution_time_ms
+                execution_time_ms=execution_time_ms,
             )
             await self.publish(result_event)
-            
+
             return result
-            
+
         except Exception as e:
             # Get stack trace
-            stack_trace = "".join(traceback.format_exception(
-                type(e), e, e.__traceback__
-            ))
-            
+            stack_trace = "".join(traceback.format_exception(type(e), e, e.__traceback__))
+
             # Track error execution time
             execution_time_ms = (time.time() - start_time) * 1000
-            
+
             # End the trace with error
             self._tracer.end_command_trace(command.id, False, str(e))
-            
+
             # Log the error
             self._obs_bus.log(
                 LogLevel.ERROR,
                 f"Error executing command {command_type.__name__}: {str(e)}",
-                {"component": "MessageBus", "command_id": command.id}
+                {"component": "MessageBus", "command_id": command.id},
             )
-            
+
             # Emit command error event
             error_event = CommandErrorEvent(
                 command_type=command_type.__name__,
                 command_id=command.id,
                 error=str(e),
-                stack_trace=stack_trace
+                stack_trace=stack_trace,
             )
             await self.publish(error_event)
-            
+
             return CommandResult(
-                command_id=command.id, 
-                success=False, 
+                command_id=command.id,
+                success=False,
                 error=str(e),
-                metadata={"stack_trace": stack_trace}
+                metadata={"stack_trace": stack_trace},
             )
 
     async def publish(self, event: Event) -> None:
@@ -283,10 +276,31 @@ class MessageBus:
             event: The event to publish
         """
         await self._event_queue.put(event)
+
+        event_type = type(event).__name__
+        event_info = {}
+
+        # Add more context based on event type
+        if hasattr(event, "command_type"):
+            event_info["command_type"] = event.command_type
+        if hasattr(event, "command_id"):
+            event_info["command_id"] = event.command_id
+        if hasattr(event, "success"):
+            event_info["success"] = event.success
+        if hasattr(event, "error"):
+            event_info["error"] = event.error
+        if hasattr(event, "tool_name"):
+            event_info["tool_name"] = event.tool_name
+
+        # Include all context in the log
+        log_context = {
+            "component": "MessageBus",
+            "event_id": str(event.id),
+            "event_class": event_type,
+            **event_info,
+        }
         self._obs_bus.log(
-            LogLevel.DEBUG, 
-            f"Published event {type(event).__name__}",
-            {"component": "MessageBus", "event_id": str(event.id)}
+            LogLevel.DEBUG, f"Published event {type(event).__name__}", log_context
         )
 
     async def _process_events(self) -> None:
@@ -299,7 +313,7 @@ class MessageBus:
                 self._obs_bus.log(
                     LogLevel.ERROR,
                     f"Error handling event {type(event).__name__}: {e}",
-                    {"component": "MessageBus", "event_id": str(event.id)}
+                    {"component": "MessageBus", "event_id": str(event.id)},
                 )
             finally:
                 self._event_queue.task_done()
@@ -316,32 +330,48 @@ class MessageBus:
         # Find handlers for this specific event type
         if event_type in self._event_handlers:
             handlers.extend(self._event_handlers[event_type])
-        
+
         # Find handlers for parent event types (if event inherits from another registered type)
         for registered_type, type_handlers in self._event_handlers.items():
             if event_type != registered_type and isinstance(event, registered_type):
                 handlers.extend(type_handlers)
-        
+
         # Start trace for event handling
         if handlers:
             span = self._obs_bus.start_trace(
-                f"event_handling:{event_type.__name__}", 
-                {"event_id": str(event.id), "handler_count": len(handlers)}
+                f"event_handling:{event_type.__name__}",
+                {"event_id": str(event.id), "handler_count": len(handlers)},
             )
-            
+
             # Execute handlers
             tasks = [handler(event) for handler in handlers]
             if tasks:
                 await asyncio.gather(*tasks)
-                
+
             # End trace
             self._obs_bus.end_trace(span, "success")
         else:
             # Log if no handlers found
+            # Enhanced logging for the case with no handlers
+            event_info = {"event_type": event_type.__name__, "event_id": str(event.id)}
+
+            # Extract additional context based on event type
+            if hasattr(event, "command_type"):
+                event_info["command_type"] = event.command_type
+            if hasattr(event, "command_id"):
+                event_info["command_id"] = event.command_id
+            if hasattr(event, "success"):
+                event_info["success"] = event.success
+            if hasattr(event, "error"):
+                event_info["error"] = event.error
+            if hasattr(event, "tool_name"):
+                event_info["tool_name"] = event.tool_name
+
+            # Log with detailed information
             self._obs_bus.log(
                 LogLevel.DEBUG,
                 f"No handlers registered for event {event_type.__name__}",
-                {"component": "MessageBus", "event_id": str(event.id)}
+                {"component": "MessageBus", **event_info},
             )
 
     def _wrap_sync_command_handler(self, handler: CommandHandler) -> AsyncCommandHandler:

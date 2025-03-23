@@ -75,7 +75,7 @@ class JsonFileHandler(ObservabilityHandler[BaseEvent]):
             # Write to file with proper locking to avoid conflicts
             async with self._file_lock:
                 with open(self.log_file, "a") as f:
-                    f.write(json.dumps(event_dict) + "\n")
+                    f.write(json.dumps(event_dict, indent=4) + "\n")
         except Exception as e:
             logger.exception(f"Error writing event to file: {e}")
 
