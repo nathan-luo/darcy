@@ -6,8 +6,9 @@ as well as concrete implementations.
 
 from abc import ABC, abstractmethod
 from typing import Any, Dict, List, Optional, Protocol, Union
+import uuid
 
-from llmgine.messages.events import LLMResponse
+from llmgine.messages.events import LLMResponse, ToolCall
 
 
 class LLMProvider(Protocol):
@@ -22,6 +23,7 @@ class LLMProvider(Protocol):
         temperature: Optional[float] = None,
         max_tokens: Optional[int] = None,
         model: Optional[str] = None,
+        tools: Optional[List[Dict[str, Any]]] = None,
         **kwargs,
     ) -> LLMResponse:
         """Generate a response from the LLM.
@@ -33,6 +35,7 @@ class LLMProvider(Protocol):
             temperature: Optional temperature parameter
             max_tokens: Optional maximum tokens for the response
             model: Optional model name/identifier
+            tools: Optional list of tools to provide to the LLM
             **kwargs: Additional provider-specific parameters
 
         Returns:
@@ -54,6 +57,7 @@ class LLMManager(ABC):
         temperature: Optional[float] = None,
         max_tokens: Optional[int] = None,
         model: Optional[str] = None,
+        tools: Optional[List[Dict[str, Any]]] = None,
         **kwargs,
     ) -> LLMResponse:
         """Generate a response from an LLM provider.
@@ -66,6 +70,7 @@ class LLMManager(ABC):
             temperature: Optional temperature parameter
             max_tokens: Optional maximum tokens for the response
             model: Optional model name/identifier
+            tools: Optional list of tools to provide to the LLM
             **kwargs: Additional provider-specific parameters
 
         Returns:
@@ -132,6 +137,7 @@ class DefaultLLMManager(LLMManager):
         temperature: Optional[float] = None,
         max_tokens: Optional[int] = None,
         model: Optional[str] = None,
+        tools: Optional[List[Dict[str, Any]]] = None,
         **kwargs,
     ) -> LLMResponse:
         """Generate a response from an LLM provider.
@@ -144,6 +150,7 @@ class DefaultLLMManager(LLMManager):
             temperature: Optional temperature parameter
             max_tokens: Optional maximum tokens for the response
             model: Optional model name/identifier
+            tools: Optional list of tools to provide to the LLM
             **kwargs: Additional provider-specific parameters
 
         Returns:
@@ -161,6 +168,7 @@ class DefaultLLMManager(LLMManager):
             temperature=temperature,
             max_tokens=max_tokens,
             model=model,
+            tools=tools,
             **kwargs,
         )
 
@@ -216,13 +224,34 @@ class DefaultLLMManager(LLMManager):
         self.default_provider_id = provider_id
 
 
+# Helper function to create a tool call
+def create_tool_call(name: str, arguments: Dict[str, Any]) -> ToolCall:
+    """Create a standardized tool call object.
+    
+    Args:
+        name: The name of the tool to call
+        arguments: The arguments to pass to the tool
+        
+    Returns:
+        A ToolCall object
+    """
+    return ToolCall(
+        id=str(uuid.uuid4()),
+        name=name,
+        arguments=str(arguments)
+    )
+
+
 # Import specific provider implementations
 from llmgine.llm.providers.dummy import DummyProvider
+from llmgine.llm.providers.openai import OpenAIProvider
 
 
 __all__ = [
+    "create_tool_call",
     "DefaultLLMManager",
     "DummyProvider",
+    "OpenAIProvider",
     "LLMManager",
     "LLMProvider",
 ]

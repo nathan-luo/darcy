@@ -1,33 +1,70 @@
 """LLM module for managing interactions with language models.
 
-This package provides a structured way to interact with language models through a
-clean, modular architecture built around protocols, dependency injection, and events.
+This package provides a structured approach to building LLM applications
+with standardized components for engine management, provider integrations,
+context handling, and tool execution.
 """
 
+# Response format - central types
+from llmgine.messages.events import LLMResponse, ToolCall
+
+# Engine components
+from llmgine.llm.engine import (
+    ClearHistoryCommand,
+    LLMEngine, 
+    LLMResponseEvent, 
+    PromptCommand,
+    SystemPromptCommand,
+    ToolCallEvent,
+    ToolResultEvent
+)
+
+# Context management
 from llmgine.llm.context import ContextManager, InMemoryContextManager
-from llmgine.llm.engine import LLMEngine, LLMResponseEvent, PromptCommand
-from llmgine.llm.providers import DefaultLLMManager, DummyProvider, LLMManager, LLMProvider
-from llmgine.llm.tools import ToolCallEvent, ToolDescription, ToolManager, ToolResultEvent
+
+# LLM providers
+from llmgine.llm.providers import (
+    create_tool_call,
+    DefaultLLMManager, 
+    DummyProvider, 
+    LLMManager, 
+    LLMProvider
+)
+
+# Tool management
+from llmgine.llm.tools import (
+    default_tool_manager,
+    ToolDescription, 
+    ToolManager
+)
 
 __all__ = [
+    # Core types
+    "LLMResponse",
+    "ToolCall",
+    
     # Engine
+    "ClearHistoryCommand",
     "LLMEngine",
-    "PromptCommand",
     "LLMResponseEvent",
+    "PromptCommand",
+    "SystemPromptCommand",
+    "ToolCallEvent",
+    "ToolResultEvent",
 
     # Providers
-    "LLMProvider",
-    "LLMManager",
+    "create_tool_call",
     "DefaultLLMManager",
     "DummyProvider",
+    "LLMManager",
+    "LLMProvider",
 
     # Context
     "ContextManager",
     "InMemoryContextManager",
     
     # Tools
-    "ToolManager",
-    "ToolCallEvent",
-    "ToolResultEvent",
+    "default_tool_manager",
     "ToolDescription",
+    "ToolManager",
 ]

@@ -1,5 +1,3 @@
-
-
 """Tool management and execution for LLMs.
 
 This module provides a way to register, describe, and execute tools
@@ -8,12 +6,13 @@ that can be called by language models.
 
 import asyncio
 import inspect
+import json
 import logging
 from dataclasses import dataclass
 from typing import Any, Callable, Dict, List, Optional, Type, Union
+import uuid
 
-from llmgine.messages.commands import Command
-from llmgine.messages.events import Event
+from llmgine.messages.events import ToolCall
 
 logger = logging.getLogger(__name__)
 
@@ -38,48 +37,32 @@ class ToolDescription:
     parameters: Dict[str, Any]
     function: Union[ToolFunction, AsyncToolFunction]
     is_async: bool = False
-
-
-class ToolCallCommand(Command):
-    """Command to call a tool."""
-
-    def __init__(self, tool_name: str, arguments: Dict[str, Any]):
-        self.tool_name = tool_name
-        self.arguments = arguments
-
-
-class ToolCallEvent(Event):
-    """Event emitted when a tool is called."""
-
-    def __init__(self, tool_name: str, arguments: Dict[str, Any]):
-        super().__init__()
-        self.tool_name = tool_name
-        self.arguments = arguments
-
-
-class ToolResultEvent(Event):
-    """Event emitted when a tool execution completes."""
-
-    def __init__(self, tool_name: str, arguments: Dict[str, Any], result: Any, error: Optional[str] = None):
-        super().__init__()
-        self.tool_name = tool_name
-        self.arguments = arguments
-        self.result = result
-        self.error = error
+    
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert to OpenAI-compatible tool description format.
+        
+        Returns:
+            Dict representation in OpenAI format
+        """
+        return {
+            "type": "function",
+            "function": {
+                "name": self.name,
+                "description": self.description,
+                "parameters": self.parameters
+            }
+        }
 
 
 class ToolManager:
-    """Manages tool registration and execution.
-    
-    This class provides a way to register, describe, and execute tools
-    that can be called by language models.
-    """
+    """Manages tool registration and execution."""
 
     def __init__(self):
         """Initialize the tool manager."""
         self.tools: Dict[str, ToolDescription] = {}
 
-    def register_tool(self, function: Union[ToolFunction, AsyncToolFunction],
+    def register_tool(self, 
+                     function: Union[ToolFunction, AsyncToolFunction],
                      name: Optional[str] = None,
                      description: Optional[str] = None) -> None:
         """Register a function as a tool.
@@ -134,17 +117,30 @@ class ToolManager:
         Returns:
             A list of tool descriptions in OpenAI function calling format
         """
-        result = []
-        for name, tool in self.tools.items():
-            result.append({
-                "type": "function",
-                "function": {
-                    "name": tool.name,
-                    "description": tool.description,
-                    "parameters": tool.parameters
-                }
-            })
-        return result
+        return [tool.to_dict() for tool in self.tools.values()]
+
+    async def execute_tool_call(self, tool_call: ToolCall) -> Any:
+        """Execute a tool from a ToolCall object.
+        
+        Args:
+            tool_call: The tool call to execute
+            
+        Returns:
+            The result of the tool execution
+            
+        Raises:
+            ValueError: If the tool is not found
+        """
+        tool_name = tool_call.name
+        
+        try:
+            # Parse arguments
+            arguments = json.loads(tool_call.arguments)
+            return await self.execute_tool(tool_name, arguments)
+        except json.JSONDecodeError as e:
+            error_msg = f"Invalid JSON arguments for tool {tool_name}: {e}"
+            logger.error(error_msg)
+            raise ValueError(error_msg) from e
 
     async def execute_tool(self, tool_name: str, arguments: Dict[str, Any]) -> Any:
         """Execute a tool with the given arguments.
@@ -203,3 +199,7 @@ class ToolManager:
         else:
             # Default to string for complex types
             return "string"
+
+
+# Create a singleton instance
+default_tool_manager = ToolManager()
