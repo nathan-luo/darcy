@@ -3,17 +3,14 @@
 This module provides tools that can be called by language models.
 """
 
-from llmgine.llm.tools.tool_manager import ToolManager
-from llmgine.llm.tools.tool import Tool, Parameter, ToolFunction, AsyncToolFunction
+from llmgine.llm.tools.tool_manager import Tool, ToolManager, default_tool_manager
 
 # Re-export tool call events from messages
 from llmgine.messages.events import ToolCall
 
 __all__ = [
+    "default_tool_manager",
     "ToolCall",
     "Tool",
     "ToolManager",
-    "ToolFunction",
-    "AsyncToolFunction",
-    "Parameter",
 ]
