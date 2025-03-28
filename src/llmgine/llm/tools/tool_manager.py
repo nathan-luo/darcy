@@ -8,58 +8,19 @@ import asyncio
 import inspect
 import json
 import logging
-from dataclasses import dataclass
-from typing import Any, Callable, Dict, List, Optional, Type, Union
-import uuid
+from typing import Any, Dict, List, Optional, Type, Union
 
+from llmgine.llm.tools.tool import Tool, ToolFunction, AsyncToolFunction
 from llmgine.messages.events import ToolCall
 
 logger = logging.getLogger(__name__)
-
-# Type for tool function
-ToolFunction = Callable[..., Any]
-AsyncToolFunction = Callable[..., "asyncio.Future[Any]"]
-
-
-@dataclass
-class ToolDescription:
-    """Description of a tool that can be used by an LLM.
-    
-    Attributes:
-        name: The name of the tool
-        description: A description of what the tool does
-        parameters: JSON schema for the tool parameters
-        function: The function to call when the tool is invoked
-        is_async: Whether the function is asynchronous
-    """
-    name: str
-    description: str
-    parameters: Dict[str, Any]
-    function: Union[ToolFunction, AsyncToolFunction]
-    is_async: bool = False
-    
-    def to_dict(self) -> Dict[str, Any]:
-        """Convert to OpenAI-compatible tool description format.
-        
-        Returns:
-            Dict representation in OpenAI format
-        """
-        return {
-            "type": "function",
-            "function": {
-                "name": self.name,
-                "description": self.description,
-                "parameters": self.parameters
-            }
-        }
-
 
 class ToolManager:
     """Manages tool registration and execution."""
 
     def __init__(self):
         """Initialize the tool manager."""
-        self.tools: Dict[str, ToolDescription] = {}
+        self.tools: Dict[str, Tool] = {}
 
     def register_tool(self, 
                      function: Union[ToolFunction, AsyncToolFunction],
@@ -100,7 +61,7 @@ class ToolManager:
 
         is_async = asyncio.iscoroutinefunction(function)
 
-        tool_desc = ToolDescription(
+        tool = Tool(
             name=name,
             description=description,
             parameters=parameters,
@@ -108,7 +69,7 @@ class ToolManager:
             is_async=is_async
         )
 
-        self.tools[name] = tool_desc
+        self.tools[name] = tool
         logger.info(f"Registered tool: {name}")
 
     def get_tool_descriptions(self) -> List[Dict[str, Any]]:
