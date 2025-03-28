@@ -26,14 +26,51 @@ def test_tool_registration():
 
     # Check parameter schema
     params = manager.tools["test_tool"].parameters
-    assert params["type"] == "object"
-    assert "arg1" in params["properties"]
-    assert "arg2" in params["properties"]
-    assert params["properties"]["arg1"]["type"] == "string"
-    assert params["properties"]["arg2"]["type"] == "integer"
-    assert "arg1" in params["required"]
-    assert "arg2" not in params["required"]  # Has default value
+    assert type(params) == list
+    assert len(params) == 2
+    assert params[0].name == "arg1"
+    assert params[0].description == "Parameter: arg1"
+    assert params[0].type == "string"
+    assert params[0].required
+    assert params[1].name == "arg2"
+    assert params[1].description == "Parameter: arg2"
+    assert params[1].type == "integer"
+    assert not params[1].required
 
+def test_tool_registration_with_args_docstring():
+    """Test that tools can be registered with 'Args:' in the docstring."""
+    # Define a test tool
+    def test_tool(arg1: str, arg2: int = 0) -> str:
+        """Test tool function.
+        
+        Args:
+            arg1: The first argument.
+            arg2: The second argument.
+        """
+        return f"{arg1} - {arg2}"
+
+    # Create tool manager and register tool
+    manager = ToolManager()
+    manager.register_tool(test_tool)
+
+    # Check that the tool was registered
+    assert "test_tool" in manager.tools
+    assert manager.tools["test_tool"].name == "test_tool"
+    assert manager.tools["test_tool"].description == "Test tool function."
+    assert not manager.tools["test_tool"].is_async
+
+    # Check parameter schema
+    params = manager.tools["test_tool"].parameters
+    assert type(params) == list
+    assert len(params) == 2
+    assert params[0].name == "arg1"
+    assert params[0].description == "The first argument."
+    assert params[0].type == "string"
+    assert params[0].required
+    assert params[1].name == "arg2"
+    assert params[1].description == "The second argument."
+    assert params[1].type == "integer"
+    assert not params[1].required
 
 def test_tool_descriptions():
     """Test generating tool descriptions."""
