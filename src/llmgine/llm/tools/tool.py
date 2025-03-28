@@ -1,9 +1,32 @@
 from dataclasses import dataclass
-from typing import Any, Dict, Union, Callable
+from typing import Any, Dict, Union, Callable, List
 
 # Type for tool function
 ToolFunction = Callable[..., Any]
 AsyncToolFunction = Callable[..., "asyncio.Future[Any]"]
+
+@dataclass
+class Parameter:
+    """A parameter for a tool.
+    
+    Attributes:
+        name: The name of the parameter
+        description: A description of the parameter
+        type: The type of the parameter
+        required: Whether the parameter is required
+    """
+    name: str
+    description: str
+    type: str
+    required: bool = False
+
+    def __init__(self, name: str, description: str, type: str, required: bool = False):
+        self.name = name
+        self.description = description or ""
+        self.type = type
+        self.required = required
+
+
 
 @dataclass
 class Tool:
@@ -18,21 +41,6 @@ class Tool:
     """
     name: str
     description: str
-    parameters: Dict[str, Any]
+    parameters: List[Parameter]
     function: Union[ToolFunction, AsyncToolFunction]
     is_async: bool = False
-    
-    def to_dict(self) -> Dict[str, Any]:
-        """Convert to OpenAI-compatible tool description format.
-        
-        Returns:
-            Dict representation in OpenAI format
-        """
-        return {
-            "type": "function",
-            "function": {
-                "name": self.name,
-                "description": self.description,
-                "parameters": self.parameters
-            }
-        }
