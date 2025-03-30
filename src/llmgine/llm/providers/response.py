@@ -4,8 +4,8 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import List, Optional, Dict, Any
+from llmgine.messages.events import ToolCall
 
-# from .tool_call import ToolCall  # assuming ToolCall has a .from_dict method
 
 
 @dataclass
@@ -99,3 +99,63 @@ class DefaultLLMResponse(LLMResponse):
             completion_tokens=get_token_value("completion_tokens"),
             total_tokens=get_token_value("total_tokens"),
         )
+
+
+
+
+class OpenAIManager(LLMManager):
+    def __init__(self, api_key: str):
+        self.client = AsyncOpenAI(api_key=api_key)
+
+    async def generate(
+        self,
+        prompt: str,
+        context: Optional[List[Dict[str, Any]]] = None,
+        temperature: Optional[float] = None,
+        max_tokens: Optional[int] = None,
+        model: Optional[str] = "gpt-4",
+        tools: Optional[List[Dict[str, Any]]] = None,
+        **kwargs,
+    ) -> OpenAILLMResponse:
+        messages = context or [{"role": "user", "content": prompt}]
+
+        response = await self.client.chat.completions.create(
+            model=model,
+            messages=messages,
+            temperature=temperature or 0.7,
+            max_tokens=max_tokens or 512,
+            tools=tools,
+            **kwargs,
+        )
+
+        return OpenAILLMResponse.from_openai(response)
+
+# llm/response.py
+
+from typing import Any, Dict
+from llm.types import LLMResponse  # abstract base class
+
+class OpenAILLMResponse(LLMResponse):
+    def __init__(self, content: str, raw: Dict[str, Any], usage: Dict[str, int]):
+        self.content = content
+        self.raw = raw
+        self.usage = usage
+
+    @classmethod
+    def from_openai(cls, response: Any) -> "OpenAILLMResponse":
+        choice = response.choices[0].message
+        usage = response.usage.dict() if hasattr(response.usage, "dict") else response.usage
+        return cls(
+            content=choice.content,
+            raw=response.model_dump(),  # full raw response
+            usage=usage,
+        )
+
+    def get_content(self) -> str:
+        return self.content
+
+    def get_usage(self) -> Dict[str, int]:
+        return self.usage
+
+    def get_raw(self) -> Dict[str, Any]:
+        return self.raw
