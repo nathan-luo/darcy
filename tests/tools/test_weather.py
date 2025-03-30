@@ -2,7 +2,7 @@
 
 import pytest
 from typing import Dict, Any
-from llmgine.llm.tools.weather import get_weather, get_station_list, WEATHER_STATIONS
+from tools_for_test import get_weather, get_station_list, WEATHER_STATIONS
 
 def validate_weather_data(data: Dict[str, Any], expected_city: str) -> None:
     """Validate the structure and content of weather data.

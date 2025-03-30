@@ -13,7 +13,7 @@ def create_tool_manager(llm_model_name: str = "openai"):
     """Create a tool manager with a message bus and an observability bus."""
     return ToolManager(llm_model_name=llm_model_name)
 
-def test_tool_registration():
+def test_tool_registration_with_no_description():
     """Test that tools can be registered."""
     # Define a test tool
     def test_tool1(arg1: str, arg2: int = 0) -> str:
@@ -26,30 +26,45 @@ def test_tool_registration():
 
     # Create tool manager and register tool with default LLM model: OpenAI
     manager = create_tool_manager()
-    manager.register_tool(test_tool1)
-    manager.register_tool(test_tool2)
+    with pytest.raises(ValueError, match="Parameter 'arg1' has no description in the Args section"):
+        manager.register_tool(test_tool1)
+    with pytest.raises(ValueError, match="Function 'test_tool2' has no description provided"):
+        manager.register_tool(test_tool2)
+
+    """Test that tools can be registered."""
+    # Define a test tool
+    def test_tool(arg1: str, arg2: int = 0) -> str:
+        """Test tool function.
+        
+        Args:
+            arg1: The first argument.
+            arg2: The second argument.
+        """
+        return f"{arg1} - {arg2}"
+
+
+    # Create tool manager and register tool with default LLM model: OpenAI
+    manager = create_tool_manager()
+    manager.register_tool(test_tool)
 
     # Check that the tool was registered
-    assert "test_tool1" in manager.tools
-    assert manager.tools["test_tool1"].name == "test_tool1"
-    assert manager.tools["test_tool1"].description == "Test tool function."
-    assert not manager.tools["test_tool1"].is_async
+    assert "test_tool" in manager.tools
+    assert manager.tools["test_tool"].name == "test_tool"
+    assert manager.tools["test_tool"].description == "Test tool function."
+    assert not manager.tools["test_tool"].is_async
 
     # Check parameter schema for the first tool
-    params = manager.tools["test_tool1"].parameters
+    params = manager.tools["test_tool"].parameters
     assert type(params) == list
     assert len(params) == 2
     assert params[0].name == "arg1"
-    assert params[0].description == "Parameter: arg1"
+    assert params[0].description == "The first argument."
     assert params[0].type == "string"
     assert params[0].required
     assert params[1].name == "arg2"
-    assert params[1].description == "Parameter: arg2"
+    assert params[1].description == "The second argument."
     assert params[1].type == "integer"
     assert not params[1].required
-
-    # Check that the second tool has correct description
-    assert manager.tools["test_tool2"].description == "No description provided"
     
 def test_tool_registration_with_args_docstring():
     """Test that tools can be registered with 'Args:' in the docstring."""
@@ -96,6 +111,7 @@ def test_tool_registration_with_args_docstring_and_returns_docstring():
         
         Args:
             arg1: The first argument.
+            arg2: The second argument.
 
         Returns:
             The result of the tool.
@@ -121,7 +137,7 @@ def test_tool_registration_with_args_docstring_and_returns_docstring():
     assert params[0].type == "string"
     assert params[0].required
     assert params[1].name == "arg2"
-    assert params[1].description == "Parameter: arg2"
+    assert params[1].description == "The second argument."
     assert params[1].type == "integer"
     assert not params[1].required
 
@@ -129,11 +145,26 @@ def test_tool_descriptions():
     """Test generating tool descriptions."""
     # Define test tools
     def tool1(arg: str) -> str:
-        """First test tool."""
+        """First test tool.
+        
+        Args:
+            arg: The argument.
+
+        Returns:
+            The result of the tool.
+        """
         return arg
 
     def tool2(x: int, y: int) -> int:
-        """Second test tool."""
+        """Second test tool.
+        
+        Args:
+            x: The first number.
+            y: The second number.
+
+        Returns:
+            The sum of the two numbers.
+        """
         return x + y
 
     # Create tool manager and register tools
@@ -153,11 +184,26 @@ def test_tool_descriptions_with_llm_model():
     """Test generating tool descriptions with a specific LLM model."""
     # Define test tools
     def tool1(arg: str) -> str:
-        """First test tool."""
+        """First test tool.
+        
+        Args:
+            arg: The argument.
+
+        Returns:
+            The result of the tool.
+        """
         return arg
     
     def tool2(x: int, y: int) -> int:
-        """Second test tool."""
+        """Second test tool.
+        
+        Args:
+            x: The first number.
+            y: The second number.
+
+        Returns:
+            The sum of the two numbers.
+        """
         return x + y
 
     # Test OpenAI
@@ -199,7 +245,15 @@ async def test_tool_execution():
     """Test executing tools."""
     # Define a test tool
     def add(a: int, b: int) -> int:
-        """Add two numbers."""
+        """Add two numbers.
+        
+        Args:
+            a: The first number.
+            b: The second number.
+
+        Returns:
+            The sum of the two numbers.
+        """
         return a + b
 
     # Create tool manager and register tool
@@ -218,7 +272,14 @@ async def test_async_tool_execution():
     """Test executing async tools."""
     # Define an async test tool
     async def async_echo(message: str) -> str:
-        """Echo a message with delay."""
+        """Echo a message with delay.
+        
+        Args:
+            message: The message to echo.
+
+        Returns:
+            The echoed message.
+        """
         await asyncio.sleep(0.1)
         return f"Echo: {message}"
 
@@ -241,7 +302,11 @@ async def test_tool_execution_error():
     """Test error handling in tool execution."""
     # Define a tool that raises an exception
     def failing_tool() -> str:
-        """A tool that always fails."""
+        """A tool that always fails.
+        
+        Raises:
+            ValueError: This tool failed on purpose
+        """
         raise ValueError("This tool failed on purpose")
 
     # Create tool manager and register tool
