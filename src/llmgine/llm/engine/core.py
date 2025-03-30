@@ -16,7 +16,7 @@ from llmgine.llm.engine.messages import (
     ToolResultEvent,
 )
 from llmgine.llm.providers import DefaultLLMManager, create_tool_call
-from llmgine.llm.tools import default_tool_manager
+from llmgine.llm.tools.tool_manager import ToolManager
 from llmgine.messages.commands import CommandResult
 from llmgine.messages.events import LLMResponse, ToolCall
 from llmgine.observability import ObservabilityBus
@@ -51,7 +51,7 @@ class LLMEngine:
         # Create tightly coupled components
         self.llm_manager = DefaultLLMManager()
         self.context_manager = InMemoryContextManager()
-        self.tool_manager = default_tool_manager
+        self.tool_manager = ToolManager(self, self.message_bus)
         
         # Register command handlers
         self._register_command_handlers()
