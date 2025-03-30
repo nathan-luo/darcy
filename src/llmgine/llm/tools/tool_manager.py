@@ -14,7 +14,8 @@ if TYPE_CHECKING:
     from llmgine.llm.engine.core import LLMEngine
     from llmgine.bus.bus import MessageBus
 
-from llmgine.llm.tools.tool import Tool, ToolFunction, AsyncToolFunction
+from llmgine.llm.tools.tool import Tool, Parameter,ToolFunction, AsyncToolFunction
+from llmgine.llm.tools.tool_parser import OpenAIToolParser, ClaudeToolParser, DeepSeekToolParser
 from llmgine.messages.events import ToolCall
 
 
@@ -65,17 +66,33 @@ class ToolManager:
 
         # Extract parameters from function signature
         sig = inspect.signature(function)
-        parameters = {
-            "type": "object",
-            "properties": {},
-            "required": []
-        }
+        parameters: List[Parameter] = []
+        param_dict = {}
 
+        # Find the Args section
+        args_match = re.search(r'Args:(.*?)(?:Returns:|Raises:|$)', function.__doc__ or "", re.DOTALL)
+        if args_match:
+            args_section = args_match.group(1).strip()
+    
+            # Pattern to match parameter documentation
+            # Matches both single-line and multi-line parameter descriptions
+            param_pattern = r'(\w+):\s*((?:(?!\w+:).+?\n?)+)'
+
+            # Find all parameters in the Args section
+            for match in re.finditer(param_pattern, args_section, re.MULTILINE):
+                param_name = match.group(1)
+                param_desc = match.group(2).strip()
+
+                param_dict[param_name] = param_desc
+            
         for param_name, param in sig.parameters.items():
+            param_type = "string"
+            param_required = False
+            param_desc = f"Parameter: {param_name}"
+
             if param.annotation != inspect.Parameter.empty:
-                # Try to convert type annotation to JSON schema type
+                # Convert type annotation to JSON schema type
                 param_type = self._annotation_to_json_type(param.annotation)
-                parameters["properties"][param_name] = {"type": param_type}
 
             # Add to required list if no default value
             if param.default is inspect.Parameter.empty:
