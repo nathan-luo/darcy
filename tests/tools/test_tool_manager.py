@@ -1,19 +1,25 @@
 """Tests for the tool manager."""
 
 import asyncio
-
+import uuid
 import pytest
 
 from llmgine.llm.tools import ToolManager
-from llmgine.llm.engine.core import LLMEngine
-from llmgine.bus.bus import MessageBus
-from llmgine.observability import ObservabilityBus
+
+class SampleEngine:
+    """A sample engine for testing."""
+
+    def __init__(self):
+        """Initialize the sample engine."""
+        self.engine_id = str(uuid.uuid4())
 
 def create_tool_manager(llm_model_name: str = "openai"):
     """Create a tool manager with a message bus and an observability bus."""
-    return ToolManager(llm_model_name=llm_model_name)
+    engine = SampleEngine()
+    return ToolManager(engine_reference=engine, llm_model_name=llm_model_name)
 
-def test_tool_registration_with_no_description():
+@pytest.mark.asyncio
+async def test_tool_registration_with_no_description():
     """Test that tools can be registered."""
     # Define a test tool
     def test_tool1(arg1: str, arg2: int = 0) -> str:
@@ -27,9 +33,9 @@ def test_tool_registration_with_no_description():
     # Create tool manager and register tool with default LLM model: OpenAI
     manager = create_tool_manager()
     with pytest.raises(ValueError, match="Parameter 'arg1' has no description in the Args section"):
-        manager.register_tool(test_tool1)
+        await manager.register_tool(test_tool1)
     with pytest.raises(ValueError, match="Function 'test_tool2' has no description provided"):
-        manager.register_tool(test_tool2)
+        await manager.register_tool(test_tool2)
 
     """Test that tools can be registered."""
     # Define a test tool
@@ -45,7 +51,7 @@ def test_tool_registration_with_no_description():
 
     # Create tool manager and register tool with default LLM model: OpenAI
     manager = create_tool_manager()
-    manager.register_tool(test_tool)
+    await manager.register_tool(test_tool)
 
     # Check that the tool was registered
     assert "test_tool" in manager.tools
@@ -66,7 +72,8 @@ def test_tool_registration_with_no_description():
     assert params[1].type == "integer"
     assert not params[1].required
     
-def test_tool_registration_with_args_docstring():
+@pytest.mark.asyncio
+async def test_tool_registration_with_args_docstring():
     """Test that tools can be registered with 'Args:' in the docstring."""
     # Define a test tool
     def test_tool(arg1: str, arg2: int = 0) -> str:
@@ -80,7 +87,7 @@ def test_tool_registration_with_args_docstring():
 
     # Create tool manager and register tool
     manager = create_tool_manager()
-    manager.register_tool(test_tool)
+    await manager.register_tool(test_tool)
 
     # Check that the tool was registered
     assert "test_tool" in manager.tools
@@ -101,7 +108,8 @@ def test_tool_registration_with_args_docstring():
     assert params[1].type == "integer"
     assert not params[1].required
 
-def test_tool_registration_with_args_docstring_and_returns_docstring():
+@pytest.mark.asyncio
+async def test_tool_registration_with_args_docstring_and_returns_docstring():
     """Test that tools can be registered with 'Args:' in the docstring and 'Returns:' in the docstring.
        One argument specified in the docstring, one argument not specified.
     """
@@ -120,7 +128,7 @@ def test_tool_registration_with_args_docstring_and_returns_docstring():
 
     # Create tool manager and register tool
     manager = create_tool_manager()
-    manager.register_tool(test_tool)
+    await manager.register_tool(test_tool)
 
     # Check that the tool was registered
     assert "test_tool" in manager.tools
@@ -141,7 +149,8 @@ def test_tool_registration_with_args_docstring_and_returns_docstring():
     assert params[1].type == "integer"
     assert not params[1].required
 
-def test_tool_descriptions():
+@pytest.mark.asyncio
+async def test_tool_descriptions():
     """Test generating tool descriptions."""
     # Define test tools
     def tool1(arg: str) -> str:
@@ -169,18 +178,19 @@ def test_tool_descriptions():
 
     # Create tool manager and register tools
     manager = create_tool_manager()
-    manager.register_tool(tool1)
-    manager.register_tool(tool2)
+    await manager.register_tool(tool1)
+    await manager.register_tool(tool2)
 
     # Get tool descriptions
-    tools = manager.get_tools()
+    tools = await manager.get_tools()
 
     # Check descriptions format
     assert len(tools) == 2
     assert tools[0]["function"].keys() == {"name", "description", "parameters"}
     assert tools[0]["function"]["parameters"].keys() == {"type", "properties", "required"}
 
-def test_tool_descriptions_with_llm_model():
+@pytest.mark.asyncio
+async def test_tool_descriptions_with_llm_model():
     """Test generating tool descriptions with a specific LLM model."""
     # Define test tools
     def tool1(arg: str) -> str:
@@ -208,22 +218,22 @@ def test_tool_descriptions_with_llm_model():
 
     # Test OpenAI
     manager = create_tool_manager(llm_model_name="openai")
-    manager.register_tool(tool1)
-    manager.register_tool(tool2)
+    await manager.register_tool(tool1)
+    await manager.register_tool(tool2)
 
     # Get tools in OpenAI format
-    openai_tools = manager.get_tools()
+    openai_tools = await manager.get_tools()
     assert len(openai_tools) == 2
     assert openai_tools[0]["function"].keys() == {"name", "description", "parameters"}
     assert openai_tools[0]["function"]["parameters"].keys() == {"type", "properties", "required"}
 
     # Test Claude
     manager = create_tool_manager(llm_model_name="claude")
-    manager.register_tool(tool1)
-    manager.register_tool(tool2)
+    await manager.register_tool(tool1)
+    await manager.register_tool(tool2)
 
     # Get tools in Claude format
-    claude_tools = manager.get_tools()
+    claude_tools = await manager.get_tools()
     assert len(claude_tools) == 2
     assert claude_tools[0]["function"].keys() == {"name", "description", "input_schema"}
     assert claude_tools[0]["function"]["input_schema"].keys() == {"type", "properties", "required"}
@@ -231,11 +241,11 @@ def test_tool_descriptions_with_llm_model():
 
     # Test DeepSeek
     manager = create_tool_manager(llm_model_name="deepseek")
-    manager.register_tool(tool1)
-    manager.register_tool(tool2)
+    await manager.register_tool(tool1)
+    await manager.register_tool(tool2)
 
     # Get tools in DeepSeek format
-    deepseek_tools = manager.get_tools()
+    deepseek_tools = await manager.get_tools()
     assert len(deepseek_tools) == 2
     assert deepseek_tools[0]["function"].keys() == {"name", "description", "parameters"}
     assert deepseek_tools[0]["function"]["parameters"].keys() == {"type", "properties", "required"}
@@ -258,7 +268,7 @@ async def test_tool_execution():
 
     # Create tool manager and register tool
     manager = create_tool_manager()
-    manager.register_tool(add)
+    await manager.register_tool(add)
 
     # Execute the tool
     result = await manager.execute_tool("add", {"a": 2, "b": 3})
@@ -285,7 +295,7 @@ async def test_async_tool_execution():
 
     # Create tool manager and register tool
     manager = create_tool_manager()
-    manager.register_tool(async_echo)
+    await manager.register_tool(async_echo)
 
     # Execute the tool
     result = await manager.execute_tool("async_echo", {"message": "Hello, world!"})
@@ -311,7 +321,7 @@ async def test_tool_execution_error():
 
     # Create tool manager and register tool
     manager = create_tool_manager()
-    manager.register_tool(failing_tool)
+    await manager.register_tool(failing_tool)
 
     # Execute the tool and expect an exception
     with pytest.raises(ValueError) as excinfo:
