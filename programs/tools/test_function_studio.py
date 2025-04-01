@@ -4,8 +4,8 @@ import pytest
 import pytest_asyncio
 import os
 import json
-from llmgine.studio.function_studio import FunctionStudio
-from llmgine.llm.tools.weather import get_weather, TOOL_DEFINITION
+from function_studio_ll import FunctionStudio
+from tools_for_test import get_weather, TOOL_DEFINITION
 from llmgine.llm.engine.messages import PromptCommand
 from dotenv import load_dotenv
 
