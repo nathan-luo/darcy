@@ -168,7 +168,7 @@ class LLMEngine:
         # Get tool descriptions if enabled
         tools = None
         if command.use_tools and self.tool_manager.tools:
-            tools = self.tool_manager.get_tool_descriptions()
+            tools = self.tool_manager.get_tools()
 
         try:
             # Generate response using the LLM manager

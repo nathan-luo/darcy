@@ -9,15 +9,13 @@ import inspect
 import json
 import re
 import uuid
-from typing import Any, Dict, List, Optional, Type, Union, TYPE_CHECKING
+from typing import Any, Dict, List, Optional, Type, Union
 
-if TYPE_CHECKING:
-    from llmgine.bus.bus import MessageBus
-
+from llmgine.bus.bus import MessageBus
 from llmgine.llm.tools.tool import Tool, Parameter,ToolFunction, AsyncToolFunction
 from llmgine.llm.tools.tool_parser import OpenAIToolParser, ClaudeToolParser, DeepSeekToolParser
 from llmgine.messages.events import ToolCall
-from llmgine.llm.tools.tool_events import ToolRegisterEvent, ToolCompiledEvent, ToolExecuteEvent, ToolExecuteResultEvent
+from llmgine.llm.tools.tool_events import ToolRegisterEvent, ToolCompiledEvent, ToolExecuteResultEvent
 
 
 class ToolManager:
@@ -123,7 +121,7 @@ class ToolManager:
         )
 
         # Publish the tool registration event
-        self.message_bus.emit_event(ToolRegisterEvent(
+        self.message_bus.publish(ToolRegisterEvent(
             tool_manager_id=self.tool_manager_id,
             engine_id=self.engine_reference.engine_id,
             tool_info=tool.to_dict()
@@ -138,7 +136,7 @@ class ToolManager:
             A list of tools in the registered model's format
         """
         # Publish the tool compilation event
-        self.message_bus.emit_event(ToolCompiledEvent(
+        self.message_bus.publish(ToolCompiledEvent(
             tool_manager_id=self.tool_manager_id,
             engine_id=self.engine_reference.engine_id,
             tool_compiled_list=[tool.to_dict() for tool in self.tools.values()]
@@ -195,7 +193,7 @@ class ToolManager:
                 result = tool.function(**arguments)
 
             # Publish the tool execution event
-            self.message_bus.emit_event(ToolExecuteEvent(
+            self.message_bus.publish(ToolExecuteResultEvent(
                 tool_manager_id=self.tool_manager_id,
                 engine_id=self.engine_reference.engine_id,
                 execution_succeed=True,
@@ -206,7 +204,7 @@ class ToolManager:
             return result
         except Exception as e:
             # Publish the tool execution event
-            self.message_bus.emit_event(ToolExecuteEvent(
+            self.message_bus.publish(ToolExecuteResultEvent(
                 tool_manager_id=self.tool_manager_id,
                 engine_id=self.engine_reference.engine_id,
                 execution_succeed=False,

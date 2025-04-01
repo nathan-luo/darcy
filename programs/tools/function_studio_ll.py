@@ -1,15 +1,21 @@
 """Function Studio for managing LLM tools and engine."""
 
-import asyncio
+import uuid
 from typing import Optional, List, Dict, Any
 
 from llmgine.llm.tools import ToolManager
 from llmgine.llm.engine import LLMEngine
 from llmgine.bus import MessageBus
-from llmgine.observability.bus import ObservabilityBus
-from llmgine.llm.tools.weather import get_weather
+from tools_for_test import get_weather
 from llmgine.llm.engine.messages import PromptCommand
 from llmgine.llm.providers import OpenAIProvider
+
+class SampleEngine:
+    """A sample engine for testing."""
+
+    def __init__(self):
+        """Initialize the sample engine."""
+        self.engine_id = str(uuid.uuid4())
 
 class FunctionStudio:
     """A studio for managing LLM tools and function calling."""
@@ -23,11 +29,11 @@ class FunctionStudio:
         # Initialize message bus
         self.message_bus = MessageBus()
         
-        # Initialize observability bus
-        self.obs_bus = ObservabilityBus()
-        
+        # Initialize sample engine
+        self.engine = SampleEngine()
+
         # Initialize tool manager and register tools
-        self.tool_manager = ToolManager()
+        self.tool_manager = ToolManager(engine_reference=self.engine)
         
         # Register weather tool
         self.tool_manager.register_tool(get_weather)
@@ -35,7 +41,6 @@ class FunctionStudio:
         # Initialize LLM engine
         self.llm_engine = LLMEngine(
             message_bus=self.message_bus,
-            obs_bus=self.obs_bus
         )
         
         # Register OpenAI provider
@@ -49,12 +54,10 @@ class FunctionStudio:
     async def start(self):
         """Start the studio."""
         await self.message_bus.start()
-        await self.obs_bus.start()
         
     async def stop(self):
         """Stop the studio."""
         await self.message_bus.stop()
-        await self.obs_bus.stop()
         
     async def query(self, prompt: str) -> str:
         """Send a query to the LLM.
