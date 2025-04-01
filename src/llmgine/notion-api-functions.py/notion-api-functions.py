@@ -1,12 +1,34 @@
+# ======================================
+# Import
+# ======================================
+
+
 import os
+from dataclasses import dataclass
+from datetime import date
 
 import notion_client
 
-type person_id_type = str
-type project_id_type = str
-type task_id_type = str
-type progress_type = str
-type date_type = str
+# ======================================
+# Types
+# ======================================
+
+
+type user_name_type = str
+type discord_id_type = str
+type notion_id_type = str
+type notion_project_id_type = str
+type notion_task_id_type = str
+type notion_progress_type = str
+
+
+# an ID structs which contains all types of userids
+
+
+@dataclass
+class UserID_type:
+    discord_id: discord_id_type
+    notion_id: notion_id_type
 
 
 class NotionTaskAPI:
@@ -17,20 +39,20 @@ class NotionTaskAPI:
         # for each database # Figure out the Filter Object Syntax
         pass
 
-    def get_tasks(self, person_id: person_id_type, project_id: project_id_type):
+    def get_tasks(self, userID: UserID_type, notion_project_id: notion_project_id_type):
         # Function to read tasks from projects database
-        print(person_id, project_id)
+        print(userID, notion_project_id)
         pass
 
     def update_task(
         self,
-        task_id: task_id_type,
-        progress: progress_type,
-        date: date_type,
-        person: person_id_type,
+        notion_task_id: notion_task_id_type,
+        notion_progress: notion_progress_type,
+        date: date,
+        userID: UserID_type,
     ):
         # Function to update tasks
-        print(task_id, progress, date, person)
+        print(notion_task_id, notion_progress, date, userID)
         pass
 
     def todo(self):
@@ -44,10 +66,15 @@ class NotionTaskAPI:
     def create_task(
         self,
         task_name: str,
-        due_date: date_type,
-        person_id: person_id_type,
-        project_id: project_id_type,
+        due_date: date,
+        userID: UserID_type,
+        notion_project_id: notion_project_id_type,
     ):
         # Function to create tasks
-        print(task_name, due_date, person_id, project_id)
+        print(task_name, due_date, userID, notion_project_id)
         pass
+
+
+# Basic testing
+
+henryID = UserID_type(discord_id="1234567890", notion_id="1234567890")
