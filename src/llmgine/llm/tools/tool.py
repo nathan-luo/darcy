@@ -27,6 +27,14 @@ class Parameter:
         self.type = type
         self.required = required
 
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "name": self.name,
+            "description": self.description,
+            "type": self.type,
+            "required": self.required
+        }
+
 
 
 @dataclass
@@ -45,3 +53,12 @@ class Tool:
     parameters: List[Parameter]
     function: Union[ToolFunction, AsyncToolFunction]
     is_async: bool = False
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "name": self.name,
+            "description": self.description,
+            "parameters": [param.to_dict() for param in self.parameters],
+            "is_async": self.is_async
+        }
+

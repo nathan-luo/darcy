@@ -8,28 +8,29 @@ import asyncio
 import inspect
 import json
 import re
+import uuid
 from typing import Any, Dict, List, Optional, Type, Union, TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from llmgine.llm.engine.core import LLMEngine
     from llmgine.bus.bus import MessageBus
 
 from llmgine.llm.tools.tool import Tool, Parameter,ToolFunction, AsyncToolFunction
 from llmgine.llm.tools.tool_parser import OpenAIToolParser, ClaudeToolParser, DeepSeekToolParser
 from llmgine.messages.events import ToolCall
+from llmgine.llm.tools.tool_events import ToolRegisterEvent, ToolCompiledEvent, ToolExecuteEvent, ToolExecuteResultEvent
 
 
 class ToolManager:
     """Manages tool registration and execution."""
 
     def __init__(self, 
-                 engine: Optional['LLMEngine'] = None, 
-                 message_bus: Optional['MessageBus'] = None, 
+                 engine_reference, 
                  llm_model_name: Optional[str] = None):
         """Initialize the tool manager."""
+        self.tool_manager_id = str(uuid.uuid4())
         self.tools: Dict[str, Tool] = {}
-        self.engine = engine
-        self.message_bus = message_bus
+        self.engine_reference = engine_reference
+        self.message_bus = MessageBus()
         self.tool_parser = self._get_parser(llm_model_name)
 
 
@@ -121,6 +122,13 @@ class ToolManager:
             is_async=is_async
         )
 
+        # Publish the tool registration event
+        self.message_bus.emit_event(ToolRegisterEvent(
+            tool_manager_id=self.tool_manager_id,
+            engine_id=self.engine_reference.engine_id,
+            tool_info=tool.to_dict()
+        ))
+
         self.tools[name] = tool
 
     def get_tools(self) -> List[Tool]:
@@ -129,6 +137,13 @@ class ToolManager:
         Returns:
             A list of tools in the registered model's format
         """
+        # Publish the tool compilation event
+        self.message_bus.emit_event(ToolCompiledEvent(
+            tool_manager_id=self.tool_manager_id,
+            engine_id=self.engine_reference.engine_id,
+            tool_compiled_list=[tool.to_dict() for tool in self.tools.values()]
+        ))
+
         return [self.tool_parser.parse_tool(tool) for tool in self.tools.values()]
 
     async def execute_tool_call(self, tool_call: ToolCall) -> Any:
@@ -179,9 +194,27 @@ class ToolManager:
             else:
                 result = tool.function(**arguments)
 
+            # Publish the tool execution event
+            self.message_bus.emit_event(ToolExecuteEvent(
+                tool_manager_id=self.tool_manager_id,
+                engine_id=self.engine_reference.engine_id,
+                execution_succeed=True,
+                tool_info=tool.to_dict(),
+                tool_args=arguments,
+                tool_result=str(result)
+            ))
             return result
         except Exception as e:
-            raise
+            # Publish the tool execution event
+            self.message_bus.emit_event(ToolExecuteEvent(
+                tool_manager_id=self.tool_manager_id,
+                engine_id=self.engine_reference.engine_id,
+                execution_succeed=False,
+                tool_info=tool.to_dict(),
+                tool_args=arguments,
+                tool_result=str(e)
+            ))
+            raise e
 
     def _annotation_to_json_type(self, annotation: Type) -> str:
         """Convert a Python type annotation to a JSON schema type.
