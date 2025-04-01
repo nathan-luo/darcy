@@ -5,6 +5,32 @@ from typing import Any, Dict, List
 from llmgine.llm.context import ContextManager
 
 
+class SingleChatContextManager(ContextManager):
+    def __init__(self, max_context_length: int = 100):
+        """Initialize the single chat context manager.
+
+        Args:
+            max_context_length: Maximum number of messages to keep in context
+        """
+        self.context_raw = []
+
+    def get_context(self) -> List[Dict[str, Any]]:
+        """Get the conversation context for a specific conversation.
+
+        Returns:
+            List[Dict[str, Any]]: The conversation context/history
+        """
+        return self.context_raw
+
+    def add_message(self, message: Dict[str, Any]) -> None:
+        """Add a message to the conversation context.
+
+        Args:
+            message: The message to add to the context
+        """
+        self.context_raw.append(message)
+
+
 class InMemoryContextManager(ContextManager):
     """In-memory implementation of the context manager interface."""
 
