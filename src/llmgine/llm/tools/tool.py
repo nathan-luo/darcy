@@ -1,5 +1,7 @@
 import asyncio
+import asyncio
 from dataclasses import dataclass
+from typing import Any, Dict, Union, Callable, List
 from typing import Any, Dict, Union, Callable, List
 
 # Type for tool function
@@ -50,6 +52,7 @@ class Tool:
     """
     name: str
     description: str
+    parameters: List[Parameter]
     parameters: List[Parameter]
     function: Union[ToolFunction, AsyncToolFunction]
     is_async: bool = False
