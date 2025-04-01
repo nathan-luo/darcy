@@ -44,7 +44,7 @@ class ToolManager:
             tool_parser = OpenAIToolParser()
         return tool_parser
 
-    def register_tool(self, function: Union[ToolFunction, AsyncToolFunction]) -> None:
+    async def register_tool(self, function: Union[ToolFunction, AsyncToolFunction]) -> None:
         """Register a function as a tool.
         
         Args:
@@ -121,7 +121,7 @@ class ToolManager:
         )
 
         # Publish the tool registration event
-        self.message_bus.publish(ToolRegisterEvent(
+        await self.message_bus.publish(ToolRegisterEvent(
             tool_manager_id=self.tool_manager_id,
             engine_id=self.engine_reference.engine_id,
             tool_info=tool.to_dict()
@@ -129,14 +129,14 @@ class ToolManager:
 
         self.tools[name] = tool
 
-    def get_tools(self) -> List[Tool]:
+    async def get_tools(self) -> List[Tool]:
         """Get all registered tools.
         
         Returns:
             A list of tools in the registered model's format
         """
         # Publish the tool compilation event
-        self.message_bus.publish(ToolCompiledEvent(
+        await self.message_bus.publish(ToolCompiledEvent(
             tool_manager_id=self.tool_manager_id,
             engine_id=self.engine_reference.engine_id,
             tool_compiled_list=[tool.to_dict() for tool in self.tools.values()]
@@ -193,7 +193,7 @@ class ToolManager:
                 result = tool.function(**arguments)
 
             # Publish the tool execution event
-            self.message_bus.publish(ToolExecuteResultEvent(
+            await self.message_bus.publish(ToolExecuteResultEvent(
                 tool_manager_id=self.tool_manager_id,
                 engine_id=self.engine_reference.engine_id,
                 execution_succeed=True,
@@ -204,7 +204,7 @@ class ToolManager:
             return result
         except Exception as e:
             # Publish the tool execution event
-            self.message_bus.publish(ToolExecuteResultEvent(
+            await self.message_bus.publish(ToolExecuteResultEvent(
                 tool_manager_id=self.tool_manager_id,
                 engine_id=self.engine_reference.engine_id,
                 execution_succeed=False,
