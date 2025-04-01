@@ -9,6 +9,7 @@ import asyncio
 import os
 import json
 import dotenv
+import uuid
 from typing import List, Callable
 from openai import OpenAI
 import logging
@@ -22,6 +23,14 @@ dotenv.load_dotenv()
 logging.getLogger("openai").setLevel(logging.WARNING)  # or logging.ERROR
 logging.getLogger("httpx").setLevel(logging.WARNING)   # for HTTP client logging
 logging.getLogger().setLevel(logging.WARNING)          # for root logger
+
+
+class SampleEngine:
+    """A sample engine for testing."""
+
+    def __init__(self):
+        """Initialize the sample engine."""
+        self.engine_id = str(uuid.uuid4())
 
 # Define a class for managing LLM interactions
 class LLMManager:
@@ -79,12 +88,13 @@ class ChatContext:
 class ChatApplication:
     def __init__(self, api_key, model, system_message="You are a helpful assistant."):
         self.llm_manager = LLMManager(api_key)
-        self.tool_manager = ToolManager(llm_model_name=model)
+        self.engine = SampleEngine()
+        self.tool_manager = ToolManager(llm_model_name=model, engine_reference=self.engine)
         self.context = ChatContext(system_message)
     
-    def register_tool(self, func):
+    async def register_tool(self, func):
         """Register a function as a tool."""
-        self.tool_manager.register_tool(func)
+        await self.tool_manager.register_tool(func)
         return self
     
     async def process_user_input(self, user_input):
@@ -93,7 +103,7 @@ class ChatApplication:
         self.context.add_user_message(user_input)
         
         # Get schemas for registered tools
-        tools = self.tool_manager.get_tools()
+        tools = await self.tool_manager.get_tools()
         
         # Get initial response from LLM
         response = self.llm_manager.generate_response(
@@ -153,8 +163,7 @@ async def function_studio(model: str, tools: List[Callable], inputs: List[str]):
 
     # Register tools
     for tool in tools:
-        app.register_tool(tool)
-    print(f'Registered tools: {[tool["function"]["name"] for tool in app.tool_manager.get_tools()]}')
+        await app.register_tool(tool)
 
     # Process some user input
     for input in inputs:    
