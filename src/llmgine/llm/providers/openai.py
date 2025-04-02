@@ -37,7 +37,7 @@ class OpenAIProvider(LLMProvider):
 
     async def generate(
         self,
-        prompt: str,
+        prompt: str, 
         context: Optional[List[Dict[str, Any]]] = None,
         system_prompt: Optional[str] = None,
         temperature: Optional[float] = None,
