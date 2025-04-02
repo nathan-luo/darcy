@@ -86,15 +86,26 @@ if not NOTION_PRODUCTION_DATABASE_ID_PROJECTS:
 
 
 class NotionTaskAPI:
-    def __init__(self, database_id: notion_database_id_type):
+    def __init__(
+        self,
+        tasks_database_id: notion_database_id_type,
+        projects_database_id: notion_database_id_type,
+    ):
         self.client = notion_client.Client(auth=NOTION_API_KEY)
-        self.database_id = database_id
+        self.tasks_database_id = tasks_database_id
+        self.projects_database_id = projects_database_id
 
-        self.validate_database_id()
+        self.validate_database_id(client=self.client, database_id=self.tasks_database_id)
+        self.validate_database_id(
+            client=self.client, database_id=self.projects_database_id
+        )
 
-    def validate_database_id(self):
+    @staticmethod
+    def validate_database_id(
+        client: notion_client.Client, database_id: notion_database_id_type
+    ):
         # AI: fetch database to validate it exists and we have access
-        database = self.client.databases.retrieve(database_id=self.database_id)
+        database = client.databases.retrieve(database_id=database_id)
         print("Database ID is valid")
         print(database)
 
@@ -144,9 +155,12 @@ henryID = UserID_type(
     discord_id=discord_id_type("872718183692402688"), notion_id=notion_id_type("")
 )
 
-notion_api = NotionTaskAPI(database_id=NOTION_TESTING_DATABASE_ID_TASKS)
+notion_api_testing = NotionTaskAPI(
+    tasks_database_id=NOTION_TESTING_DATABASE_ID_TASKS,
+    projects_database_id=NOTION_TESTING_DATABASE_ID_PROJECTS,
+)
 
-notion_api.create_task(
+notion_api_testing.create_task(
     task_name="Test Task",
     due_date=date(2025, 1, 1),
     userID=henryID,
