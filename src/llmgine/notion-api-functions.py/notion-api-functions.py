@@ -197,7 +197,7 @@ class NotionTaskAPI:
 
         # quering Task database
         response = self.client.databases.query(
-            database_id=self.tasks_db_id, filter=filter_obj
+            database_id=self.tasks_database_id, filter=filter_obj
         )
         tasks = response.get("results", [])
         return tasks
@@ -281,6 +281,7 @@ notion_api_testing.create_task(
 
 projects = notion_api_testing.get_active_projects()
 
+# get the tasks for each project
 for proj in projects:
     tasks = notion_api_testing.get_tasks(userID=henryID, notion_project_id=proj)
     print(proj)
