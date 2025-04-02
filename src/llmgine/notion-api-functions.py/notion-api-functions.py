@@ -109,14 +109,12 @@ class NotionTaskAPI:
         print("Database ID is valid")
         print(database)
 
-    def create_filter_object_(self):
-        # for each database # Figure out the Filter Object Syntax
-        pass
-
-    def get_tasks(self, userID: UserID_type, notion_project_id: notion_project_id_type):
+    def get_tasks(
+        self, userID: UserID_type, notion_project_id: notion_project_id_type
+    ) -> list[notion_task_id_type]:
         # Function to read tasks from projects database
         print(userID, notion_project_id)
-        pass
+        return []
 
     def update_task(
         self,
@@ -124,32 +122,26 @@ class NotionTaskAPI:
         notion_progress: notion_progress_type,
         date: date,
         userID: UserID_type,
-    ):
+    ) -> None:
         # Function to update tasks
         print(notion_task_id, notion_progress, date, userID)
         pass
 
-    def todo(self):
-        # Be able to update a field with a specific user
-        pass
-
-    def get_active_projects(self):
+    def get_active_projects(self) -> list[notion_project_id_type]:
         # -> Parsed list of project ids and project names # Function to query active project
-        pass
+        return []
 
     def create_task(
         self,
         task_name: str,
         due_date: date,
         userID: UserID_type,
-        notion_database_id: notion_database_id_type,
-    ):
-        # Function to create tasks
-        print(task_name, due_date, userID, notion_database_id)
+    ) -> None:
         pass
 
 
 # Basic testing
+
 
 henryID = UserID_type(
     discord_id=discord_id_type("872718183692402688"), notion_id=notion_id_type("")
@@ -164,5 +156,4 @@ notion_api_testing.create_task(
     task_name="Test Task",
     due_date=date(2025, 1, 1),
     userID=henryID,
-    notion_database_id=NOTION_TESTING_DATABASE_ID_TASKS,
 )
