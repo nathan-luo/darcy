@@ -18,6 +18,7 @@ classifiers = [
     "Topic :: Software Development :: Libraries :: Python Modules",
 ]
 dependencies = [
+    "discord>=2.3.2",
     "litellm>=1.63.12",
     "rich>=13.9.4",
     "textual>=2.1.2",
