@@ -7,7 +7,7 @@ from typing import List, Optional, Dict, Any
 from openai import AsyncOpenAI
 from llmgine.messages.events import ToolCall
 
-
+# Where to store this?
 USAGE_PATH_REGISTRY: Dict[str, Dict[str, List[str]]] = {
     "openai": {
         "prompt_tokens": ["usage", "prompt_tokens"],
@@ -118,15 +118,14 @@ class OpenAIManager:
 
     async def generate(
         self,
-        prompt: str,
         context: Optional[List[Dict[str, Any]]] = None,
         temperature: Optional[float] = None,
         max_tokens: Optional[int] = None,
-        model: Optional[str] = "gpt-4",
+        model: Optional[str] = "gpt-4o-mini",
         tools: Optional[List[Dict[str, Any]]] = None,
         **kwargs,
     ) -> DefaultLLMResponse:
-        messages = context or [{"role": "user", "content": prompt}]
+        messages = context 
 
         response = await self.client.chat.completions.create(
             model=model,
