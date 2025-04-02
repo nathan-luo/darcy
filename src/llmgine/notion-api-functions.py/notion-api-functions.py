@@ -39,7 +39,7 @@ class UserID_type:
 # keep column names as constants as these are shared across requests
 # and can change
 
-PROJECT_NAME_PROPERTY = "Project"
+PROJECT_NAME_PROPERTY = "Name"
 TASK_NAME_PROPERTY = "Name"
 TASKS_FOR_PROJECT_PROPERTY = "Tasks for Project"
 TASK_DUE_DATE_PROPERTY = "Date"
@@ -205,6 +205,20 @@ class NotionTaskAPI:
             },
         )
 
+    @staticmethod
+    def remove_dashes(id_with_dashes: str) -> str:
+        # url has no dashes, but the id has them
+        return id_with_dashes.replace("-", "")
+
+    def get_all_tasks(self) -> list[notion_task_id_type]:
+        # Function to read tasks from projects database
+
+        response = self.client.databases.query(database_id=self.tasks_database_id)
+
+        tasks = response.get("results", [])
+
+        return [notion_task_id_type(task["id"]) for task in tasks]
+
     def get_tasks(
         self, userID: UserID_type, notion_project_id: notion_project_id_type
     ) -> list[notion_task_id_type]:
@@ -212,22 +226,7 @@ class NotionTaskAPI:
         # Function to read tasks from projects database
 
         # filter by Project AND UserID
-        filter_obj = {
-            "and": [
-                {
-                    "property": "Events/ Project Relation",
-                    "relation": {"contains": notion_project_id},
-                },
-                {"property": "In charge", "people": {"contains": userID.notion_id}},
-            ]
-        }
-
-        # quering Task database
-        response = self.client.databases.query(
-            database_id=self.tasks_database_id, filter=filter_obj
-        )
-        tasks = response.get("results", [])
-        return tasks
+        pass
 
     def update_task(
         self,
@@ -297,19 +296,20 @@ notion_api_production = NotionTaskAPI(
     projects_database_id=NOTION_PRODUCTION_DATABASE_ID_PROJECTS,
 )
 
-notion_api_production.create_task(
-    task_name="Test Task" + CHATBOT_FINGERPRINT,
-    due_date=date(2025, 1, 1),
-    userID=henryID,
-)
+# notion_api_production.create_task(
+#     task_name="Test Task" + CHATBOT_FINGERPRINT,
+#     due_date=date(2025, 1, 1),
+#     userID=henryID,
+# )
 
 projects = notion_api_production.get_active_projects()
+tasks = notion_api_production.get_all_tasks()
+print(tasks)
 
+# notion_api_production.create_project(project_name="Test Project" + CHATBOT_FINGERPRINT)
 
-notion_api_production.create_project(project_name="Test Project" + CHATBOT_FINGERPRINT)
-
-# get the tasks for each project
-for proj in projects:
-    tasks = notion_api_production.get_tasks(userID=henryID, notion_project_id=proj)
-    print(proj)
-    print(tasks)
+# # get the tasks for each project
+# for proj in projects:
+#     tasks = notion_api_production.get_tasks(userID=henryID, notion_project_id=proj)
+#     print(proj)
+#     print(tasks)
