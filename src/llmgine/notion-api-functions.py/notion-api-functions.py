@@ -33,7 +33,7 @@ class UserID_type:
 
 
 # ======================================
-# NOTION CONSTANTS
+# CONSTANTS
 # ======================================
 
 # keep column names as constants as these are shared across requests
@@ -44,6 +44,10 @@ TASK_NAME_PROPERTY = "Name"
 TASKS_FOR_PROJECT_PROPERTY = "Tasks for Project"
 TASK_DUE_DATE_PROPERTY = "Date"
 TASK_IN_CHARGE_PROPERTY = "In Charge"
+
+# while on discord it is obvious that the chatbot has sent a message,
+# notion doesn't have the same system, so it's important to see what darcy has done
+CHATBOT_FINGERPRINT = ">DarcyBotWasHere<"
 
 # ======================================
 # ENVIRONMENT VARIABLES WITH TYPES
@@ -294,7 +298,7 @@ notion_api_production = NotionTaskAPI(
 )
 
 notion_api_production.create_task(
-    task_name="Test Task id 3125571263564",
+    task_name="Test Task" + CHATBOT_FINGERPRINT,
     due_date=date(2025, 1, 1),
     userID=henryID,
 )
@@ -302,7 +306,7 @@ notion_api_production.create_task(
 projects = notion_api_production.get_active_projects()
 
 
-notion_api_production.create_project(project_name="Test Project id 3125571263564")
+notion_api_production.create_project(project_name="Test Project" + CHATBOT_FINGERPRINT)
 
 # get the tasks for each project
 for proj in projects:
