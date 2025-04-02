@@ -58,7 +58,7 @@ async def one_big_boom(interaction: discord.Interaction):
         client.sessions[user_id]["booms"] += 1
         await interaction.response.send_message(f"Now at {client.sessions[user_id]['booms']} big BOOMS!")
     else:
-        await interaction.response.send_message("Start a session first by mentioning me (@bot_name).")
+        await interaction.response.send_message("Start a session first by mentioning me (@Darcy).")
 
 @client.tree.command(name="boom_status", description="Check your BOOM count.", guild=GUILD_OBJECT)
 async def boom_status(interaction: discord.Interaction):
@@ -68,7 +68,7 @@ async def boom_status(interaction: discord.Interaction):
         response = f"You're currently at {boom_count} big BOOMS.\n" + ("BOOM!\n" * boom_count)
         await interaction.response.send_message(response)
     else:
-        await interaction.response.send_message("You don't have an active session.")
+        await interaction.response.send_message("Start a session first by mentioning me (@Darcy).")
 
 @client.tree.command(name="end", description="End your BOOM session.", guild=GUILD_OBJECT)
 async def end(interaction: discord.Interaction):
@@ -77,6 +77,29 @@ async def end(interaction: discord.Interaction):
         del client.sessions[user_id]
         await interaction.response.send_message("Your session has been ended.")
     else:
-        await interaction.response.send_message("You don't have an active session.")
+        await interaction.response.send_message("Start a session first by mentioning me (@Darcy).")
 
-client.run(DARCY_KEY)
+@client.tree.command(name="add_big_booms", description="Add multiple BOOMs to your count!", guild=GUILD_OBJECT)
+async def add_big_booms(interaction: discord.Interaction):
+    user_id = interaction.user.id
+    
+    if user_id not in client.sessions:
+        await interaction.response.send_message("Start a session first by mentioning me (@Darcy).")
+        return
+
+    await interaction.response.send_message("How many big BOOMs do you want to add? Type a number.")
+
+    def check(msg):
+        return msg.author.id == user_id and msg.channel.id == interaction.channel_id and msg.content.isdigit()
+
+    try:
+        msg = await client.wait_for("message", timeout=30.0, check=check)
+        boom_count = int(msg.content)
+        client.sessions[user_id]["booms"] += boom_count
+        await msg.channel.send(f"Added {boom_count} big BOOMs! Now at {client.sessions[user_id]['booms']} big BOOMs!")
+    except TimeoutError:
+        await interaction.channel.send("You took too long to respond. Try again!")
+
+
+if __name__ == "__main__":
+    client.run(DARCY_KEY)
