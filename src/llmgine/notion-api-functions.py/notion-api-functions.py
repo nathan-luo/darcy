@@ -21,6 +21,7 @@ type notion_database_id_type = str
 type notion_project_id_type = str
 type notion_task_id_type = str
 type notion_progress_type = str
+type notion_api_key_type = str
 
 
 @dataclass
@@ -29,9 +30,54 @@ class UserID_type:
     notion_id: notion_id_type
 
 
+# ======================================
+# ENVIRONMENT VARIABLES WITH TYPES
+# ======================================
+
 load_dotenv()
 
-print(os.getenv("NOTION_API_KEY"), os.getenv("NOTION_TESTING_DATABASE_ID"))
+# AI: Convert environment variable to proper type after validation
+NOTION_API_KEY: notion_api_key_type = os.getenv("NOTION_API_KEY", "")
+if not NOTION_API_KEY:
+    raise ValueError("NOTION_API_KEY environment variable is not set")
+
+
+# ---------------------
+# projects vs tasks
+# testing vs production
+# ---------------------
+
+
+NOTION_TESTING_DATABASE_ID_TASKS: notion_database_id_type = os.getenv(
+    "NOTION_TESTING_DATABASE_ID_TASKS", ""
+)
+if not NOTION_TESTING_DATABASE_ID_TASKS:
+    raise ValueError("NOTION_TESTING_DATABASE_ID_TASKS environment variable is not set")
+
+NOTION_TESTING_DATABASE_ID_PROJECTS: notion_database_id_type = os.getenv(
+    "NOTION_TESTING_DATABASE_ID_PROJECTS", ""
+)
+if not NOTION_TESTING_DATABASE_ID_PROJECTS:
+    raise ValueError(
+        "NOTION_TESTING_DATABASE_ID_PROJECTS environment variable is not set"
+    )
+
+NOTION_PRODUCTION_DATABASE_ID_TASKS: notion_database_id_type = os.getenv(
+    "NOTION_PRODUCTION_DATABASE_ID_TASKS", ""
+)
+if not NOTION_PRODUCTION_DATABASE_ID_TASKS:
+    raise ValueError(
+        "NOTION_PRODUCTION_DATABASE_ID_TASKS environment variable is not set"
+    )
+
+NOTION_PRODUCTION_DATABASE_ID_PROJECTS: notion_database_id_type = os.getenv(
+    "NOTION_PRODUCTION_DATABASE_ID_PROJECTS", ""
+)
+if not NOTION_PRODUCTION_DATABASE_ID_PROJECTS:
+    raise ValueError(
+        "NOTION_PRODUCTION_DATABASE_ID_PROJECTS environment variable is not set"
+    )
+
 
 # ======================================
 # Functions
@@ -40,7 +86,7 @@ print(os.getenv("NOTION_API_KEY"), os.getenv("NOTION_TESTING_DATABASE_ID"))
 
 class NotionTaskAPI:
     def __init__(self, database_id: notion_database_id_type):
-        self.client = notion_client.Client(auth=os.getenv("NOTION_API_KEY"))
+        self.client = notion_client.Client(auth=NOTION_API_KEY)
         self.database_id = database_id
 
         self.validate_database_id()
@@ -93,6 +139,13 @@ class NotionTaskAPI:
 
 # Basic testing
 
-# henryID = UserID_type(discord_id="1234567890", notion_id="1234567890")
+henryID = UserID_type(discord_id="872718183692402688", notion_id="")
 
-notion_api = NotionTaskAPI(database_id=os.getenv("NOTION_TESTING_DATABASE_ID_TASKS"))
+notion_api = NotionTaskAPI(database_id=NOTION_TESTING_DATABASE_ID_TASKS)
+
+notion_api.create_task(
+    task_name="Test Task",
+    due_date=date(2025, 1, 1),
+    userID=henryID,
+    notion_project_id=NOTION_TESTING_DATABASE_ID_TASKS,
+)
