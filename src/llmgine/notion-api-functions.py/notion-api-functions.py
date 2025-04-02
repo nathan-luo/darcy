@@ -33,6 +33,19 @@ class UserID_type:
 
 
 # ======================================
+# NOTION CONSTANTS
+# ======================================
+
+# keep column names as constants as these are shared across requests
+# and can change
+
+PROJECT_NAME_PROPERTY = "Project"
+TASK_NAME_PROPERTY = "Name"
+TASKS_FOR_PROJECT_PROPERTY = "Tasks for Project"
+TASK_DUE_DATE_PROPERTY = "Date"
+TASK_IN_CHARGE_PROPERTY = "In Charge"
+
+# ======================================
 # ENVIRONMENT VARIABLES WITH TYPES
 # ======================================
 
@@ -178,6 +191,16 @@ class NotionTaskAPI:
         print("Database ID is valid")  # if throws no error
         # print(database)
 
+    # TODO add args
+    def create_project(self, project_name: str) -> None:
+        # create a project in the projects database
+        self.client.pages.create(
+            parent={"database_id": self.projects_database_id},
+            properties={
+                PROJECT_NAME_PROPERTY: {"title": [{"text": {"content": project_name}}]}
+            },
+        )
+
     def get_tasks(
         self, userID: UserID_type, notion_project_id: notion_project_id_type
     ) -> list[notion_task_id_type]:
@@ -240,15 +263,18 @@ class NotionTaskAPI:
         self,
         task_name: str,
         due_date: date,
-        userID: UserID_type,
+        userID: UserID_type,  # TODO change to a list
+        # TODO add more
     ) -> None:
         # AI: Create a new task in the Notion database with the given parameters
         self.client.pages.create(
             parent={"database_id": self.tasks_database_id},
             properties={
-                "Name": {"title": [{"text": {"content": task_name}}]},
-                "Due Date": {"date": {"start": due_date.isoformat()}},
-                "Assignee": {"people": [{"object": "user", "id": userID.notion_id}]},
+                TASK_NAME_PROPERTY: {"title": [{"text": {"content": task_name}}]},
+                TASK_DUE_DATE_PROPERTY: {"date": {"start": due_date.isoformat()}},
+                TASK_IN_CHARGE_PROPERTY: {
+                    "people": [{"object": "user", "id": userID.notion_id}]
+                },
             },
         )
 
@@ -262,27 +288,24 @@ henryID = UserID_type(
     notion_id=notion_id_type("149d872b-594c-8184-ba71-00021997dcb9"),
 )
 
-notion_api_testing = NotionTaskAPI(
-    tasks_database_id=NOTION_TESTING_DATABASE_ID_TASKS,
-    projects_database_id=NOTION_TESTING_DATABASE_ID_PROJECTS,
+notion_api_production = NotionTaskAPI(
+    tasks_database_id=NOTION_PRODUCTION_DATABASE_ID_TASKS,
+    projects_database_id=NOTION_PRODUCTION_DATABASE_ID_PROJECTS,
 )
 
-# notion_api_production = NotionTaskAPI(
-#     tasks_database_id=NOTION_PRODUCTION_DATABASE_ID_TASKS,
-#     projects_database_id=NOTION_PRODUCTION_DATABASE_ID_PROJECTS,
-# )
-
-
-notion_api_testing.create_task(
-    task_name="Test Task",
+notion_api_production.create_task(
+    task_name="Test Task id 3125571263564",
     due_date=date(2025, 1, 1),
     userID=henryID,
 )
 
-projects = notion_api_testing.get_active_projects()
+projects = notion_api_production.get_active_projects()
+
+
+notion_api_production.create_project(project_name="Test Project id 3125571263564")
 
 # get the tasks for each project
 for proj in projects:
-    tasks = notion_api_testing.get_tasks(userID=henryID, notion_project_id=proj)
+    tasks = notion_api_production.get_tasks(userID=henryID, notion_project_id=proj)
     print(proj)
     print(tasks)
