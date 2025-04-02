@@ -182,8 +182,25 @@ class NotionTaskAPI:
         self, userID: UserID_type, notion_project_id: notion_project_id_type
     ) -> list[notion_task_id_type]:
         # Function to read tasks from projects database
-        print(userID, notion_project_id)
-        return []
+        # Function to read tasks from projects database
+
+        # filter by Project AND UserID
+        filter_obj = {
+            "and": [
+                {
+                    "property": "Events/ Project Relation",
+                    "relation": {"contains": notion_project_id},
+                },
+                {"property": "In charge", "people": {"contains": userID.notion_id}},
+            ]
+        }
+
+        # quering Task database
+        response = self.client.databases.query(
+            database_id=self.tasks_db_id, filter=filter_obj
+        )
+        tasks = response.get("results", [])
+        return tasks
 
     def update_task(
         self,
