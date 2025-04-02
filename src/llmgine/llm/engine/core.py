@@ -18,7 +18,7 @@ from llmgine.llm.engine.messages import (
 )
 from llmgine.llm.providers import DefaultLLMManager, create_tool_call
 from llmgine.llm.providers.response import OpenAIManager
-from llmgine.llm.tools import default_tool_manager
+from llmgine.llm.tools.tool_manager import ToolManager
 from llmgine.messages.commands import CommandResult
 from llmgine.messages.events import LLMResponse, ToolCall
 
@@ -48,9 +48,9 @@ class LLMEngine:
         self.id = str(uuid.uuid4())
         self.session_id = session_id
         # Create tightly coupled components
-        self.llm_manager = OpenAIManager()
-        self.context_manager = SimpleChatHistory(self)
-        self.tool_manager = 
+        self.llm_manager = DefaultLLMManager()
+        self.context_manager = InMemoryContextManager()
+        self.tool_manager = default_tool_manager
 
         # Register command handlers
         self._register_command_handlers()
@@ -155,7 +155,7 @@ class LLMEngine:
         # Get tool descriptions if enabled
         tools = None
         if command.use_tools and self.tool_manager.tools:
-            tools = self.tool_manager.get_tool_descriptions()
+            tools = self.tool_manager.get_tools()
 
         try:
             # Generate response using the LLM manager
