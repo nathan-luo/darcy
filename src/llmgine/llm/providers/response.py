@@ -5,6 +5,8 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import List, Optional, Dict, Any
 from openai import AsyncOpenAI
+from llmgine.bus.bus import MessageBus
+from llmgine.llm.providers.events import LLMResponseEvent
 from llmgine.messages.events import ToolCall
 
 # Where to store this?
@@ -29,6 +31,7 @@ class Usage:
     completion_tokens: int
     total_tokens: int
 
+
 # Defining exactly what every class must provide
 class LLMResponse(ABC):
     @property
@@ -50,6 +53,7 @@ class LLMResponse(ABC):
     @property
     @abstractmethod
     def usage(self) -> Usage: ...
+
 
 # Generic LLM response parser
 class DefaultLLMResponse(LLMResponse):
@@ -100,6 +104,7 @@ class DefaultLLMResponse(LLMResponse):
     @property
     def usage(self) -> Usage:
         usage_path = USAGE_PATH_REGISTRY.get(self._usage_key, {})
+
         def get_token_value(name: str) -> int:
             path = usage_path.get(name, [])
             return self._get_nested(path) if path else 0
@@ -113,36 +118,49 @@ class DefaultLLMResponse(LLMResponse):
 
 # manages OpenAI instance
 class OpenAIManager:
-    def __init__(self, api_key: str):
-        self.client = AsyncOpenAI(api_key=api_key)
+    def __init__(self, engine: LLMEngine):
+        self.engine = engine
+        self.engine_id = engine.engine_id
+        self.session_id = engine.session_id
+        self.bus = MessageBus()
+        import dotenv
+        import os
+
+        dotenv.load_dotenv()
+        self.api_key = os.getenv("OPENAI_API_KEY")
+        self.client = AsyncOpenAI(self.api_key)
 
     async def generate(
         self,
-        context: Optional[List[Dict[str, Any]]] = None,
+        context: List[Dict[str, Any]],
         temperature: Optional[float] = None,
         max_tokens: Optional[int] = None,
         model: Optional[str] = "gpt-4o-mini",
         tools: Optional[List[Dict[str, Any]]] = None,
         **kwargs,
     ) -> DefaultLLMResponse:
-        messages = context 
-
         response = await self.client.chat.completions.create(
             model=model,
-            messages=messages,
+            messages=context,
             temperature=temperature or 0.7,
             max_tokens=max_tokens or 512,
             tools=tools,
             **kwargs,
         )
 
-        raw_response = response.model_dump()
-
+        raw_response = response
+        self.bus.publish(
+            LLMResponseEvent(
+                session_id=self.session_id,
+                engine_id=self.engine_id,
+                response=raw_response,
+            )
+        )
         # returns default llm response from OpenAI instance
         return DefaultLLMResponse(
             raw_response=raw_response,
             content_path=["choices", "0", "message", "content"],
             tool_call_path=["choices", "0", "message", "tool_calls"],
             finish_reason_path=["choices", "0", "finish_reason"],
-            usage_key="openai"
+            usage_key="openai",
         )

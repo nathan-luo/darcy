@@ -1,8 +1,58 @@
 """In-memory implementation of the ContextManager interface."""
 
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 from llmgine.llm.context import ContextManager
+from llmgine.llm.engine.core import LLMEngine
+from llmgine.llm.providers.response import DefaultLLMResponse
+
+
+class SimpleChatHistory:
+    def __init__(self, engine: LLMEngine):
+        self.engine = engine
+        self.engine_id = engine.engine_id
+        self.session_id = engine.session_id
+        self.response_log: List[Any] = []  # need to define type
+        self.chat_history: List[Any] = []
+        self.system: Optional[str] = None
+
+    def set_system_prompt(self, prompt: str):
+        self.system_prompt = prompt
+
+    def store_response(self, response: DefaultLLMResponse, role: str):
+        self.response_log.append(response)
+        self.chat_history.append({"role": role, "content": response.content})
+
+    def store_string(self, string: str, role: str):
+        self.response_log.append([role, string])
+        self.chat_history.append({"role": role, "content": string})
+
+    def store_tool_response(self, response: DefaultLLMResponse):
+        """Store a tool response in the chat history"""
+        self.response_log.append(response)
+        self.chat_history.append(response.full.choices[0].message)
+        for tool_call in response.full.choices[0].message.tool_calls:
+            self.chat_history.append(tool_call)
+
+    def store_function_call_result(self, result: Dict):
+        """Store function call result in the chat history
+
+        Args:
+            result: Dictionary containing role, tool_call_id, name, and result
+        """
+        self.response_log.append(result)
+        self.chat_history.append(result)
+
+    def retrieve(self):
+        result = self.chat_history.copy()
+        if self.system_prompt:
+            result.insert(0, {"role": "system", "content": self.system_prompt})
+        return result
+
+    def clear(self):
+        self.response_log = []
+        self.chat_history = []
+        self.system_prompt = ""
 
 
 class InMemoryContextManager(ContextManager):
