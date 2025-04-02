@@ -279,4 +279,9 @@ notion_api_testing.create_task(
     userID=henryID,
 )
 
-print(notion_api_testing.get_active_projects())
+projects = notion_api_testing.get_active_projects()
+
+for proj in projects:
+    tasks = notion_api_testing.get_tasks(userID=henryID, notion_project_id=proj)
+    print(proj)
+    print(tasks)
