@@ -206,7 +206,15 @@ class NotionTaskAPI:
         due_date: date,
         userID: UserID_type,
     ) -> None:
-        self.client.pages.create()
+        # AI: Create a new task in the Notion database with the given parameters
+        self.client.pages.create(
+            parent={"database_id": self.tasks_database_id},
+            properties={
+                "Name": {"title": [{"text": {"content": task_name}}]},
+                "Due Date": {"date": {"start": due_date.isoformat()}},
+                "Assignee": {"people": [{"object": "user", "id": userID.notion_id}]},
+            },
+        )
 
 
 # Basic testing
