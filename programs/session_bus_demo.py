@@ -30,6 +30,16 @@ from llmgine.messages.events import Event
 from llmgine.observability.events import EventLogWrapper
 
 
+# --- Custom Logging Filter ---
+class SessionFilter(logging.Filter):
+    """Filter that ensures all log records have a session_id field."""
+
+    def filter(self, record):
+        if not hasattr(record, "session_id"):
+            record.session_id = "global"
+        return True
+
+
 # --- Create a custom configuration for our demo ---
 
 
@@ -46,7 +56,6 @@ class SessionDemoConfig(ApplicationConfig):
     # File logging setup
     enable_file_handler: bool = True
     file_handler_log_dir: str = "logs/session_demo"
-    file_handler_log_filename: str = "session_demo_events.jsonl"
 
     # Console output for demo visibility
     enable_console_handler: bool = True
@@ -267,6 +276,25 @@ class SessionDemoBootstrap(ApplicationBootstrap[SessionDemoConfig]):
                 "Tracing has been disabled for this demo", extra={"session_id": "global"}
             )
 
+    async def bootstrap(self) -> None:
+        """Bootstrap the application."""
+        # Call the parent bootstrap method first
+        await super().bootstrap()
+
+        # Add our session filter to the root logger and all existing handlers
+        session_filter = SessionFilter()
+        root_logger = logging.getLogger()
+        root_logger.addFilter(session_filter)
+
+        # Also add to all handlers
+        for handler in root_logger.handlers:
+            handler.addFilter(session_filter)
+
+        logging.info(
+            "Session filter added to ensure all logs have session_id",
+            extra={"session_id": "global"},
+        )
+
     def _register_command_handlers(self) -> None:
         """Register our demo command handlers."""
         # Register the calculator command handler
@@ -416,8 +444,7 @@ class SessionDemoBootstrap(ApplicationBootstrap[SessionDemoConfig]):
         log_file = self.config.file_handler_log_filename
 
         if self.config.enable_file_handler:
-            log_path = os.path.join(log_dir, log_file)
-            print(f"Event logs written to: {log_path}")
+            print(f"Event logs written to: {log_dir}")
         else:
             print("File logging was not enabled.")
 
@@ -444,7 +471,7 @@ async def main():
         config = SessionDemoConfig()
 
         # You can enable or disable tracing here
-        # config.enable_tracing = False  # Uncomment to disable tracing
+        config.enable_tracing = False  # Uncomment to disable tracing
 
         # Create logs directory if it doesn't exist
         if config.enable_file_handler:
