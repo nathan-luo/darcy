@@ -3,6 +3,7 @@ from typing import Callable, Optional, Type, Any
 import asyncio
 import time
 import uuid
+import contextvars
 
 # Import Event directly to avoid circular import
 from llmgine.messages.events import Event
