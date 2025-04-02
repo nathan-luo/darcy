@@ -4,8 +4,23 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import List, Optional, Dict, Any
+from openai import AsyncOpenAI
 from llmgine.messages.events import ToolCall
 
+
+USAGE_PATH_REGISTRY: Dict[str, Dict[str, List[str]]] = {
+    "openai": {
+        "prompt_tokens": ["usage", "prompt_tokens"],
+        "completion_tokens": ["usage", "completion_tokens"],
+        "total_tokens": ["usage", "total_tokens"],
+    },
+    "anthropic": {
+        "prompt_tokens": ["usage", "input_tokens"],
+        "completion_tokens": ["usage", "output_tokens"],
+        "total_tokens": ["usage", "total_tokens"],
+    },
+    # Add more providers as needed
+}
 
 
 @dataclass
@@ -36,7 +51,7 @@ class LLMResponse(ABC):
     @abstractmethod
     def usage(self) -> Usage: ...
 
-
+# Generic LLM response parser
 class DefaultLLMResponse(LLMResponse):
     def __init__(
         self,
@@ -44,19 +59,13 @@ class DefaultLLMResponse(LLMResponse):
         content_path: List[str],
         tool_call_path: Optional[List[str]] = None,
         finish_reason_path: Optional[List[str]] = None,
-        usage_path: Optional[Dict[str, List[str]]] = None,
+        usage_key: Optional[str] = None,
     ):
-        """
-        content_path: list of keys to navigate to the content
-        tool_call_path: list of keys to navigate to tool calls
-        finish_reason_path: list of keys to navigate to finish reason
-        usage_path: dict with keys 'prompt_tokens', 'completion_tokens', 'total_tokens'
-        """
         self.raw = raw_response
         self._content_path = content_path
         self._tool_call_path = tool_call_path
         self._finish_reason_path = finish_reason_path
-        self._usage_path = usage_path or {}
+        self._usage_key = usage_key
 
     def _get_nested(self, path: List[str]) -> Any:
         data = self.raw
@@ -90,8 +99,9 @@ class DefaultLLMResponse(LLMResponse):
 
     @property
     def usage(self) -> Usage:
+        usage_path = USAGE_PATH_REGISTRY.get(self._usage_key, {})
         def get_token_value(name: str) -> int:
-            path = self._usage_path.get(name, [])
+            path = usage_path.get(name, [])
             return self._get_nested(path) if path else 0
 
         return Usage(
@@ -101,9 +111,8 @@ class DefaultLLMResponse(LLMResponse):
         )
 
 
-
-
-class OpenAIManager(LLMManager):
+# manages OpenAI instance
+class OpenAIManager:
     def __init__(self, api_key: str):
         self.client = AsyncOpenAI(api_key=api_key)
 
@@ -116,7 +125,7 @@ class OpenAIManager(LLMManager):
         model: Optional[str] = "gpt-4",
         tools: Optional[List[Dict[str, Any]]] = None,
         **kwargs,
-    ) -> OpenAILLMResponse:
+    ) -> DefaultLLMResponse:
         messages = context or [{"role": "user", "content": prompt}]
 
         response = await self.client.chat.completions.create(
@@ -128,34 +137,13 @@ class OpenAIManager(LLMManager):
             **kwargs,
         )
 
-        return OpenAILLMResponse.from_openai(response)
+        raw_response = response.model_dump()
 
-# llm/response.py
-
-from typing import Any, Dict
-from llm.types import LLMResponse  # abstract base class
-
-class OpenAILLMResponse(LLMResponse):
-    def __init__(self, content: str, raw: Dict[str, Any], usage: Dict[str, int]):
-        self.content = content
-        self.raw = raw
-        self.usage = usage
-
-    @classmethod
-    def from_openai(cls, response: Any) -> "OpenAILLMResponse":
-        choice = response.choices[0].message
-        usage = response.usage.dict() if hasattr(response.usage, "dict") else response.usage
-        return cls(
-            content=choice.content,
-            raw=response.model_dump(),  # full raw response
-            usage=usage,
+        # returns default llm response from OpenAI instance
+        return DefaultLLMResponse(
+            raw_response=raw_response,
+            content_path=["choices", "0", "message", "content"],
+            tool_call_path=["choices", "0", "message", "tool_calls"],
+            finish_reason_path=["choices", "0", "finish_reason"],
+            usage_key="openai"
         )
-
-    def get_content(self) -> str:
-        return self.content
-
-    def get_usage(self) -> Dict[str, int]:
-        return self.usage
-
-    def get_raw(self) -> Dict[str, Any]:
-        return self.raw
