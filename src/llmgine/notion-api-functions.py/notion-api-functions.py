@@ -5,6 +5,7 @@
 import os
 from dataclasses import dataclass
 from datetime import date
+from typing import NewType
 
 import notion_client
 from dotenv import load_dotenv
@@ -13,15 +14,15 @@ from dotenv import load_dotenv
 # Types
 # ======================================
 
-
-type user_name_type = str
-type discord_id_type = str
-type notion_id_type = str
-type notion_database_id_type = str
-type notion_project_id_type = str
-type notion_task_id_type = str
-type notion_progress_type = str
-type notion_api_key_type = str
+# AI: Using NewType to create distinct types that can't be implicitly converted
+user_name_type = NewType("user_name_type", str)
+discord_id_type = NewType("discord_id_type", str)
+notion_id_type = NewType("notion_id_type", str)
+notion_database_id_type = NewType("notion_database_id_type", str)
+notion_project_id_type = NewType("notion_project_id_type", str)
+notion_task_id_type = NewType("notion_task_id_type", str)
+notion_progress_type = NewType("notion_progress_type", str)
+notion_api_key_type = NewType("notion_api_key_type", str)
 
 
 @dataclass
@@ -37,7 +38,7 @@ class UserID_type:
 load_dotenv()
 
 # AI: Convert environment variable to proper type after validation
-NOTION_API_KEY: notion_api_key_type = os.getenv("NOTION_API_KEY", "")
+NOTION_API_KEY: notion_api_key_type = notion_api_key_type(os.getenv("NOTION_API_KEY", ""))
 if not NOTION_API_KEY:
     raise ValueError("NOTION_API_KEY environment variable is not set")
 
@@ -48,30 +49,30 @@ if not NOTION_API_KEY:
 # ---------------------
 
 
-NOTION_TESTING_DATABASE_ID_TASKS: notion_database_id_type = os.getenv(
-    "NOTION_TESTING_DATABASE_ID_TASKS", ""
+NOTION_TESTING_DATABASE_ID_TASKS: notion_database_id_type = notion_database_id_type(
+    os.getenv("NOTION_TESTING_DATABASE_ID_TASKS", "")
 )
 if not NOTION_TESTING_DATABASE_ID_TASKS:
     raise ValueError("NOTION_TESTING_DATABASE_ID_TASKS environment variable is not set")
 
-NOTION_TESTING_DATABASE_ID_PROJECTS: notion_database_id_type = os.getenv(
-    "NOTION_TESTING_DATABASE_ID_PROJECTS", ""
+NOTION_TESTING_DATABASE_ID_PROJECTS: notion_database_id_type = notion_database_id_type(
+    os.getenv("NOTION_TESTING_DATABASE_ID_PROJECTS", "")
 )
 if not NOTION_TESTING_DATABASE_ID_PROJECTS:
     raise ValueError(
         "NOTION_TESTING_DATABASE_ID_PROJECTS environment variable is not set"
     )
 
-NOTION_PRODUCTION_DATABASE_ID_TASKS: notion_database_id_type = os.getenv(
-    "NOTION_PRODUCTION_DATABASE_ID_TASKS", ""
+NOTION_PRODUCTION_DATABASE_ID_TASKS: notion_database_id_type = notion_database_id_type(
+    os.getenv("NOTION_PRODUCTION_DATABASE_ID_TASKS", "")
 )
 if not NOTION_PRODUCTION_DATABASE_ID_TASKS:
     raise ValueError(
         "NOTION_PRODUCTION_DATABASE_ID_TASKS environment variable is not set"
     )
 
-NOTION_PRODUCTION_DATABASE_ID_PROJECTS: notion_database_id_type = os.getenv(
-    "NOTION_PRODUCTION_DATABASE_ID_PROJECTS", ""
+NOTION_PRODUCTION_DATABASE_ID_PROJECTS: notion_database_id_type = notion_database_id_type(
+    os.getenv("NOTION_PRODUCTION_DATABASE_ID_PROJECTS", "")
 )
 if not NOTION_PRODUCTION_DATABASE_ID_PROJECTS:
     raise ValueError(
@@ -130,16 +131,18 @@ class NotionTaskAPI:
         task_name: str,
         due_date: date,
         userID: UserID_type,
-        notion_project_id: notion_project_id_type,
+        notion_database_id: notion_database_id_type,
     ):
         # Function to create tasks
-        print(task_name, due_date, userID, notion_project_id)
+        print(task_name, due_date, userID, notion_database_id)
         pass
 
 
 # Basic testing
 
-henryID = UserID_type(discord_id="872718183692402688", notion_id="")
+henryID = UserID_type(
+    discord_id=discord_id_type("872718183692402688"), notion_id=notion_id_type("")
+)
 
 notion_api = NotionTaskAPI(database_id=NOTION_TESTING_DATABASE_ID_TASKS)
 
@@ -147,5 +150,5 @@ notion_api.create_task(
     task_name="Test Task",
     due_date=date(2025, 1, 1),
     userID=henryID,
-    notion_project_id=NOTION_TESTING_DATABASE_ID_TASKS,
+    notion_database_id=NOTION_TESTING_DATABASE_ID_TASKS,
 )
