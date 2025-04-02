@@ -197,8 +197,27 @@ class NotionTaskAPI:
         pass
 
     def get_active_projects(self) -> list[notion_project_id_type]:
-        # -> Parsed list of project ids and project names # Function to query active project
-        return []
+        # AI: Query active projects from Notion projects database
+        response = self.client.databases.query(
+            database_id=self.projects_database_id,
+            # TODO filter based on active
+        )
+
+        projects: list[notion_project_id_type] = []
+
+        # AI: Process results ignoring typing issues for now
+        try:
+            for page in response["results"]:
+                project_id = notion_project_id_type(page["id"])
+                projects.append(project_id)
+        except (KeyError, TypeError) as e:
+            print(f"Error processing Notion API response: {e}")
+
+        # TODO is this a correct ID?
+        # This is what the url is 1c8c2e93a41280808718ef53e0144f87?v=1c8c2e93a4128012bf84000ceefaeedb
+        # This is is returned by the function 1c8c2e93-a412-805e-a263-efad29cd7a2f
+
+        return projects
 
     def create_task(
         self,
@@ -242,3 +261,5 @@ notion_api_testing.create_task(
     due_date=date(2025, 1, 1),
     userID=henryID,
 )
+
+print(notion_api_testing.get_active_projects())
