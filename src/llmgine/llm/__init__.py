@@ -33,8 +33,7 @@ from llmgine.llm.providers import (
 
 # Tool management
 from llmgine.llm.tools import (
-    default_tool_manager,
-    ToolDescription, 
+    Tool, 
     ToolManager
 )
 
@@ -64,7 +63,6 @@ __all__ = [
     "InMemoryContextManager",
     
     # Tools
-    "default_tool_manager",
-    "ToolDescription",
+    "Tool",
     "ToolManager",
 ]
