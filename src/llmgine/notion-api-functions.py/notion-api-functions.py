@@ -50,15 +50,6 @@ TASK_IN_CHARGE_PROPERTY = "In Charge"
 CHATBOT_FINGERPRINT = ">DarcyBotWasHere<"
 
 
-class NotionStatus(Enum):
-    BLOCKED = "Blocked"
-    NOT_STARTED = "Not started"
-    IN_PROGRESS = "In progress"
-    TO_REVIEW = "To Review"
-    DONE = "Done"
-    ARCHIVE = "Archive"
-
-
 # ======================================
 # ENVIRONMENT VARIABLES WITH TYPES
 # ======================================
@@ -181,7 +172,7 @@ def get_properties_of_database(database_id: notion_database_id_type) -> list[str
     return database["properties"].keys()
 
 
-print(get_properties_of_database(NOTION_PRODUCTION_DATABASE_ID_TASKS))
+# print(get_properties_of_database(NOTION_PRODUCTION_DATABASE_ID_TASKS))
 
 
 # ======================================
@@ -189,15 +180,15 @@ print(get_properties_of_database(NOTION_PRODUCTION_DATABASE_ID_TASKS))
 # ======================================
 
 
-def get_enum_ids(database_id: notion_database_id_type):
+def get_enum_ids(database_id: notion_database_id_type, property_name: str):
     # AI: Get status ids of a database
 
     print("fn get_enum_ids")
     database = NOTION_CLIENT.databases.retrieve(database_id=database_id)
-    print(database["properties"]["Status"])
+    print(database["properties"][property_name])
 
 
-# print(get_enum_ids(NOTION_PRODUCTION_DATABASE_ID_TASKS))
+# print(get_enum_ids(NOTION_PRODUCTION_DATABASE_ID_TASKS, "Status"))
 class STATUS_ENUM_NOTION_PRODUCTION_DATABASE_ID_TASKS(str, Enum):
     # AI: Using str as base class to maintain string values while having enum functionality
     NotStarted = "e07b4872-6baf-464e-8ad9-abf768286e49"
@@ -209,6 +200,11 @@ class STATUS_ENUM_NOTION_PRODUCTION_DATABASE_ID_TASKS(str, Enum):
 
 
 # TODO other enums
+
+print(get_enum_ids(NOTION_PRODUCTION_DATABASE_ID_PROJECTS, "Type"))
+exit()
+
+print(get_enum_ids(NOTION_PRODUCTION_DATABASE_ID_PROJECTS, "Progress"))
 
 
 # ======================================
