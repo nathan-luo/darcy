@@ -307,6 +307,8 @@ class NotionTaskAPI:
 
         # ERROR
 
+        # TODO     <<<< THIS IS BETTER. Find status ids
+
         # TODO fix  : i think it wants us to define a bunch of status props
         # notion_client.errors.APIResponseError: body failed validation. Fix one:
         # body.properties.Status.title should be defined, instead was `undefined`.
