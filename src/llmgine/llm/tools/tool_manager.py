@@ -30,13 +30,12 @@ from llmgine.llm.tools.tool_events import (
 class ToolManager:
     """Manages tool registration and execution."""
 
-    def __init__(self, engine: LLMEngine, llm_model_name: Optional[str] = None):
+    def __init__(self, engine_id: str, session_id: str, llm_model_name: Optional[str] = None):
         """Initialize the tool manager."""
         self.tool_manager_id = str(uuid.uuid4())
         self.tools: Dict[str, Tool] = {}
-        self.engine = engine
-        self.engine_id = engine.engine_id
-        self.session_id = engine.session_id
+        self.engine_id = engine_id
+        self.session_id = session_id
         self.message_bus = MessageBus()
         self.tool_parser = self._get_parser(llm_model_name)
 

@@ -267,10 +267,9 @@ class DefaultLLMResponse(LLMResponse):
 
 # manages OpenAI instance
 class OpenAIManager:
-    def __init__(self, engine: LLMEngine):
-        self.engine = engine
-        self.engine_id = engine.engine_id
-        self.session_id = engine.session_id
+    def __init__(self, engine_id: str, session_id: str):
+        self.engine_id = engine_id
+        self.session_id = session_id
         self.llm_manager_id = str(uuid.uuid4())
         self.bus = MessageBus()
         import dotenv
