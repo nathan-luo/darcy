@@ -217,6 +217,15 @@ class NotionTaskAPI:
         # url has no dashes, but the id has them
         return id_with_dashes.replace("-", "")
 
+    def get_all_tasks(self) -> list[notion_task_id_type]:
+        # Function to read tasks from projects database
+
+        response = self.client.databases.query(database_id=self.tasks_database_id)
+
+        tasks = response.get("results", [])
+
+        return [notion_task_id_type(task["id"]) for task in tasks]
+
     def get_tasks(
         self, userID_inCharge: UserID_type, notion_project_id: notion_project_id_type
     ) -> list[notion_task_id_type]:
