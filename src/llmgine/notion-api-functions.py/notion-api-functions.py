@@ -236,10 +236,10 @@ class NotionTaskAPI:
         filter_obj = {
             "and": [
                 # TODO impl notion_project_id
-                # {
-                #     "property": "Events/ Project Relation",
-                #     "relation": {"contains": notion_project_id},
-                # },
+                {
+                    "property": "Event/Project",
+                    "relation": {"contains": notion_project_id},
+                },
                 {
                     "property": "In Charge",
                     "people": {"contains": userID_inCharge.notion_id},
@@ -355,5 +355,5 @@ for proj in projects:
     tasks: list[notion_task_id_type] = notion_api_production.get_tasks(
         userID_inCharge=henryID, notion_project_id=proj
     )
-    print(proj)
-    print(tasks)
+    print("proj ============", proj)
+    print("tasks", tasks)
