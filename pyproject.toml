@@ -20,6 +20,8 @@ classifiers = [
 dependencies = [
     "discord>=2.3.2",
     "litellm>=1.63.12",
+    "load-dotenv>=0.1.0",
+    "notion-client>=2.3.0",
     "rich>=13.9.4",
     "textual>=2.1.2",
 ]
