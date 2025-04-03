@@ -204,7 +204,10 @@ class NotionTaskAPI:
 
     # TODO add args
     def create_project(self, project_name: str) -> None:
-        # create a project in the projects database
+        """
+        Create a project in the projects database
+        """
+
         self.client.pages.create(
             parent={"database_id": self.projects_database_id},
             properties={
@@ -218,7 +221,9 @@ class NotionTaskAPI:
         return id_with_dashes.replace("-", "")
 
     def get_all_tasks(self) -> list[notion_task_id_type]:
-        # Function to read tasks from projects database
+        """
+        Get all tasks from the tasks database
+        """
 
         response = self.client.databases.query(database_id=self.tasks_database_id)
 
@@ -229,13 +234,14 @@ class NotionTaskAPI:
     def get_tasks(
         self, userID_inCharge: UserID_type, notion_project_id: notion_project_id_type
     ) -> list[notion_task_id_type]:
-        # Function to read tasks from projects database
-        # Function to read tasks from projects database
+        """
+        Get all tasks from the tasks database
+        with provided filters
+        """
 
         # filter by Project AND UserID
         filter_obj = {
             "and": [
-                # TODO impl notion_project_id
                 {
                     "property": "Event/Project",
                     "relation": {"contains": notion_project_id},
@@ -272,7 +278,10 @@ class NotionTaskAPI:
         pass
 
     def get_active_projects(self) -> list[notion_project_id_type]:
-        # AI: Query active projects from Notion projects database
+        """
+        Get all active projects from the projects database
+        """
+
         response = self.client.databases.query(
             database_id=self.projects_database_id,
             # TODO filter based on active
