@@ -76,10 +76,10 @@ NOTION_TESTING_DATABASE_ID_PROJECTS: notion_database_id_type = notion_database_i
     "1c8c2e93a41280808718ef53e0144f87"
 )
 NOTION_PRODUCTION_DATABASE_ID_TASKS: notion_database_id_type = notion_database_id_type(
-    "918affd4ce0d4b8eb7604d972fd24826"
+    "ed8ba37a719a47d7a796c2d373c794b9"
 )
 NOTION_PRODUCTION_DATABASE_ID_PROJECTS: notion_database_id_type = notion_database_id_type(
-    "ed8ba37a719a47d7a796c2d373c794b9"
+    "918affd4ce0d4b8eb7604d972fd24826"
 )
 
 # ---------------------
@@ -164,6 +164,20 @@ name_to_id = {
     "Eddie Li": "1bbd872b-594c-818b-8142-00022dae03c4",
     "Rudra Tiwari": "1bbd872b-594c-8167-b7bb-000231b0eaa5",
 }
+
+
+# ======================================
+# Functions - helpers
+# ======================================
+
+
+def get_properties_of_database(database_id: notion_database_id_type) -> list[str]:
+    # AI: Get properties of a database
+    database = NOTION_CLIENT.databases.retrieve(database_id=database_id)
+    return database["properties"].keys()
+
+
+print(get_properties_of_database(NOTION_PRODUCTION_DATABASE_ID_TASKS))
 
 
 # ======================================
@@ -261,8 +275,8 @@ class NotionTaskAPI:
             # TODO filter based on active
             filter={
                 "or": [
-                    {"property": "Progress", "select": {"equals": "On-Going"}},
-                    {"property": "Progress", "select": {"equals": "In-Progress"}},
+                    {"property": "Status", "select": {"equals": "On-Going"}},
+                    {"property": "Status", "select": {"equals": "In-Progress"}},
                 ]
             },
         )
