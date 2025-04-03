@@ -1,22 +1,19 @@
+from dataclasses import dataclass, field
+from typing import Any, Dict, List
+
+from llmgine.messages.events import Event
+
+
+@dataclass
 class ContextEvent(Event):
-    def __init__(
-        self,
-        context_manager_id: str,
-        session_id: str,
-        engine_id: str,
-        context: List[Dict[str, Any]],
-    ):
-        super().__init__(session_id=session_id, engine_id=engine_id)
-        self.context_manager_id = context_manager_id
-        self.context = context
+    """Base class for all context events."""
+
+    engine_id: str = ""
+    context_manager_id: str = ""
 
 
-class ContextCompiledEvent(ContextEvent):
-    def __init__(
-        self,
-        context_manager_id: str,
-        session_id: str,
-        engine_id: str,
-        context: List[Dict[str, Any]],
-    ):
-        super().__init__(context_manager_id, session_id, engine_id, context)
+@dataclass
+class ChatHistoryRetrievedEvent(ContextEvent):
+    """Event for when chat history is retrieved."""
+
+    context: List[Dict[str, Any]] = field(default_factory=list)

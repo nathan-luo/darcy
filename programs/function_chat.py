@@ -2,6 +2,7 @@
 
 This program demonstrates the use of the ToolChatEngine for chat with function calling capabilities.
 It registers some sample tools and allows conversational interaction with those tools.
+Each run starts a new, temporary chat session.
 """
 
 import asyncio
@@ -27,172 +28,6 @@ logger = logging.getLogger(__name__)
 
 
 @dataclass
-class Session:
-    """Chat session details."""
-
-    id: str
-    name: str
-    created_at: str
-    system_prompt: str
-
-
-class SessionManager:
-    """Manages chat sessions."""
-
-    def __init__(self, sessions_dir: str = "sessions"):
-        """Initialize the session manager.
-
-        Args:
-            sessions_dir: Directory to store session files
-        """
-        self.sessions_dir = sessions_dir
-        self.sessions: Dict[str, Session] = {}
-
-        # Create sessions directory if it doesn't exist
-        os.makedirs(self.sessions_dir, exist_ok=True)
-
-        # Load existing sessions
-        self._load_sessions()
-
-    def _load_sessions(self):
-        """Load existing sessions from the sessions directory."""
-        for filename in os.listdir(self.sessions_dir):
-            if filename.endswith(".json"):
-                try:
-                    with open(os.path.join(self.sessions_dir, filename), "r") as f:
-                        session_data = json.load(f)
-                        session = Session(
-                            id=session_data["id"],
-                            name=session_data["name"],
-                            created_at=session_data["created_at"],
-                            system_prompt=session_data["system_prompt"],
-                        )
-                        self.sessions[session.id] = session
-                except Exception as e:
-                    logger.error(f"Error loading session from {filename}: {str(e)}")
-
-    def create_session(self, name: str, system_prompt: str) -> Session:
-        """Create a new session.
-
-        Args:
-            name: Name of the session
-            system_prompt: System prompt for the session
-
-        Returns:
-            The newly created session
-        """
-        from datetime import datetime
-
-        session_id = str(uuid.uuid4())
-        session = Session(
-            id=session_id,
-            name=name,
-            created_at=datetime.now().isoformat(),
-            system_prompt=system_prompt,
-        )
-
-        self.sessions[session_id] = session
-        self._save_session(session)
-
-        return session
-
-    def get_session(self, session_id: str) -> Optional[Session]:
-        """Get a session by ID.
-
-        Args:
-            session_id: The session ID
-
-        Returns:
-            The session if found, None otherwise
-        """
-        return self.sessions.get(session_id)
-
-    def list_sessions(self) -> List[Session]:
-        """List all sessions.
-
-        Returns:
-            List of all sessions
-        """
-        return list(self.sessions.values())
-
-    def update_session(
-        self,
-        session_id: str,
-        name: Optional[str] = None,
-        system_prompt: Optional[str] = None,
-    ) -> Optional[Session]:
-        """Update a session.
-
-        Args:
-            session_id: The session ID
-            name: New name for the session (optional)
-            system_prompt: New system prompt for the session (optional)
-
-        Returns:
-            The updated session if found, None otherwise
-        """
-        if session_id not in self.sessions:
-            return None
-
-        session = self.sessions[session_id]
-
-        if name is not None:
-            session.name = name
-
-        if system_prompt is not None:
-            session.system_prompt = system_prompt
-
-        self._save_session(session)
-
-        return session
-
-    def delete_session(self, session_id: str) -> bool:
-        """Delete a session.
-
-        Args:
-            session_id: The session ID
-
-        Returns:
-            True if the session was deleted, False otherwise
-        """
-        if session_id not in self.sessions:
-            return False
-
-        # Remove from memory
-        session = self.sessions.pop(session_id)
-
-        # Delete the file
-        filename = os.path.join(self.sessions_dir, f"{session_id}.json")
-        if os.path.exists(filename):
-            os.remove(filename)
-
-        return True
-
-    def _save_session(self, session: Session):
-        """Save a session to disk.
-
-        Args:
-            session: The session to save
-        """
-        filename = os.path.join(self.sessions_dir, f"{session.id}.json")
-
-        try:
-            with open(filename, "w") as f:
-                json.dump(
-                    {
-                        "id": session.id,
-                        "name": session.name,
-                        "created_at": session.created_at,
-                        "system_prompt": session.system_prompt,
-                    },
-                    f,
-                    indent=2,
-                )
-        except Exception as e:
-            logger.error(f"Error saving session to {filename}: {str(e)}")
-
-
-@dataclass
 class FunctionChatConfig(ApplicationConfig):
     """Configuration for the Function Chat application."""
 
@@ -206,12 +41,7 @@ class FunctionChatConfig(ApplicationConfig):
 
     # System prompt
     system_prompt: str = "You are a helpful assistant with access to tools for weather information, sending emails, and calculating expressions."
-
-    # Session ID (if resuming a session)
-    session_id: Optional[str] = None
-
-    # Session name (if creating a new session)
-    session_name: str = "Default Session"
+    enable_tracing: bool = False
 
 
 class FunctionChatBootstrap(ApplicationBootstrap[FunctionChatConfig]):
@@ -224,24 +54,10 @@ class FunctionChatBootstrap(ApplicationBootstrap[FunctionChatConfig]):
             config: Application configuration
         """
         super().__init__(config)
-        self.session_manager = SessionManager()
-        self.engine = None
-
-        # Either get the existing session or create a new one
-        if config.session_id:
-            self.session = self.session_manager.get_session(config.session_id)
-            if not self.session:
-                logger.warning(
-                    f"Session {config.session_id} not found, creating a new session"
-                )
-                self.session = self.session_manager.create_session(
-                    name=config.session_name, system_prompt=config.system_prompt
-                )
-        else:
-            self.session = self.session_manager.create_session(
-                name=config.session_name, system_prompt=config.system_prompt
-            )
-            logger.info(f"Created new session: {self.session.id} - {self.session.name}")
+        self.engine: Optional[ToolChatEngine] = None
+        # Generate a unique session ID for this run
+        self.current_session_id = str(uuid.uuid4())
+        logger.info(f"Starting new chat session: {self.current_session_id}")
 
     async def initialize_engine(self):
         """Initialize the ToolChatEngine.
@@ -249,12 +65,12 @@ class FunctionChatBootstrap(ApplicationBootstrap[FunctionChatConfig]):
         Returns:
             The initialized ToolChatEngine
         """
-        # Create the engine with the MessageBus from the bootstrap
+        # Create the engine with the MessageBus from the bootstrap and the generated session ID
         self.engine = ToolChatEngine(
-            session_id=self.session.id,
+            session_id=self.current_session_id,
             api_key=self.config.openai_api_key,
             model=self.config.model,
-            system_prompt=self.session.system_prompt,
+            system_prompt=self.config.system_prompt,  # Use config prompt directly
             message_bus=self.message_bus,
         )
 
@@ -265,16 +81,20 @@ class FunctionChatBootstrap(ApplicationBootstrap[FunctionChatConfig]):
 
         return self.engine
 
-    def update_session_prompt(self, system_prompt: str):
-        """Update the system prompt for the current session.
+    async def shutdown(self):
+        """Shutdown the bootstrap.
 
-        Args:
-            system_prompt: The new system prompt
+        This method should be overridden to include any additional shutdown logic.
         """
-        self.session_manager.update_session(
-            session_id=self.session.id, system_prompt=system_prompt
-        )
-        self.session.system_prompt = system_prompt
+        # Unregister handlers for the engine's session ID
+        if self.engine:
+            logger.info(
+                f"Unregistering handlers for engine session: {self.engine.session_id}"
+            )
+            self.message_bus.unregister_session_handlers(self.engine.session_id)
+
+        # Shutdown the generic bootstrap (stops message bus, cleans up primary session)
+        await super().shutdown()
 
 
 # Sample tools for demonstration
@@ -360,38 +180,7 @@ async def main():
     parser.add_argument(
         "--no-console", action="store_true", help="Disable console output for events"
     )
-    parser.add_argument("--session", help="Session ID to resume a previous conversation")
-    parser.add_argument(
-        "--session-name", default="Default Session", help="Name for a new session"
-    )
-    parser.add_argument(
-        "--list-sessions",
-        action="store_true",
-        help="List all available sessions and exit",
-    )
     args = parser.parse_args()
-
-    # Create a session manager
-    session_manager = SessionManager()
-
-    # If we're just listing sessions, do that and exit
-    if args.list_sessions:
-        sessions = session_manager.list_sessions()
-        if not sessions:
-            print("No sessions found.")
-        else:
-            print("Available sessions:")
-            for session in sessions:
-                print(f"  ID: {session.id}")
-                print(f"  Name: {session.name}")
-                print(f"  Created: {session.created_at}")
-                print(
-                    f"  System Prompt: {session.system_prompt[:50]}..."
-                    if len(session.system_prompt) > 50
-                    else session.system_prompt
-                )
-                print()
-        return
 
     # Create the application configuration
     config = FunctionChatConfig(
@@ -403,8 +192,6 @@ async def main():
         log_level=getattr(LogLevel, args.log_level.upper()),
         enable_console_handler=not args.no_console,
         file_handler_log_dir=args.log_dir,
-        session_id=args.session,
-        session_name=args.session_name,
     )
 
     # Create and initialize the bootstrap
@@ -414,15 +201,10 @@ async def main():
     # Initialize the engine through the bootstrap
     engine = await bootstrap.initialize_engine()
 
-    # Get the current session
-    current_session = bootstrap.session
-
     print("\nWelcome to Function Chat!")
-    print(f"Session: {current_session.name} (ID: {current_session.id})")
+    print(f"Session ID (this run only): {bootstrap.current_session_id}")
     print("Type 'exit', 'quit', or Ctrl+C to end the conversation")
     print("Type '/clear' to clear the conversation history")
-    print("Type '/system <prompt>' to change the system prompt")
-    print("Type '/sessions' to list all available sessions")
     print("\nThis chat has tools for weather, email, and calculation.")
     print("Try asking about the weather in San Francisco or calculating 24*7.")
 
@@ -439,23 +221,6 @@ async def main():
                 await engine.clear_context()
                 print("Conversation history cleared.")
                 continue
-            elif user_input.lower().startswith("/system "):
-                new_system_prompt = user_input[8:].strip()
-                # Update session system prompt in both engine and session storage
-                engine.set_system_prompt(new_system_prompt)
-                bootstrap.update_session_prompt(new_system_prompt)
-                print(f"System prompt updated: {new_system_prompt}")
-                continue
-            elif user_input.lower() == "/sessions":
-                sessions = session_manager.list_sessions()
-                print("\nAvailable sessions:")
-                for session in sessions:
-                    if session.id == current_session.id:
-                        print(f"* {session.name} (ID: {session.id})")
-                    else:
-                        print(f"  {session.name} (ID: {session.id})")
-                print("\nTo use a session next time, run with: --session <session-id>")
-                continue
 
             # Process the message
             try:
@@ -464,7 +229,8 @@ async def main():
                 print(response)
             except Exception as e:
                 print(f"Error: {str(e)}")
-                raise e
+                # Reraise the exception to see the full traceback during debugging
+                raise
 
     except KeyboardInterrupt:
         print("\nExiting...")

@@ -4,7 +4,8 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 import inspect
-from typing import List, Optional, Dict, Any, Union
+import json
+from typing import List, Optional, Dict, Any, Union, Callable
 import uuid
 import logging
 from openai import AsyncOpenAI
@@ -71,12 +72,15 @@ class DefaultLLMResponse(LLMResponse):
         tool_call_path: Optional[List[str]] = None,
         finish_reason_path: Optional[List[str]] = None,
         usage_key: Optional[str] = None,
+        provider: str = "openai",
     ):
         self.raw = raw_response
         self._content_path = content_path
         self._tool_call_path = tool_call_path
         self._finish_reason_path = finish_reason_path
         self._usage_key = usage_key
+        self._provider = provider
+        self._cached_tool_calls = None
 
     def _get_nested(self, path: List[str]) -> Any:
         """Access nested attributes from response objects or dictionaries.
@@ -108,6 +112,9 @@ class DefaultLLMResponse(LLMResponse):
             elif hasattr(data, key):
                 # Try attribute access first
                 data = getattr(data, key)
+            elif isinstance(data, dict) and key in data:
+                # Dictionary access
+                data = data[key]
             elif hasattr(data, "__getitem__") and not inspect.ismethod(
                 getattr(data, "__getitem__")
             ):
@@ -136,34 +143,95 @@ class DefaultLLMResponse(LLMResponse):
         content = self._get_nested(self._content_path)
         return content if isinstance(content, str) else ""
 
+    def _extract_openai_tool_calls(self, raw_calls) -> List[Dict[str, Any]]:
+        """Extract tool calls from OpenAI response format."""
+        result = []
+
+        # No tool calls
+        if not raw_calls:
+            return result
+
+        # Handle both list and single cases
+        if not isinstance(raw_calls, list):
+            raw_calls = [raw_calls]
+
+        for call in raw_calls:
+            try:
+                # Handle OpenAI v2 format (objects with attributes)
+                if hasattr(call, "id") and hasattr(call, "function"):
+                    func = call.function
+                    tool_data = {
+                        "id": call.id,
+                        "name": func.name if hasattr(func, "name") else "",
+                        "arguments": func.arguments
+                        if hasattr(func, "arguments")
+                        else "{}",
+                    }
+                    result.append(tool_data)
+                # Handle dictionary format
+                elif isinstance(call, dict) and "function" in call:
+                    func = call["function"]
+                    tool_data = {
+                        "id": call.get("id", str(uuid.uuid4())),
+                        "name": func.get("name", ""),
+                        "arguments": func.get("arguments", "{}"),
+                    }
+                    result.append(tool_data)
+                else:
+                    logger.warning(f"Unknown tool call format: {call}")
+            except Exception as e:
+                logger.warning(f"Error extracting tool call data: {e}")
+
+        return result
+
     @property
     def tool_calls(self) -> List[ToolCall]:
         """Get tool calls from the response."""
+        # Return cached results if available
+        if self._cached_tool_calls is not None:
+            return self._cached_tool_calls
+
         if not self._tool_call_path:
+            self._cached_tool_calls = []
             return []
+
+        # Get raw tool calls data
         raw_tool_calls = self._get_nested(self._tool_call_path)
-        if not raw_tool_calls:
-            return []
 
-        # Handle both list and single item cases
-        if not isinstance(raw_tool_calls, list):
-            raw_tool_calls = [raw_tool_calls]
+        # Process based on provider
+        if self._provider == "openai":
+            extracted_calls = self._extract_openai_tool_calls(raw_tool_calls)
+        else:
+            # Default fallback to handle basic dictionary structure
+            if not raw_tool_calls:
+                extracted_calls = []
+            elif isinstance(raw_tool_calls, list):
+                extracted_calls = raw_tool_calls
+            else:
+                extracted_calls = [raw_tool_calls]
 
+        # Convert extracted data to ToolCall objects
         tool_calls = []
-        for call in raw_tool_calls:
+        for call_data in extracted_calls:
             try:
-                # Convert tool call to dictionary if it's an object
-                if not isinstance(call, dict) and hasattr(call, "__dict__"):
-                    call = vars(call)
-                tool_calls.append(ToolCall.from_dict(call))
+                tool_calls.append(
+                    ToolCall(
+                        id=call_data.get("id", str(uuid.uuid4())),
+                        name=call_data.get("name", ""),
+                        arguments=call_data.get("arguments", "{}"),
+                    )
+                )
             except Exception as e:
-                logger.warning(f"Failed to process tool call: {e}")
+                logger.warning(f"Failed to create ToolCall object: {e}")
 
+        # Cache results
+        self._cached_tool_calls = tool_calls
         return tool_calls
 
     @property
     def has_tool_calls(self) -> bool:
-        return bool(self.tool_calls)
+        """Check if the response has any tool calls."""
+        return len(self.tool_calls) > 0
 
     @property
     def finish_reason(self) -> str:
@@ -234,31 +302,41 @@ class OpenAIManager:
             DefaultLLMResponse with the model's response
         """
         try:
-            response = await self.client.chat.completions.create(
-                model=model,
-                messages=context,
-                temperature=temperature or 0.7,
-                max_tokens=max_tokens or 512,
-                tools=tools,
-                **kwargs,
-            )
+            request_params = {
+                "model": model,
+                "messages": context,
+                "temperature": temperature or 0.7,
+                "max_tokens": max_tokens or 512,
+            }
 
+            # Only add tools if provided
+            if tools:
+                request_params["tools"] = tools
+
+            # Add any additional kwargs
+            request_params.update(kwargs)
+
+            # Call OpenAI API
+            response = await self.client.chat.completions.create(**request_params)
+
+            # Publish event
             await self.bus.publish(
                 LLMResponseEvent(
                     llm_manager_id=self.llm_manager_id,
                     session_id=self.session_id,
                     engine_id=self.engine_id,
-                    response=response,
+                    raw_response=response,
                 )
             )
 
-            # returns default llm response from OpenAI instance
+            # Create and return response object
             return DefaultLLMResponse(
                 raw_response=response,
                 content_path=["choices", "0", "message", "content"],
                 tool_call_path=["choices", "0", "message", "tool_calls"],
                 finish_reason_path=["choices", "0", "finish_reason"],
                 usage_key="openai",
+                provider="openai",
             )
         except Exception as e:
             logger.error(f"Error generating response from OpenAI: {e}")

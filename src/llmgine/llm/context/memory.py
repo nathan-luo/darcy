@@ -1,11 +1,13 @@
 """In-memory implementation of the ContextManager interface."""
 
+import asyncio
 from typing import Any, Dict, List, Optional
 import uuid
 
+from llmgine.bus.bus import MessageBus
 from llmgine.llm.context import ContextManager
+from llmgine.llm.context.context_events import ChatHistoryRetrievedEvent
 from llmgine.llm.engine.core import LLMEngine
-from llmgine.llm.providers.response import DefaultLLMResponse
 
 
 class SimpleChatHistory:
@@ -13,42 +15,76 @@ class SimpleChatHistory:
         self.engine = engine
         self.engine_id = engine.engine_id
         self.session_id = engine.session_id
-        self.id = str(uuid.uuid4())
-        self.response_log: List[Any] = []  # need to define type
-        self.chat_history: List[Any] = []
-        self.system: Optional[str] = None
+        self.context_manager_id = str(uuid.uuid4())
+        self.bus = MessageBus()
+        self.response_log: List[Any] = []  # Logs raw responses/inputs
+        self.chat_history: List[Dict[str, Any]] = []  # Stores OpenAI formatted messages
+        self.system_prompt: Optional[str] = None  # Changed from self.system
 
     def set_system_prompt(self, prompt: str):
         self.system_prompt = prompt
+        # Clear history if system prompt changes?
+        # self.clear()
 
-    def store_response(self, response: DefaultLLMResponse, role: str):
-        self.response_log.append(response)
-        self.chat_history.append({"role": role, "content": response.content})
+    def store_assistant_message(self, message_object: Any):
+        """Store the raw assistant message object (which might contain tool calls)."""
+        self.response_log.append(message_object)
+        # Convert the OpenAI message object to the dict format for history
+        history_entry = {
+            "role": message_object.role,
+            "content": message_object.content,
+        }
+        if message_object.tool_calls:
+            history_entry["tool_calls"] = [
+                {
+                    "id": tc.id,
+                    "type": tc.type,
+                    "function": {
+                        "name": tc.function.name,
+                        "arguments": tc.function.arguments,
+                    },
+                }
+                for tc in message_object.tool_calls
+            ]
+        # Ensure content is not None if there are tool_calls, as per OpenAI spec
+        if history_entry.get("tool_calls") and history_entry["content"] is None:
+            history_entry["content"] = ""  # Or potentially remove the content key?
+
+        self.chat_history.append(history_entry)
 
     def store_string(self, string: str, role: str):
+        """Store a simple user or system message."""
         self.response_log.append([role, string])
         self.chat_history.append({"role": role, "content": string})
 
-    def store_tool_response(self, response: DefaultLLMResponse):
-        """Store a tool response in the chat history"""
-        self.response_log.append(response)
-        self.chat_history.append(response.full.choices[0].message)
-        for tool_call in response.full.choices[0].message.tool_calls:
-            self.chat_history.append(tool_call)
+    def store_tool_call_result(self, tool_call_id: str, name: str, content: str):
+        """Store the result of a specific tool call."""
+        result_message = {
+            "role": "tool",
+            "tool_call_id": tool_call_id,
+            "name": name,
+            "content": content,
+        }
+        self.response_log.append(result_message)  # Log the result message
+        self.chat_history.append(result_message)
 
-    def store_function_call_result(self, result: Dict):
-        """Store function call result in the chat history
-
-        Args:
-            result: Dictionary containing role, tool_call_id, name, and result
-        """
-        self.response_log.append(result)
-        self.chat_history.append(result)
-
-    def retrieve(self):
-        result = self.chat_history.copy()
+    def retrieve(self) -> List[Dict[str, Any]]:
+        """Retrieve the chat history in OpenAI format."""
+        result = []
         if self.system_prompt:
-            result.insert(0, {"role": "system", "content": self.system_prompt})
+            result.append({"role": "system", "content": self.system_prompt})
+        result.extend(self.chat_history)
+        temp = asyncio.create_task(
+            self.bus.publish(
+                ChatHistoryRetrievedEvent(
+                    engine_id=self.engine_id,
+                    session_id=self.session_id,
+                    context_manager_id=self.context_manager_id,
+                    context=result,
+                )
+            )
+        )
+        print(temp)
         return result
 
     def clear(self):
