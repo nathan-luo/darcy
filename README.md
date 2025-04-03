@@ -1,9 +1,145 @@
-# LLMgine: An Event-Driven LLM Application Framework
+# LLMgine: Tool Chat Engine
 
-[![Build status](https://img.shields.io/github/actions/workflow/status/nathan-luo/llmgine/main.yml?branch=main)](https://github.com/nathan-luo/llmgine/actions/workflows/main.yml?query=branch%3Amain)
-[![License](https://img.shields.io/github/license/nathan-luo/llmgine)](https://img.shields.io/github/license/nathan-luo/llmgine)
+A modular engine for building LLM-powered applications with tool-calling capabilities.
 
-LLMgine is a Python framework for building complex, event-driven applications powered by Large Language Models (LLMs). It provides a structured way to manage LLM interactions, tool usage, context, and observability.
+## Overview
+
+This repository contains a customizable engine for working with large language models (LLMs) and function/tool calling. The core components include:
+
+- **Message Bus**: Central event and command system for communication between components
+- **Tool Manager**: Handles registration and execution of tools that LLMs can call
+- **Context Manager**: Manages conversation history and memory
+- **LLM Providers**: Interface with different LLM providers (currently OpenAI)
+- **Session Management**: Persistent conversations across application restarts
+
+## Function Chat Demo
+
+The `function_chat.py` program demonstrates a simple chat application with function calling capabilities. It registers several mock tools:
+
+- **Weather**: Get the weather in a specific location
+- **Email**: Send an email (mock implementation)
+- **Calculator**: Evaluate mathematical expressions
+
+### Prerequisites
+
+1. Python 3.8+
+2. OpenAI API key
+
+### Setup
+
+1. Clone the repository
+2. Install dependencies:
+   ```
+   pip install -r requirements.txt
+   ```
+3. Set your OpenAI API key as an environment variable:
+   ```
+   export OPENAI_API_KEY=your-api-key-here
+   ```
+
+### Running the Demo
+
+Use the provided shell script for convenience:
+
+```bash
+./run_function_chat.sh
+```
+
+Or run directly with Python:
+
+```bash
+python programs/function_chat.py
+```
+
+### Session Management
+
+The application includes persistent session management. Sessions are stored in JSON files in the `sessions` directory, allowing conversations to be resumed across application restarts.
+
+**Command Line Options:**
+
+- `--list-sessions`: List all available sessions
+- `--session <id>`: Resume a specific session
+- `--session-name <name>`: Create a new session with a specific name
+
+**Session Commands:**
+
+During a chat session, you can use:
+
+- `/sessions`: List all available sessions
+- `/system <prompt>`: Update the system prompt for the current session
+- `/clear`: Clear the conversation history (but keep the session)
+
+**Example Usage:**
+
+```bash
+# List all available sessions
+./run_function_chat.sh --list-sessions
+
+# Resume a specific session
+./run_function_chat.sh --session 550e8400-e29b-41d4-a716-446655440000
+
+# Create a new session with a custom name
+./run_function_chat.sh --session-name "Weather Assistant"
+
+# Use GPT-4 model for this session
+./run_function_chat.sh --model gpt-4
+```
+
+### Other Options
+
+- `--model`: Specify the OpenAI model to use (default: gpt-4o-mini)
+- `--api-key`: Provide your OpenAI API key directly
+- `--system-prompt`: Set a custom system prompt
+- `--log-level`: Set logging level (debug, info, warning, error, critical)
+- `--log-dir`: Specify directory for log files
+- `--no-console`: Disable console output for events
+
+### Sample Interactions
+
+Try asking questions like:
+- "What's the weather like in San Francisco?"
+- "Can you calculate 24*7 for me?"
+- "Send an email to test@example.com with subject 'Hello' and body 'Testing the function calling capability'"
+
+## Architecture
+
+The application is built around the `ToolChatEngine` which orchestrates:
+
+1. Processing user messages via a command bus
+2. Managing context/conversation history
+3. Interacting with the LLM provider (OpenAI)
+4. Registering and executing tools when called by the LLM
+
+### Bootstrap System
+
+The application uses the `ApplicationBootstrap` system to initialize and configure application components:
+
+1. Sets up logging and observability
+2. Initializes the MessageBus
+3. Configures and registers event handlers
+4. Manages application lifecycle (startup/shutdown)
+
+## Extending
+
+To add your own tools:
+1. Create an asynchronous function with proper docstring (description and Args section)
+2. Register it with the engine using `await engine.register_tool(your_function)`
+
+Example:
+```python
+async def my_custom_tool(param1: str, param2: int) -> Dict[str, Any]:
+    """Description of what the tool does.
+    
+    Args:
+        param1: Description of parameter 1
+        param2: Description of parameter 2
+        
+    Returns:
+        Dictionary with results
+    """
+    # Implementation
+    return {"result": "some value"}
+```
 
 ## Key Features
 

@@ -1,0 +1,6 @@
+{
+  "id": "f41f4ad3-68f2-4b82-ade2-d5db9ab44098",
+  "name": "Default Session",
+  "created_at": "2025-04-03T12:16:14.518834",
+  "system_prompt": "You are a helpful assistant with access to tools for weather information, sending emails, and calculating expressions."
+}
