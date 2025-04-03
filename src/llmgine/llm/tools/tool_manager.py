@@ -30,7 +30,9 @@ from llmgine.llm.tools.tool_events import (
 class ToolManager:
     """Manages tool registration and execution."""
 
-    def __init__(self, engine_id: str, session_id: str, llm_model_name: Optional[str] = None):
+    def __init__(
+        self, engine_id: str, session_id: str, llm_model_name: Optional[str] = None
+    ):
         """Initialize the tool manager."""
         self.tool_manager_id = str(uuid.uuid4())
         self.tools: Dict[str, Tool] = {}
@@ -139,8 +141,8 @@ class ToolManager:
         await self.message_bus.publish(
             ToolRegisterEvent(
                 tool_manager_id=self.tool_manager_id,
-                session_id=self.engine.session_id,
-                engine_id=self.engine.engine_id,
+                session_id=self.session_id,
+                engine_id=self.engine_id,
                 tool_info=tool.to_dict(),
             )
         )
@@ -157,8 +159,8 @@ class ToolManager:
         await self.message_bus.publish(
             ToolCompiledEvent(
                 tool_manager_id=self.tool_manager_id,
-                session_id=self.engine.session_id,
-                engine_id=self.engine.engine_id,
+                session_id=self.session_id,
+                engine_id=self.engine_id,
                 tool_compiled_list=[tool.to_dict() for tool in self.tools.values()],
             )
         )
@@ -218,7 +220,7 @@ class ToolManager:
                 ToolExecuteResultEvent(
                     tool_manager_id=self.tool_manager_id,
                     session_id=self.session_id,
-                    engine_id=self.engine.engine_id,
+                    engine_id=self.engine_id,
                     execution_succeed=True,
                     tool_info=tool.to_dict(),
                     tool_args=arguments,
@@ -232,7 +234,7 @@ class ToolManager:
                 ToolExecuteResultEvent(
                     tool_manager_id=self.tool_manager_id,
                     session_id=self.session_id,
-                    engine_id=self.engine.engine_id,
+                    engine_id=self.engine_id,
                     execution_succeed=False,
                     tool_info=tool.to_dict(),
                     tool_args=arguments,

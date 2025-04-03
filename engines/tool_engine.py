@@ -17,7 +17,7 @@ class ToolEnginePromptCommand(Command):
     """Command to process a user prompt with tool usage."""
 
     prompt: str = ""
-    
+
 
 @dataclass
 class ToolEnginePromptResponseEvent(Event):
@@ -26,7 +26,6 @@ class ToolEnginePromptResponseEvent(Event):
     prompt: str = ""
     response: str = ""
     tool_calls: Optional[List[ToolCall]] = None
-    session_id: str = "global"
 
 
 class ToolEngine:
@@ -59,11 +58,16 @@ class ToolEngine:
                 "OpenAI API key must be provided or set as OPENAI_API_KEY environment variable"
             )
 
-
         # Create tightly coupled components - pass the simple engine
-        self.context_manager = SimpleChatHistory(engine_id=self.engine_id, session_id=self.session_id)
-        self.llm_manager = OpenAIManager(engine=self.engine_id, session_id=self.session_id)
-        self.tool_manager = ToolManager(engine=self.engine_id, session_id=self.session_id, llm_model_name="openai")
+        self.context_manager = SimpleChatHistory(
+            engine_id=self.engine_id, session_id=self.session_id
+        )
+        self.llm_manager = OpenAIManager(
+            engine_id=self.engine_id, session_id=self.session_id
+        )
+        self.tool_manager = ToolManager(
+            engine_id=self.engine_id, session_id=self.session_id, llm_model_name="openai"
+        )
 
         # Set system prompt if provided
         if system_prompt:
@@ -74,7 +78,9 @@ class ToolEngine:
             self.session_id, ToolEnginePromptCommand, self.handle_prompt_command
         )
 
-    async def handle_prompt_command(self, command: ToolEnginePromptCommand) -> CommandResult:
+    async def handle_prompt_command(
+        self, command: ToolEnginePromptCommand
+    ) -> CommandResult:
         """Handle a prompt command following OpenAI tool usage pattern.
 
         Args:
@@ -96,13 +102,9 @@ class ToolEngine:
                 tools = await self.tool_manager.get_tools()
 
                 # 4. Call LLM
-                print(
-                    f"\nCalling LLM with context:\n{json.dumps(current_context, indent=2)}\n"
-                )  # Debug print
                 response = await self.llm_manager.generate(
                     context=current_context, tools=tools
                 )
-                print(f"\nLLM Raw Response:\n{response.raw}\n")  # Debug print
 
                 # 5. Extract the first choice's message object
                 # Important: Access the underlying OpenAI object structure
@@ -129,9 +131,6 @@ class ToolEngine:
                     )
 
                 # 8. Process tool calls
-                print(
-                    f"Processing {len(response_message.tool_calls)} tool calls..."
-                )  # Debug print
                 for tool_call in response_message.tool_calls:
                     tool_call_obj = ToolCall(
                         id=tool_call.id,
@@ -155,8 +154,12 @@ class ToolEngine:
                             content=result_str,
                         )
 
+                    except Exception as e:
+                        return CommandResult(
+                            success=False, original_command=command, error=str(e)
+                        )
+
         except Exception as e:
-            import traceback
             return CommandResult(success=False, original_command=command, error=str(e))
 
     async def register_tool(self, function: Callable):
