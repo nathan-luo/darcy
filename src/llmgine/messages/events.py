@@ -24,7 +24,7 @@ class Event:
     id: str = field(default_factory=lambda: str(uuid.uuid4()))
     timestamp: str = field(default_factory=lambda: datetime.now().isoformat())
     metadata: Dict[str, Any] = field(default_factory=dict)
-    session_id: str = "global"
+    session_id: Optional[str] = None
 
 
 # @dataclass
