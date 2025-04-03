@@ -5,6 +5,7 @@
 import os
 from dataclasses import dataclass
 from datetime import date
+from enum import Enum
 from typing import NewType, Optional
 
 import notion_client
@@ -22,8 +23,6 @@ notion_database_id_type = NewType("notion_database_id_type", str)
 notion_project_id_type = NewType("notion_project_id_type", str)
 notion_task_id_type = NewType("notion_task_id_type", str)
 notion_api_key_type = NewType("notion_api_key_type", str)
-
-notion_status_type = NewType("notion_status_type", str)  # TODO do i need?
 
 
 @dataclass
@@ -49,6 +48,16 @@ TASK_IN_CHARGE_PROPERTY = "In Charge"
 # while on discord it is obvious that the chatbot has sent a message,
 # notion doesn't have the same system, so it's important to see what darcy has done
 CHATBOT_FINGERPRINT = ">DarcyBotWasHere<"
+
+
+class NotionStatus(Enum):
+    BLOCKED = "Blocked"
+    NOT_STARTED = "Not started"
+    IN_PROGRESS = "In progress"
+    TO_REVIEW = "To Review"
+    DONE = "Done"
+    ARCHIVE = "Archive"
+
 
 # ======================================
 # ENVIRONMENT VARIABLES WITH TYPES
@@ -271,7 +280,7 @@ class NotionTaskAPI:
         self,
         notion_task_id: notion_task_id_type,
         task_name: Optional[str] = None,
-        task_status: Optional[notion_status_type] = None,
+        task_status: Optional[NotionStatus] = None,
         task_due_date: Optional[date] = None,
         task_in_charge: Optional[list[UserID_type]] = None,
         task_event_project: Optional[notion_project_id_type] = None,
@@ -290,17 +299,26 @@ class NotionTaskAPI:
         )
 
         properties = {}
+
         if task_name:
             properties["Name"] = {
                 "title": [{"text": {"content": task_name + CHATBOT_FINGERPRINT}}]
             }
-        # if task_status: properties["Status"] = {"select": {"name": task_status}}
+
+        # ERROR
+        # notion_client.errors.APIResponseError: Status is expected to be status.
+        # TODO fix
+        # if task_status:
+        #     properties["Status"] = {"select": {"name": task_status.value}}
+
         if task_due_date:
             properties["Due Dates"] = {"date": {"start": task_due_date.isoformat()}}
+
         if task_in_charge:
             properties["In Charge"] = {
                 "people": [{"object": "user", "id": task_in_charge[0].notion_id}]
             }  # TODO update
+
         if task_event_project:
             properties["Event/Project"] = {"relation": {"contains": task_event_project}}
 
@@ -403,6 +421,6 @@ print("tasks ", tasks)
 notion_api_production.update_task(
     notion_task_id=notion_task_id_type("1c9c2e93a41281799f82d5f5aa40b6d5"),
     task_name="Test Task - update task" + CHATBOT_FINGERPRINT,
-    task_status=notion_status_type("In-Progress"),
+    task_status=NotionStatus.IN_PROGRESS,
     task_due_date=date(2025, 1, 1),
 )
