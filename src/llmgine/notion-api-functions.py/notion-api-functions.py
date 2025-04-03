@@ -235,11 +235,8 @@ class NotionTaskAPI:
         # filter by Project AND UserID
         filter_obj = {
             "and": [
-                {
-                    "property": "Events/ Project Relation",
-                    "relation": {"contains": notion_project_id},
-                },
-                {"property": "In charge", "people": {"contains": userID.notion_id}},
+                # TODO add notion_project_id
+                {"property": "In Charge", "people": {"contains": userID.notion_id}},
             ]
         }
 
@@ -339,8 +336,8 @@ print(tasks)
 
 # notion_api_production.create_project(project_name="Test Project" + CHATBOT_FINGERPRINT)
 
-# # get the tasks for each project
-# for proj in projects:
-#     tasks = notion_api_production.get_tasks(userID=henryID, notion_project_id=proj)
-#     print(proj)
-#     print(tasks)
+# get the tasks for each project
+for proj in projects:
+    tasks = notion_api_production.get_tasks(userID=henryID, notion_project_id=proj)
+    print(proj)
+    print(tasks)
