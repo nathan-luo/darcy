@@ -331,7 +331,10 @@ class NotionTaskAPI:
         # how to set a status from existing values in notion api, avoid creating new status
 
         if task_status:
-            properties["Status"] = {"Status": {"name": task_status.value}}
+            properties["Status"] = {
+                "Status": {"name": task_status.value}
+                # TODO add extra?
+            }
 
         if task_due_date:
             properties["Due Dates"] = {"date": {"start": task_due_date.isoformat()}}
