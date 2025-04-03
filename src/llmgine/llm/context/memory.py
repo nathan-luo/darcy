@@ -1,6 +1,7 @@
 """In-memory implementation of the ContextManager interface."""
 
 from typing import Any, Dict, List, Optional
+import uuid
 
 from llmgine.llm.context import ContextManager
 from llmgine.llm.engine.core import LLMEngine
@@ -12,6 +13,7 @@ class SimpleChatHistory:
         self.engine = engine
         self.engine_id = engine.engine_id
         self.session_id = engine.session_id
+        self.id = str(uuid.uuid4())
         self.response_log: List[Any] = []  # need to define type
         self.chat_history: List[Any] = []
         self.system: Optional[str] = None

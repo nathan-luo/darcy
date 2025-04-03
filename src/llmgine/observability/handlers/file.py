@@ -1,6 +1,7 @@
 """File handler for logging observability events to JSONL."""
 
 import asyncio
+from datetime import datetime
 import json
 import logging
 import os
@@ -16,7 +17,9 @@ logger = logging.getLogger(__name__)
 class FileEventHandler(ObservabilityEventHandler):
     """Logs all received observability events to a JSONL file."""
 
-    def __init__(self, log_dir: str = "logs", filename: Optional[str] = None, **kwargs: Any):
+    def __init__(
+        self, log_dir: str = "logs", filename: Optional[str] = None, **kwargs: Any
+    ):
         """Initialize the JSON file handler.
 
         Args:
@@ -39,15 +42,17 @@ class FileEventHandler(ObservabilityEventHandler):
     async def handle(self, event: EventLogWrapper) -> None:
         """Handle the wrapped event by writing its original data to the log file."""
         if not isinstance(event, EventLogWrapper):
-            logger.warning(f"FileEventHandler received non-wrapper event: {type(event)}. Skipping.")
+            logger.warning(
+                f"FileEventHandler received non-wrapper event: {type(event)}. Skipping."
+            )
             return
 
         try:
             log_data = event.original_event_data
-            
-            log_data['wrapper_id'] = event.id
-            log_data['wrapper_timestamp'] = event.timestamp
-            log_data['original_event_type'] = event.original_event_type
+
+            log_data["wrapper_id"] = event.id
+            log_data["wrapper_timestamp"] = event.timestamp
+            log_data["original_event_type"] = event.original_event_type
 
             async with self._file_lock:
                 with open(self.log_file, "a") as f:
@@ -68,14 +73,18 @@ class FileEventHandler(ObservabilityEventHandler):
 
         try:
             # Use dataclasses.asdict with a factory to handle nested conversion
-            return asdict(event, dict_factory=lambda x: {k: self._convert_value(v) for k, v in x})
+            return asdict(
+                event, dict_factory=lambda x: {k: self._convert_value(v) for k, v in x}
+            )
         except TypeError:
-            pass # Not a dataclass
+            pass  # Not a dataclass
 
         if hasattr(event, "__dict__"):
             return {k: self._convert_value(v) for k, v in event.__dict__.items()}
 
-        logger.warning(f"Could not serialize event of type {type(event)} to dict, using repr().")
+        logger.warning(
+            f"Could not serialize event of type {type(event)} to dict, using repr()."
+        )
         return {"event_repr": repr(event)}
 
     def _convert_value(self, value: Any) -> Any:
@@ -89,8 +98,8 @@ class FileEventHandler(ObservabilityEventHandler):
         elif isinstance(value, (list, tuple)):
             return [self._convert_value(item) for item in value]
         elif hasattr(value, "__dict__") or hasattr(value, "__dataclass_fields__"):
-             # Recursively convert nested objects/dataclasses
-             return self._event_to_dict(value)
+            # Recursively convert nested objects/dataclasses
+            return self._event_to_dict(value)
         else:
             # Attempt to convert other types to string as a fallback
-            return str(value) 
+            return str(value)
