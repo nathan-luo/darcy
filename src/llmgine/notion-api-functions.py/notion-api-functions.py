@@ -335,38 +335,11 @@ class NotionTaskAPI:
                 "title": [{"text": {"content": task_name + CHATBOT_FINGERPRINT}}]
             }
 
-        # ERROR
-
-        # TODO     <<<< THIS IS BETTER. Find status ids
-        # TODO https://developers.notion.com/reference/property-object#status
-
-        # TODO fix  : i think it wants us to define a bunch of status props
-        # notion_client.errors.APIResponseError: body failed validation. Fix one:
-        # body.properties.Status.title should be defined, instead was `undefined`.
-        # body.properties.Status.rich_text should be defined, instead was `undefined`.
-        # body.properties.Status.number should be defined, instead was `undefined`.
-        # body.properties.Status.url should be defined, instead was `undefined`.
-        # body.properties.Status.select should be defined, instead was `undefined`.
-        # body.properties.Status.multi_select should be defined, instead was `undefined`.
-        # body.properties.Status.people should be defined, instead was `undefined`.
-        # body.properties.Status.email should be defined, instead was `undefined`.
-        # body.properties.Status.phone_number should be defined, instead was `undefined`.
-        # body.properties.Status.date should be defined, instead was `undefined`.
-        # body.properties.Status.checkbox should be defined, instead was `undefined`.
-        # body.properties.Status.relation should be defined, instead was `undefined`.
-        # body.properties.Status.files should be defined, instead was `undefined`.
-        # body.properties.Status.status should be defined, instead was `undefined`.
-        # body.properties.Name.id should be defined, instead was `undefined`.
-        # body.properties.Name.name should be defined, instead was `undefined`.
-        # body.properties.Name.start should be defined, instead was `undefined`.
-        # henry@MacBook-Pro-46 llmgine %
-
-        # how to set a status from existing values in notion api, avoid creating new status
-
         if task_status:
             properties["Status"] = {
-                "Status": {"id": task_status.value}  # This doesn't work
-                # TODO add extra?
+                "status": {
+                    "id": task_status  # AI: Using the enum value which contains the status ID
+                }
             }
 
         if task_due_date:
@@ -479,6 +452,6 @@ print("tasks ", tasks)
 notion_api_production.update_task(
     notion_task_id=notion_task_id_type("1c9c2e93a41281799f82d5f5aa40b6d5"),
     task_name="Test Task - update task" + CHATBOT_FINGERPRINT,
-    task_status=STATUS_ENUM_NOTION_PRODUCTION_DATABASE_ID_TASKS.InProgress,
+    task_status=STATUS_ENUM_NOTION_PRODUCTION_DATABASE_ID_TASKS.ToReview,
     task_due_date=date(2025, 1, 1),
 )
