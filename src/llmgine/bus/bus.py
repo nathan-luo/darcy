@@ -25,14 +25,34 @@ from llmgine.observability.events import (
     SpanContext,
     TraceEvent,
     uuid,
-    EventLogWrapper
+    EventLogWrapper,
 )
+from llmgine.bus.session import BusSession
 
-logger = logging.getLogger(__name__)
+
+# Create a logger adapter that ensures session_id is always present
+class SessionLoggerAdapter(logging.LoggerAdapter):
+    """Logger adapter that ensures session_id is always present in log records."""
+
+    def process(self, msg, kwargs):
+        if "extra" not in kwargs:
+            kwargs["extra"] = {}
+        if "session_id" not in kwargs["extra"]:
+            kwargs["extra"]["session_id"] = "global"
+        return msg, kwargs
+
+
+# Get the base logger and wrap it with the adapter
+base_logger = logging.getLogger(__name__)
+logger = SessionLoggerAdapter(base_logger, {})
 
 # Context variable to hold the current span context
-current_span_context: contextvars.ContextVar[Optional[SpanContext]] = contextvars.ContextVar(
-    "current_span_context", default=None
+current_span_context: contextvars.ContextVar[Optional[SpanContext]] = (
+    contextvars.ContextVar("current_span_context", default=None)
+)
+# Context variable to hold the current session ID
+current_session_id: contextvars.ContextVar[Optional[str]] = contextvars.ContextVar(
+    "current_session_id", default=None
 )
 
 TCommand = TypeVar("TCommand", bound=Command)
@@ -46,137 +66,185 @@ AsyncEventHandler = Callable[[TEvent], "asyncio.Future[None]"]
 class MessageBus:
     """Async message bus for command and event handling (Singleton).
 
-    This implements the Command Bus and Event Bus patterns, allowing
-    for decoupled communication between components.
+    This is a simplified implementation of the Command Bus and Event Bus patterns,
+    allowing for decoupled communication between components.
     """
 
-    # --- Singleton Pattern --- 
+    # --- Singleton Pattern ---
     _instance: Optional["MessageBus"] = None
 
     def __new__(cls, *args: Any, **kwargs: Any) -> "MessageBus":
         """Ensure only one instance is created."""
         if cls._instance is None:
             cls._instance = super(MessageBus, cls).__new__(cls)
-            # Mark as not initialized yet, __init__ will handle it
-            cls._instance._initialized = False 
+            cls._instance._initialized = False
         return cls._instance
-    # --- End Singleton Pattern ---
 
     def __init__(self):
         """Initialize the message bus (only once)."""
-        # --- Singleton Initialization Guard ---
-        if hasattr(self, '_initialized') and self._initialized:
-            return 
-        # --- End Guard ---
-        
-        self._command_handlers: Dict[Type[Command], AsyncCommandHandler] = {}
-        self._event_handlers: Dict[Type[Event | ObservabilityBaseEvent], List[AsyncEventHandler]] = {}
-        self._event_queue: asyncio.Queue = asyncio.Queue()
+        if hasattr(self, "_initialized") and self._initialized:
+            return
+
+        # Simplified handler storage - only one session ID concept
+        self._command_handlers: Dict[str, Dict[Type[Command], AsyncCommandHandler]] = {}
+        self._event_handlers: Dict[
+            str, Dict[Type[Event | ObservabilityBaseEvent], List[AsyncEventHandler]]
+        ] = {}
+        self._event_queue: Optional[asyncio.Queue] = None
         self._processing_task: Optional[asyncio.Task] = None
 
-        logger.info("MessageBus initialized (Observability via registered handlers)")
-        
-        # --- Mark as initialized --- 
+        # Tracing configuration - enabled by default
+        self._tracing_enabled = True
+
+        logger.info("MessageBus initialized with simplified session model")
         self._initialized = True
+
+    @property
+    def tracing_enabled(self) -> bool:
+        """Return whether tracing is enabled for this message bus."""
+        return self._tracing_enabled
+
+    def enable_tracing(self) -> None:
+        """Enable tracing for this message bus."""
+        if not self._tracing_enabled:
+            self._tracing_enabled = True
+            logger.info("Tracing enabled for MessageBus")
+
+    def disable_tracing(self) -> None:
+        """Disable tracing for this message bus."""
+        if self._tracing_enabled:
+            self._tracing_enabled = False
+            logger.info("Tracing disabled for MessageBus")
+
+    def create_session(self):
+        """Create a new session for grouping related commands and events."""
+        # Import BusSession locally to avoid circular dependency
+        from llmgine.bus.session import BusSession
+
+        return BusSession()
 
     async def start(self) -> None:
         """Start the message bus event processing loop."""
         if self._processing_task is None:
-            self._processing_task = asyncio.create_task(self._process_events())
-            logger.info("MessageBus started", extra={"component": "MessageBus"})
+            if self._event_queue is None:
+                self._event_queue = asyncio.Queue()
+                logger.info("Event queue created")
+
+            if self._event_queue is not None:
+                self._processing_task = asyncio.create_task(self._process_events())
+                logger.info("MessageBus started")
+            else:
+                logger.error("Failed to create event queue, MessageBus cannot start")
+        else:
+            logger.warning("MessageBus already running")
 
     async def stop(self) -> None:
         """Stop the message bus event processing loop."""
         if self._processing_task:
+            logger.info("Stopping message bus...")
             self._processing_task.cancel()
             try:
-                await self._processing_task
-            except asyncio.CancelledError:
-                pass
-            self._processing_task = None
-            logger.info("MessageBus stopped", extra={"component": "MessageBus"})
+                await asyncio.wait_for(self._processing_task, timeout=2.0)
+                logger.info("MessageBus stopped successfully")
+            except (asyncio.CancelledError, asyncio.TimeoutError) as e:
+                logger.warning(f"MessageBus stop issue: {type(e).__name__}")
+            except Exception as e:
+                logger.exception(f"Error during MessageBus shutdown: {e}")
+            finally:
+                self._processing_task = None
+        else:
+            logger.info("MessageBus already stopped or never started")
 
     def register_command_handler(
-        self, command_type: Type[TCommand], handler: CommandHandler
+        self,
+        session_id: str,
+        command_type: Type[TCommand],
+        handler: CommandHandler,
     ) -> None:
-        """Register a command handler for a specific command type.
+        """Register a command handler for a specific command type and session."""
+        session_id = session_id or "global"
 
-        Args:
-            command_type: The type of command to handle
-            handler: The function that handles the command
-        """
-        async_handler = self._wrap_sync_command_handler(handler)
-        if command_type in self._command_handlers:
+        # Ensure the session exists in the handlers dictionary
+        if session_id not in self._command_handlers:
+            self._command_handlers[session_id] = {}
+
+        # Convert sync handler to async if needed
+        async_handler = self._wrap_handler_as_async(handler)
+
+        # Make sure there isn't already a handler for this command type in this session
+        if command_type in self._command_handlers[session_id]:
             raise ValueError(
-                f"Command handler for {command_type.__name__} already registered"
+                f"Command handler for {command_type.__name__} already registered in session {session_id}"
             )
 
-        self._command_handlers[command_type] = async_handler
+        self._command_handlers[session_id][command_type] = async_handler
         logger.debug(
-            f"Registered command handler for {command_type.__name__}",
-            extra={"component": "MessageBus", "handler_type": "sync"},
-        )
-
-    def register_async_command_handler(
-        self, command_type: Type[TCommand], handler: AsyncCommandHandler
-    ) -> None:
-        """Register an async command handler for a specific command type.
-
-        Args:
-            command_type: The type of command to handle
-            handler: The async function that handles the command
-        """
-        if command_type in self._command_handlers:
-            raise ValueError(
-                f"Command handler for {command_type.__name__} already registered"
-            )
-
-        self._command_handlers[command_type] = handler
-        logger.debug(
-            f"Registered async command handler for {command_type.__name__}",
-            extra={"component": "MessageBus", "handler_type": "async"},
+            f"Registered command handler for {command_type.__name__} in session {session_id}"
         )
 
     def register_event_handler(
-        self, event_type: Type[TEvent], handler: EventHandler
+        self, session_id: str, event_type: Type[TEvent], handler: EventHandler
     ) -> None:
-        """Register a sync event handler for app events or observability events."""
-        async_handler = self._wrap_sync_event_handler(handler)
-        if event_type not in self._event_handlers:
-            self._event_handlers[event_type] = []
-        self._event_handlers[event_type].append(async_handler)
+        """Register an event handler for a specific event type and session."""
+        session_id = session_id or "global"
+
+        # Ensure the session exists in the handlers dictionary
+        if session_id not in self._event_handlers:
+            self._event_handlers[session_id] = {}
+
+        # Ensure the event type exists for this session
+        if event_type not in self._event_handlers[session_id]:
+            self._event_handlers[session_id][event_type] = []
+
+        # Convert sync handler to async if needed
+        async_handler = self._wrap_handler_as_async(handler)
+
+        # Add the handler to the list for this event type
+        self._event_handlers[session_id][event_type].append(async_handler)
         logger.debug(
-            f"Registered event handler for {event_type.__name__}",
-            extra={"component": "MessageBus", "handler_type": "sync"},
+            f"Registered event handler for {event_type.__name__} in session {session_id}"
         )
 
-    def register_async_event_handler(
-        self, event_type: Type[TEvent], handler: AsyncEventHandler
-    ) -> None:
-        """Register an async event handler for app events or observability events."""
-        if event_type not in self._event_handlers:
-            self._event_handlers[event_type] = []
-        self._event_handlers[event_type].append(handler)
-        logger.debug(
-            f"Registered async event handler for {event_type.__name__}",
-            extra={"component": "MessageBus", "handler_type": "async"},
-        )
+    def unregister_session_handlers(self, session_id: str) -> None:
+        """Unregister all command and event handlers for a specific session."""
+        if session_id in self._command_handlers:
+            num_cmd_handlers = len(self._command_handlers[session_id])
+            del self._command_handlers[session_id]
+            logger.debug(
+                f"Unregistered {num_cmd_handlers} command handlers for session {session_id}"
+            )
 
-    # --- Explicit Observability Methods ---
+        if session_id in self._event_handlers:
+            num_event_handlers = sum(
+                len(handlers) for handlers in self._event_handlers[session_id].values()
+            )
+            del self._event_handlers[session_id]
+            logger.debug(
+                f"Unregistered {num_event_handlers} event handlers for session {session_id}"
+            )
+
+    # --- Observability Methods ---
 
     async def start_span(
         self,
         name: str,
         parent_context: Optional[SpanContext] = None,
         attributes: Optional[Dict[str, Any]] = None,
-        source: Optional[str] = None, # Allow overriding the source
+        source: Optional[str] = None,
     ) -> SpanContext:
         """Starts a new trace span and publishes the start event."""
+        # If tracing is disabled, return a dummy span context without publishing events
+        if not self._tracing_enabled:
+            return SpanContext(
+                trace_id=str(uuid.uuid4()),
+                span_id=str(uuid.uuid4()),
+                parent_span_id=parent_context.span_id if parent_context else None,
+            )
+
         if parent_context:
             trace_id = parent_context.trace_id
             parent_span_id = parent_context.span_id
         else:
-            # Try getting from context var if not explicitly passed
             ctx_parent = current_span_context.get()
             if ctx_parent:
                 trace_id = ctx_parent.trace_id
@@ -195,7 +263,7 @@ class MessageBus:
             span_context=span_context,
             start_time=datetime.now().isoformat(),
             attributes=attributes or {},
-            source=source or "MessageBus.start_span", # Default source
+            source=source or "MessageBus.start_span",
         )
         await self.publish(start_event)
         return span_context
@@ -203,18 +271,16 @@ class MessageBus:
     async def end_span(
         self,
         span_context: SpanContext,
-        name: str, # Name needed again to ensure consistency
+        name: str,
         status: str = "OK",
         attributes: Optional[Dict[str, Any]] = None,
         error: Optional[Exception] = None,
-        source: Optional[str] = None, # Allow overriding the source
+        source: Optional[str] = None,
     ) -> None:
-        """Ends a trace span, calculates duration, and publishes the end event."""
-        # We need the start event to calculate duration reliably,
-        # but storing it is complex. Let's approximate or accept inaccuracy.
-        # A better way would involve passing start_time or retrieving the start event.
-        # For now, we'll mark duration as None or calculate if possible (requires storing start times)
-        # This implementation won't calculate duration accurately without start time.
+        """Ends a trace span and publishes the end event."""
+        # If tracing is disabled, do nothing
+        if not self._tracing_enabled:
+            return
 
         final_attributes = attributes or {}
         if error:
@@ -231,10 +297,10 @@ class MessageBus:
             name=name,
             span_context=span_context,
             end_time=datetime.now().isoformat(),
-            duration_ms=None, # Duration calculation requires start time
+            duration_ms=None,  # Duration calculation requires start time
             status=status,
             attributes=final_attributes,
-            source=source or "MessageBus.end_span", # Default source
+            source=source or "MessageBus.end_span",
         )
         await self.publish(end_event)
 
@@ -244,263 +310,393 @@ class MessageBus:
         value: Union[int, float],
         unit: Optional[str] = None,
         tags: Optional[Dict[str, str]] = None,
-        source: Optional[str] = None, # Allow overriding the source
+        source: Optional[str] = None,
     ) -> None:
         """Creates and publishes a single metric event."""
+        # Metrics are still published even when tracing is disabled
         metric = Metric(name=name, value=value, unit=unit, tags=tags or {})
         metric_event = MetricEvent(
-            metrics=[metric], 
-            source=source or "MessageBus.emit_metric" # Default source
+            metrics=[metric],
+            source=source or "MessageBus.emit_metric",
         )
         await self.publish(metric_event)
 
-    # --- End Explicit Observability Methods ---
+    # --- Command Execution and Event Publishing ---
 
     async def execute(self, command: Command) -> CommandResult:
-        """Execute a command, automatically managing a trace span using contextvars."""
+        """Execute a command and return its result."""
         command_type = type(command)
-        handler = self._command_handlers.get(command_type)
 
-        if not handler:
-            error_msg = f"No handler registered for command type {command_type.__name__}"
-            logger.error(error_msg, extra={"component": "MessageBus"})
-            # Consider publishing an error event/trace here as well
-            raise ValueError(error_msg)
+        # --- Session ID Handling ---
+        session_token = None
+        # Use the current session ID from context if available and command doesn't have one
+        if not command.session_id:
+            command.session_id = current_session_id.get() or str(uuid.uuid4())
 
-        # --- Tracing Setup --- 
+        # Set the context variable for the duration of command execution
+        # This ensures events published during command execution inherit the session ID
+        session_token = current_session_id.set(command.session_id)
+        # --- End Session ID Handling ---
+
+        # Find handler - first check specific session, then fall back to global
+        handler = None
+        if command.session_id in self._command_handlers:
+            handler = self._command_handlers[command.session_id].get(command_type)
+
+        # If no session-specific handler, try global
+        if handler is None and "global" in self._command_handlers:
+            handler = self._command_handlers["global"].get(command_type)
+
+        if handler is None:
+            logger.error(
+                f"No handler registered for command type {command_type.__name__}"
+            )
+            raise ValueError(f"No handler registered for command {command_type.__name__}")
+
+        # --- Tracing Setup ---
         span_name = f"Execute Command: {command_type.__name__}"
-        parent_context = current_span_context.get() # Get context from parent caller
-        span_context: Optional[SpanContext] = None # Initialize
-        token: Optional[contextvars.Token] = None
-        start_time = time.time() # For duration calculation
+        parent_context = current_span_context.get()
+        span_context = None
+        trace_token = None
+        start_time = time.time()
 
         try:
-            span_attributes = {
-                "command_id": command.id,
-                "command_type": command_type.__name__,
-                "command_metadata": getattr(command, 'metadata', {}),
-            }
-            span_context = await self.start_span(
-                name=span_name,
-                parent_context=parent_context, # Pass parent context here
-                attributes=span_attributes,
-                source="MessageBus.execute",
-            )
-            # Set the context for the duration of the handler execution
-            token = current_span_context.set(span_context)
+            # Start span (only if tracing is enabled)
+            if self._tracing_enabled:
+                span_attributes = {
+                    "command_id": command.id,
+                    "command_type": command_type.__name__,
+                    "command_metadata": getattr(command, "metadata", {}),
+                    "session_id": command.session_id,
+                }
+                span_context = await self.start_span(
+                    name=span_name,
+                    parent_context=parent_context,
+                    attributes=span_attributes,
+                    source="MessageBus.execute",
+                )
+                trace_token = current_span_context.set(span_context)
 
-            # --- Execute Handler --- 
+            logger.info(f"Executing command {command_type.__name__}")
             result = await handler(command)
-            # --- End Execute Handler ---
 
-            # --- Tracing Teardown (Success) --- 
-            execution_time_ms = (time.time() - start_time) * 1000
-            end_attributes = {
-                "success": result.success,
-                "error_details": result.error if not result.success else None,
-            }
-            # Manually create the end event to include duration
-            end_trace_event = TraceEvent(
-                name=span_name,
-                span_context=span_context,
-                end_time=datetime.now().isoformat(),
-                duration_ms=execution_time_ms,
-                status="OK" if result.success else "ERROR",
-                attributes=end_attributes,
-                source="MessageBus.execute",
-            )
-            await self.publish(end_trace_event)
-            # No need to call self.end_span as we manually created the event
+            # End span (success) - only if tracing is enabled
+            if self._tracing_enabled and span_context:
+                duration_ms = (time.time() - start_time) * 1000
+                end_span_attributes = {
+                    "result_success": result.success,
+                    "result_metadata": result.metadata,
+                    "execution_time_ms": duration_ms,
+                }
+                if result.error:
+                    end_span_attributes["error"] = result.error
 
+                await self.end_span(
+                    span_context=span_context,
+                    name=span_name,
+                    status="OK" if result.success else "ERROR",
+                    attributes=end_span_attributes,
+                    source="MessageBus.execute",
+                )
+
+            logger.info(f"Command {command_type.__name__} executed successfully")
             return result
 
         except Exception as e:
-            # --- Tracing Teardown (Exception) --- 
-            execution_time_ms = (time.time() - start_time) * 1000
-            # Ensure span_context exists before trying to end span
-            if span_context:
-                 error_attributes = {
+            # End span (exception) - only if tracing is enabled
+            if self._tracing_enabled and span_context:
+                duration_ms = (time.time() - start_time) * 1000
+                error_attributes = {
                     "error_type": type(e).__name__,
                     "error_message": str(e),
-                    "stack_trace": "".join(traceback.format_exception(type(e), e, e.__traceback__)),
+                    "stack_trace": "".join(
+                        traceback.format_exception(type(e), e, e.__traceback__)
+                    ),
+                    "execution_time_ms": duration_ms,
                 }
-                 # Manually create the end event to include duration and error
-                 exception_trace_event = TraceEvent(
-                    name=span_name,
+
+                await self.end_span(
                     span_context=span_context,
-                    end_time=datetime.now().isoformat(),
-                    duration_ms=execution_time_ms,
+                    name=span_name,
                     status="EXCEPTION",
                     attributes=error_attributes,
+                    error=e,
                     source="MessageBus.execute",
-                 )
-                 await self.publish(exception_trace_event)
-                 # No need to call self.end_span
+                )
 
-            logger.exception(
-                f"Unhandled exception executing command {command_type.__name__}: {str(e)}",
-                extra={
-                    "component": "MessageBus",
-                    "command_id": command.id,
+            logger.exception(f"Error executing command {command_type.__name__}: {e}")
+
+            # Create a failed CommandResult
+            failed_result = CommandResult(
+                success=False,
+                original_command=command,
+                error=f"{type(e).__name__}: {str(e)}",
+                metadata={
+                    "exception_details": error_attributes.get("stack_trace", "N/A")
+                    if "error_attributes" in locals()
+                    else traceback.format_exc()
                 },
             )
-            raise e # Re-raise the exception
+            return failed_result
+
         finally:
-            # Reset the context variable even if errors occurred
-            if token:
-                current_span_context.reset(token)
+            if trace_token is not None:
+                current_span_context.reset(trace_token)
+            if session_token is not None:
+                current_session_id.reset(session_token)
 
     async def publish(self, event: Event | ObservabilityBaseEvent) -> None:
-        """Wraps event, publishes wrapper, and publishes the original event (unless it's the wrapper itself)."""
-        original_event_type_name = type(event).__name__
-        
-        # Avoid wrapping a wrapper
-        if isinstance(event, EventLogWrapper):
-            # If someone accidentally publishes a wrapper, just queue it directly
-            # primarily for the FileHandler, though this shouldn't be standard practice.
-            await self._event_queue.put(event)
-            logger.warning("An EventLogWrapper was published directly. This is unusual.")
-            return
-            
-        # Serialize the original event
-        # Use a try-except block as serialization might fail for complex objects
-        original_event_data = {}
+        """Publish an event onto the event queue."""
+
+        # --- Simple Session ID Handling ---
+        # Only inherit session ID if the event has a session_id attribute and it's None
+        if hasattr(event, "session_id") and event.session_id is None:
+            session_id = current_session_id.get()
+            if session_id:
+                event.session_id = session_id
+        # --- End Session ID Handling ---
+
+        # Get current span and session ID for logging
+        current_span = current_span_context.get()
+        event_session_id = getattr(event, "session_id", None)
+
+        # Add metadata if available
+        if hasattr(event, "metadata") and isinstance(event.metadata, dict):
+            if current_span:
+                event.metadata["trace_id"] = current_span.trace_id
+                event.metadata["span_id"] = current_span.span_id
+            if event_session_id:
+                event.metadata["session_id"] = event_session_id
+
+        logger.debug(f"Publishing event {type(event).__name__}")
+
         try:
-            original_event_data = self._event_to_dict(event)
+            # Handle EventLogWrapper specially
+            if isinstance(event, EventLogWrapper):
+                await self._event_queue.put(event)
+                return
+
+            # Create wrapper for other event types
+            original_event_type_name = type(event).__name__
+            try:
+                original_event_data = self._event_to_dict(event)
+            except Exception as e:
+                logger.error(f"Failed to serialize event {original_event_type_name}: {e}")
+                original_event_data = {
+                    "error": "Serialization failed",
+                    "event_repr": repr(event),
+                }
+
+            # Create the wrapper with minimal parameters
+            wrapper_kwargs = {
+                "source": "MessageBus.publish",
+                "original_event_type": original_event_type_name,
+                "original_event_data": original_event_data,
+            }
+
+            # Only add session_id if supported
+            if hasattr(EventLogWrapper, "session_id") and event_session_id:
+                wrapper_kwargs["session_id"] = event_session_id
+
+            wrapper_event = EventLogWrapper(**wrapper_kwargs)
+            await self._event_queue.put(wrapper_event)
+
         except Exception as e:
-            logger.error(
-                f"Failed to serialize original event {original_event_type_name} for wrapper: {e}",
-                extra={"event_id": getattr(event, 'id', 'N/A')}, 
-                exc_info=True
-            )
-            original_event_data = {"error": "Serialization failed", "event_repr": repr(event)}
-
-        # Create the wrapper event
-        wrapper_event = EventLogWrapper(
-            source="MessageBus.publish",
-            original_event_type=original_event_type_name,
-            original_event_data=original_event_data
-        )
-
-        # Always publish the wrapper event to the queue
-        await self._event_queue.put(wrapper_event)
-
-        # Always queue the original event (unless it was already a wrapper)
-        # This allows handlers listening for specific original types (like ConsoleHandler 
-        # listening for BaseEvent, or App handlers listening for AppEvent) to receive them.
-        await self._event_queue.put(event)
+            logger.error(f"Error preparing event for queue: {e}", exc_info=True)
 
     async def _process_events(self) -> None:
         """Process events from the queue indefinitely."""
+        logger.info("Event processing loop starting")
+
         while True:
-            event = await self._event_queue.get()
             try:
-                await self._handle_event(event)
-            except Exception:
-                logger.exception(
-                    f"Unhandled error processing event {type(event).__name__}",
-                    extra={"component": "MessageBus", "event_id": getattr(event, 'id', 'N/A')},
-                )
-            finally:
-                self._event_queue.task_done()
+                # Wait for an event
+                event = await self._event_queue.get()
+                logger.debug(f"Dequeued event {type(event).__name__}")
+
+                try:
+                    await self._handle_event(event)
+                except asyncio.CancelledError:
+                    logger.warning("Event handling cancelled")
+                    raise
+                except Exception:
+                    logger.exception(f"Error processing event {type(event).__name__}")
+                finally:
+                    self._event_queue.task_done()
+
+            except asyncio.CancelledError:
+                logger.info("Event processing loop cancelled")
+                break
+            except Exception as e:
+                logger.exception(f"Error in event processing loop: {e}")
+                await asyncio.sleep(0.1)  # Avoid busy-looping
+
+        logger.info("Event processing loop finished")
 
     async def _handle_event(self, event: Event | ObservabilityBaseEvent) -> None:
-        """Dispatch an event to all registered handlers listening for its type or parent types."""
+        """Handle a single event by calling all registered handlers."""
         event_type = type(event)
-        handlers_to_run: List[AsyncEventHandler] = []
+        handlers_to_run = []
+        event_session_id = getattr(event, "session_id", None)
 
-        for registered_type, handlers in self._event_handlers.items():
-            if issubclass(event_type, registered_type):
-                handlers_to_run.extend(handlers)
+        # Set the session context for the duration of event handling
+        session_token = None
+        if event_session_id:
+            session_token = current_session_id.set(event_session_id)
 
-        if handlers_to_run:
-            logger.debug(f"Dispatching event {event_type.__name__} to {len(handlers_to_run)} handlers",
-                         extra={"component": "MessageBus", "event_id": getattr(event, 'id', 'N/A')})
+        # Determine handlers to run, prioritizing session-specific ones
+        if event_session_id and event_session_id in self._event_handlers:
+            for registered_type, handlers in self._event_handlers[
+                event_session_id
+            ].items():
+                if issubclass(event_type, registered_type):
+                    handlers_to_run.extend(handlers)
 
-            results = await asyncio.gather(
-                *(handler(event) for handler in handlers_to_run), return_exceptions=True
-            )
+        # Add global handlers
+        if "global" in self._event_handlers:
+            for registered_type, handlers in self._event_handlers["global"].items():
+                if issubclass(event_type, registered_type):
+                    # Avoid duplicates
+                    handlers_to_run.extend([
+                        h for h in handlers if h not in handlers_to_run
+                    ])
 
-            for i, result in enumerate(results):
-                if isinstance(result, Exception):
-                    handler_name = getattr(handlers_to_run[i], '__qualname__', repr(handlers_to_run[i]))
-                    logger.exception(
-                        f"Error in event handler '{handler_name}' for {event_type.__name__}: {result}",
-                        extra={"component": "MessageBus", "event_id": getattr(event, 'id', 'N/A')},
-                    )
-        else:
-            logger.debug(f"No handlers registered for event type {event_type.__name__} or its parents",
-                         extra={"component": "MessageBus", "event_id": getattr(event, 'id', 'N/A')})
+        # Skip tracing for observability events to avoid loops
+        is_observability_event = isinstance(
+            event, (ObservabilityBaseEvent, EventLogWrapper)
+        )
+        span_context = None
+        trace_token = None
 
-    def _wrap_sync_command_handler(self, handler: CommandHandler) -> AsyncCommandHandler:
-        """Wrap a synchronous command handler to run in an executor."""
+        try:
+            # Create span for event handling - only if tracing is enabled and not an observability event
+            if self._tracing_enabled and not is_observability_event:
+                span_attributes = {
+                    "event_id": getattr(event, "id", "N/A"),
+                    "event_type": event_type.__name__,
+                    "event_metadata": getattr(event, "metadata", {}),
+                    "num_handlers": len(handlers_to_run),
+                    "session_id": event_session_id,
+                }
+                span_context = await self.start_span(
+                    name=f"Handle Event: {event_type.__name__}",
+                    parent_context=current_span_context.get(),
+                    attributes=span_attributes,
+                    source="MessageBus._handle_event",
+                )
+                trace_token = current_span_context.set(span_context)
+
+            # Execute handlers
+            if handlers_to_run:
+                logger.debug(
+                    f"Dispatching event {event_type.__name__} to {len(handlers_to_run)} handlers"
+                )
+
+                # Run all handlers concurrently
+                tasks = [
+                    asyncio.create_task(handler(event)) for handler in handlers_to_run
+                ]
+                results = await asyncio.gather(*tasks, return_exceptions=True)
+
+                # Log errors
+                for i, result in enumerate(results):
+                    if isinstance(result, Exception):
+                        handler_name = getattr(
+                            handlers_to_run[i], "__qualname__", repr(handlers_to_run[i])
+                        )
+                        logger.exception(
+                            f"Error in handler '{handler_name}' for {event_type.__name__}: {result}"
+                        )
+            else:
+                logger.debug(f"No handlers for event type {event_type.__name__}")
+
+            # End span if created - only if tracing is enabled
+            if self._tracing_enabled and not is_observability_event and span_context:
+                await self.end_span(
+                    span_context=span_context,
+                    name=f"Handle Event: {event_type.__name__}",
+                    status="OK",
+                    source="MessageBus._handle_event",
+                )
+
+        except Exception as e:
+            # Handle span error - only if tracing is enabled
+            if self._tracing_enabled and not is_observability_event and span_context:
+                await self.end_span(
+                    span_context=span_context,
+                    name=f"Handle Event: {event_type.__name__}",
+                    status="EXCEPTION",
+                    error=e,
+                    source="MessageBus._handle_event",
+                )
+            logger.exception(f"Error handling event {event_type.__name__}")
+
+        finally:
+            # Reset trace context
+            if trace_token is not None:
+                current_span_context.reset(trace_token)
+            # Reset session context
+            if session_token is not None:
+                current_session_id.reset(session_token)
+
+    def _wrap_handler_as_async(self, handler: Callable) -> Callable:
+        """Convert synchronous handlers to asynchronous if needed."""
         if asyncio.iscoroutinefunction(handler):
-            return cast(AsyncCommandHandler, handler)
+            return handler
 
-        async def async_handler(command: Command) -> CommandResult:
-            return handler(command)
+        async def async_wrapper(*args, **kwargs):
+            return handler(*args, **kwargs)
 
-        return async_handler
-
-    def _wrap_sync_event_handler(self, handler: EventHandler) -> AsyncEventHandler:
-        """Wrap a synchronous event handler to run in an executor."""
-        if asyncio.iscoroutinefunction(handler):
-            return cast(AsyncEventHandler, handler)
-
-        async def async_handler(event: Event) -> None:
-            handler(event)
-
-        return async_handler
+        return async_wrapper
 
     def _event_to_dict(self, event: Any) -> Dict[str, Any]:
-        """Convert an event (dataclass or object) to a dictionary for serialization."""
-        # Prefers a custom to_dict if available
+        """Convert an event to a dictionary for serialization."""
+        # Try custom to_dict method
         if hasattr(event, "to_dict") and callable(event.to_dict):
-             try:
+            try:
                 return event.to_dict()
-             except Exception:
+            except Exception:
                 logger.warning(f"Error calling to_dict on {type(event)}", exc_info=True)
-                # Fall through to other methods
 
-        # Use dataclasses.asdict if possible
+        # Try dataclasses.asdict
         try:
-            return asdict(event, dict_factory=lambda x: {k: self._convert_value(v) for k, v in x})
+            return asdict(
+                event, dict_factory=lambda x: {k: self._convert_value(v) for k, v in x}
+            )
         except TypeError:
-            pass # Not a dataclass
+            pass  # Not a dataclass
 
-        # Handle basic objects with __dict__, excluding private/protected attrs
+        # Use __dict__
         if hasattr(event, "__dict__"):
-            return {k: self._convert_value(v) for k, v in event.__dict__.items() if not k.startswith('_')}
+            return {
+                k: self._convert_value(v)
+                for k, v in event.__dict__.items()
+                if not k.startswith("_")
+            }
 
-        # Fallback for unknown types
-        logger.warning(f"Could not serialize event of type {type(event)} to dict, using repr().")
+        # Fallback
+        logger.warning(f"Could not serialize {type(event)} to dict, using repr()")
         return {"event_repr": repr(event)}
 
     def _convert_value(self, value: Any) -> Any:
-        """Helper for _event_to_dict to handle nested structures and special types."""
+        """Convert values for serialization."""
         if isinstance(value, Enum):
             return value.value
         elif isinstance(value, (str, int, float, bool, type(None))):
             return value
         elif isinstance(value, dict):
-            # Ensure keys are strings for JSON compatibility
             return {str(k): self._convert_value(v) for k, v in value.items()}
-        elif isinstance(value, (list, tuple, set)): # Handle sets too
+        elif isinstance(value, (list, tuple, set)):
             return [self._convert_value(item) for item in value]
         elif hasattr(value, "to_dict") and callable(value.to_dict):
-             # Use custom to_dict for nested objects if available
             try:
                 return value.to_dict()
             except Exception:
-                 logger.warning(f"Error calling nested to_dict on {type(value)}", exc_info=True)
-                 # Fall through to other methods
+                pass
         elif hasattr(value, "__dict__") or hasattr(value, "__dataclass_fields__"):
-             # Recursively convert nested objects/dataclasses
-             return self._event_to_dict(value)
+            return self._event_to_dict(value)
         else:
-            # Attempt to convert other types to string
             try:
                 return str(value)
             except Exception:
-                logger.warning(f"Could not convert type {type(value)} to string, using repr()")
                 return repr(value)
