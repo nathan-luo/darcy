@@ -36,6 +36,7 @@ class ToolManager:
         self.tools: Dict[str, Tool] = {}
         self.engine = engine
         self.engine_id = engine.engine_id
+        self.session_id = engine.session_id
         self.message_bus = MessageBus()
         self.tool_parser = self._get_parser(llm_model_name)
 
@@ -157,7 +158,7 @@ class ToolManager:
         await self.message_bus.publish(
             ToolCompiledEvent(
                 tool_manager_id=self.tool_manager_id,
-                session_id=self.session_id,
+                session_id=self.engine.session_id,
                 engine_id=self.engine.engine_id,
                 tool_compiled_list=[tool.to_dict() for tool in self.tools.values()],
             )

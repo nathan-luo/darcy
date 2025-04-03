@@ -264,17 +264,19 @@ class SessionDemoBootstrap(ApplicationBootstrap[SessionDemoConfig]):
         config = config or SessionDemoConfig()
 
         # Call parent constructor - this will set up logging based on config
+        # and potentially disable tracing based on config.enable_tracing
         super().__init__(config)
 
         # Set up global event collector
         self.global_collector = EventCollector("Global")
 
         # Configure tracing according to config
-        if not self.config.enable_tracing:
-            self.message_bus.disable_tracing()
-            logging.info(
-                "Tracing has been disabled for this demo", extra={"session_id": "global"}
-            )
+        # --- This logic is now handled by the parent ApplicationBootstrap __init__ ---
+        # if not self.config.enable_tracing:
+        #     self.message_bus.disable_tracing()
+        #     logging.info(
+        #         "Tracing has been disabled for this demo", extra={"session_id": "global"}
+        #     )
 
     async def bootstrap(self) -> None:
         """Bootstrap the application."""
@@ -470,8 +472,11 @@ async def main():
         # Create the bootstrap with our custom config
         config = SessionDemoConfig()
 
+        # Disable tracing for this demo run
+        config.enable_tracing = False
+
         # You can enable or disable tracing here
-        config.enable_tracing = False  # Uncomment to disable tracing
+        # config.enable_tracing = False  # Uncomment to disable tracing
 
         # Create logs directory if it doesn't exist
         if config.enable_file_handler:

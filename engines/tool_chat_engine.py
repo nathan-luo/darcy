@@ -92,13 +92,13 @@ class ToolChatEngine:
         if system_prompt:
             self.context_manager.set_system_prompt(system_prompt)
 
-        # Register command handlers
+        # Register command handlers for this specific engine's session
         self.message_bus.register_command_handler(
-            PromptCommand, self.handle_prompt_command
+            self.session_id, PromptCommand, self.handle_prompt_command
         )
 
     async def handle_prompt_command(self, command: PromptCommand) -> CommandResult:
-        """Handle a prompt command.
+        """Handle a prompt command following OpenAI tool usage pattern.
 
         Args:
             command: The prompt command to handle
@@ -107,103 +107,111 @@ class ToolChatEngine:
             CommandResult: The result of the command execution
         """
         try:
-            # Get the current context using retrieve() method from SimpleChatHistory
-            context = self.context_manager.retrieve()
-
-            # Get available tools
-            tools = (
-                await self.tool_manager.get_tools() if command.tools is not None else None
-            )
-
-            # Store the user message using store_string() method
+            # 1. Add user message to history
             self.context_manager.store_string(command.message, "user")
 
-            # Generate response from LLM
-            response = await self.llm_manager.generate(context=context, tools=tools)
+            # Loop for potential tool execution cycles
+            while True:
+                # 2. Get current context (including latest user message or tool results)
+                current_context = self.context_manager.retrieve()
 
-            # Store the assistant response using store_response() method
-            self.context_manager.store_response(response, "assistant")
+                # 3. Get available tools
+                tools = await self.tool_manager.get_tools()
 
-            # Check if we have tool calls to execute
-            if response.has_tool_calls():
-                for tool_call in response.tool_calls:
+                # 4. Call LLM
+                print(
+                    f"\nCalling LLM with context:\n{json.dumps(current_context, indent=2)}\n"
+                )  # Debug print
+                response = await self.llm_manager.generate(
+                    context=current_context, tools=tools
+                )
+                print(f"\nLLM Raw Response:\n{response.raw}\n")  # Debug print
+
+                # 5. Extract the first choice's message object
+                # Important: Access the underlying OpenAI object structure
+                response_message = response.raw.choices[0].message
+
+                # 6. Add the *entire* assistant message object to history.
+                # This is crucial for context if it contains tool_calls.
+                self.context_manager.store_assistant_message(response_message)
+
+                # 7. Check for tool calls
+                if not response_message.tool_calls:
+                    # No tool calls, break the loop and return the content
+                    final_content = response_message.content or ""
+                    await self.message_bus.publish(
+                        PromptResponseEvent(
+                            prompt=command.message,
+                            response=final_content,
+                            tool_calls=None,  # No tool calls in the final response
+                            session_id=self.session_id,
+                        )
+                    )
+                    return CommandResult(
+                        success=True, original_command=command, result=final_content
+                    )
+
+                # 8. Process tool calls
+                print(
+                    f"Processing {len(response_message.tool_calls)} tool calls..."
+                )  # Debug print
+                for tool_call in response_message.tool_calls:
+                    tool_call_obj = ToolCall(
+                        id=tool_call.id,
+                        name=tool_call.function.name,
+                        arguments=tool_call.function.arguments,
+                    )
                     try:
                         # Execute the tool
-                        result = await self.tool_manager.execute_tool_call(tool_call)
+                        result = await self.tool_manager.execute_tool_call(tool_call_obj)
 
-                        # Convert result to string if it's not already
+                        # Convert result to string if needed for history
                         if isinstance(result, dict):
                             result_str = json.dumps(result)
                         else:
                             result_str = str(result)
 
-                        # Store function call result using store_function_call_result()
-                        self.context_manager.store_function_call_result({
-                            "role": "tool",
-                            "tool_call_id": tool_call.id,
-                            "name": tool_call.name,
-                            "content": result_str,
-                        })
+                        print(
+                            f"Tool '{tool_call_obj.name}' result: {result_str}"
+                        )  # Debug print
+
+                        # Store tool execution result in history
+                        self.context_manager.store_tool_call_result(
+                            tool_call_id=tool_call_obj.id,
+                            name=tool_call_obj.name,
+                            content=result_str,
+                        )
 
                         # Publish tool execution event
                         await self.message_bus.publish(
                             ToolExecutionEvent(
-                                tool_name=tool_call.name,
-                                arguments=json.loads(tool_call.arguments),
+                                tool_name=tool_call_obj.name,
+                                arguments=json.loads(tool_call_obj.arguments),
                                 result=result,
                                 session_id=self.session_id,
                             )
                         )
 
                     except Exception as e:
-                        error_msg = f"Error executing tool {tool_call.name}: {str(e)}"
-                        # Store error result
-                        self.context_manager.store_function_call_result({
-                            "role": "tool",
-                            "tool_call_id": tool_call.id,
-                            "name": tool_call.name,
-                            "content": error_msg,
-                        })
+                        error_msg = f"Error executing tool {tool_call_obj.name}: {str(e)}"
+                        print(error_msg)  # Debug print
+                        # Store error result in history
+                        self.context_manager.store_tool_call_result(
+                            tool_call_id=tool_call_obj.id,
+                            name=tool_call_obj.name,
+                            content=error_msg,
+                        )
+                # After processing all tool calls, loop back to call the LLM again
+                # with the updated context (including tool results).
 
-                # Get a follow-up response with the tool results
-                follow_up_context = self.context_manager.retrieve()
-                follow_up_response = await self.llm_manager.generate(
-                    context=follow_up_context
-                )
+        except Exception as e:
+            # Log the exception before returning
+            # logger.exception(f"Error in handle_prompt_command for session {self.session_id}") # Requires logger setup
+            print(f"ERROR in handle_prompt_command: {e}")  # Simple print for now
+            import traceback
 
-                # Store the follow-up response
-                self.context_manager.store_response(follow_up_response, "assistant")
+            traceback.print_exc()  # Print stack trace
 
-                # Publish event with the follow-up response
-                await self.message_bus.publish(
-                    PromptResponseEvent(
-                        prompt=command.message,
-                        response=follow_up_response.content,
-                        session_id=self.session_id,
-                    )
-                )
-
-                return CommandResult(
-                    success=True,
-                    original_command=command,
-                    result=follow_up_response.content,
-                )
-
-            # Publish event with the response
-            await self.message_bus.publish(
-                PromptResponseEvent(
-                    prompt=command.message,
-                    response=response.content,
-                    tool_calls=response.tool_calls,
-                    session_id=self.session_id,
-                )
-            )
-
-            return CommandResult(
-                success=True, original_command=command, result=response.content
-            )
-
-        except Exception as e:f
             return CommandResult(success=False, original_command=command, error=str(e))
 
     async def register_tool(self, function):

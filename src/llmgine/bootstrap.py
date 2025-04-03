@@ -79,6 +79,9 @@ class ApplicationConfig:
     file_handler_log_filename: Optional[str] = None  # Default: timestamped events.jsonl
     # custom_handlers: List[ObservabilityEventHandler] = field(default_factory=list) # For adding other handlers
 
+    # --- Tracing Config ---
+    enable_tracing: bool = True  # Default to enabled
+
     # --- Removed old MessageBus specific flags ---
     # log_dir: str = "logs"
     # log_filename: Optional[str] = None
@@ -110,6 +113,11 @@ class ApplicationBootstrap(Generic[TConfig]):
 
         # --- Initialize MessageBus (now takes no args) ---
         self.message_bus = MessageBus()
+
+        # --- Configure Tracing based on Config ---
+        if not getattr(self.config, "enable_tracing", True):
+            self.message_bus.disable_tracing()
+            logger.info("MessageBus tracing disabled via configuration.")
 
         # --- Create a primary session for this bootstrap ---
         self.primary_session = self.message_bus.create_session()
@@ -185,8 +193,9 @@ class ApplicationBootstrap(Generic[TConfig]):
 
     async def shutdown(self) -> None:
         """Shutdown the application components."""
-        # Close the primary session
-        self.primary_session.__exit__(None, None, None)
+        # Close the primary session (using __aexit__ since it's an async context manager)
+        if hasattr(self, "primary_session") and self.primary_session._active:
+            await self.primary_session.__aexit__(None, None, None)
 
         # Stop message bus
         await self.message_bus.stop()
