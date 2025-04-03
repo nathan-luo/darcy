@@ -307,9 +307,32 @@ class NotionTaskAPI:
 
         # ERROR
         # notion_client.errors.APIResponseError: Status is expected to be status.
-        # TODO fix
-        # if task_status:
-        #     properties["Status"] = {"select": {"name": task_status.value}}
+
+        # TODO fix  : i think it wants us to define a bunch of status props
+        # notion_client.errors.APIResponseError: body failed validation. Fix one:
+        # body.properties.Status.title should be defined, instead was `undefined`.
+        # body.properties.Status.rich_text should be defined, instead was `undefined`.
+        # body.properties.Status.number should be defined, instead was `undefined`.
+        # body.properties.Status.url should be defined, instead was `undefined`.
+        # body.properties.Status.select should be defined, instead was `undefined`.
+        # body.properties.Status.multi_select should be defined, instead was `undefined`.
+        # body.properties.Status.people should be defined, instead was `undefined`.
+        # body.properties.Status.email should be defined, instead was `undefined`.
+        # body.properties.Status.phone_number should be defined, instead was `undefined`.
+        # body.properties.Status.date should be defined, instead was `undefined`.
+        # body.properties.Status.checkbox should be defined, instead was `undefined`.
+        # body.properties.Status.relation should be defined, instead was `undefined`.
+        # body.properties.Status.files should be defined, instead was `undefined`.
+        # body.properties.Status.status should be defined, instead was `undefined`.
+        # body.properties.Name.id should be defined, instead was `undefined`.
+        # body.properties.Name.name should be defined, instead was `undefined`.
+        # body.properties.Name.start should be defined, instead was `undefined`.
+        # henry@MacBook-Pro-46 llmgine %
+
+        # how to set a status from existing values in notion api, avoid creating new status
+
+        if task_status:
+            properties["Status"] = {"Status": {"name": task_status.value}}
 
         if task_due_date:
             properties["Due Dates"] = {"date": {"start": task_due_date.isoformat()}}
