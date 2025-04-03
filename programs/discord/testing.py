@@ -1,17 +1,18 @@
-import discord 
+import discord
 from discord.ext import commands
 from discord import app_commands
 from dotenv import load_dotenv
 import os
+from discord.ui import Button, View
 
 load_dotenv()
 
-DARCY_KEY = os.getenv('DARCY_KEY')
-TEST_SERVER_ID = int(os.getenv('TEST_SERVER_ID'))
+DARCY_KEY = os.getenv("DARCY_KEY")
+TEST_SERVER_ID = int(os.getenv("TEST_SERVER_ID"))
 GUILD_OBJECT = discord.Object(id=TEST_SERVER_ID)
 
-class Client(commands.Bot):
 
+class Client(commands.Bot):
     def __init__(self):
         intents = discord.Intents.default()
         intents.message_content = True
@@ -19,27 +20,31 @@ class Client(commands.Bot):
         self.sessions = {}
 
     async def on_ready(self):
-        print(f'Logged in as {self.user}')
+        print(f"Logged in as {self.user}")
 
         try:
             synced = await self.tree.sync(guild=GUILD_OBJECT)
-            print(f'Synced {len(synced)} commands')
+            print(f"Synced {len(synced)} commands")
         except Exception as e:
-            print(f'Error syncing commands: {e}')
+            print(f"Error syncing commands: {e}")
 
     async def on_message(self, message):
         if message.author == self.user:
             return
 
-         # Check if Darcy was mentioned in the message
+        # Check if Darcy was mentioned in the message
         if self.user.mentioned_in(message):
             # Start a session for the user
             user_id = message.author.id
             if user_id not in self.sessions:
                 self.sessions[user_id] = {"booms": 0}
-                await message.channel.send(f"Session started for {message.author.name}. You have 0 big boom.")
+                await message.channel.send(
+                    f"Session started for {message.author.name}. You have 0 big boom."
+                )
             else:
-                await message.channel.send(f"{message.author.name}, you already have an active session. Get working on those booms.")
+                await message.channel.send(
+                    f"{message.author.name}, you already have an active session. Get working on those booms."
+                )
 
     async def setup_hook(self):
         """Registers all slash commands for the guild."""
@@ -50,25 +55,40 @@ class Client(commands.Bot):
 
 client = Client()
 
+
 # --- SLASH COMMANDS ---
-@client.tree.command(name="one_big_boom", description="Increase your BOOM count!", guild=GUILD_OBJECT)
+@client.tree.command(
+    name="one_big_boom", description="Increase your BOOM count!", guild=GUILD_OBJECT
+)
 async def one_big_boom(interaction: discord.Interaction):
     user_id = interaction.user.id
     if user_id in client.sessions:
         client.sessions[user_id]["booms"] += 1
-        await interaction.response.send_message(f"Now at {client.sessions[user_id]['booms']} big BOOMS!")
+        await interaction.response.send_message(
+            f"Now at {client.sessions[user_id]['booms']} big BOOMS!"
+        )
     else:
-        await interaction.response.send_message("Start a session first by mentioning me (@Darcy).")
+        await interaction.response.send_message(
+            "Start a session first by mentioning me (@Darcy)."
+        )
 
-@client.tree.command(name="boom_status", description="Check your BOOM count.", guild=GUILD_OBJECT)
+
+@client.tree.command(
+    name="boom_status", description="Check your BOOM count.", guild=GUILD_OBJECT
+)
 async def boom_status(interaction: discord.Interaction):
     user_id = interaction.user.id
     if user_id in client.sessions:
         boom_count = client.sessions[user_id]["booms"]
-        response = f"You're currently at {boom_count} big BOOMS.\n" + ("BOOM!\n" * boom_count)
+        response = f"You're currently at {boom_count} big BOOMS.\n" + (
+            "BOOM!\n" * boom_count
+        )
         await interaction.response.send_message(response)
     else:
-        await interaction.response.send_message("Start a session first by mentioning me (@Darcy).")
+        await interaction.response.send_message(
+            "Start a session first by mentioning me (@Darcy)."
+        )
+
 
 @client.tree.command(name="end", description="End your BOOM session.", guild=GUILD_OBJECT)
 async def end(interaction: discord.Interaction):
@@ -77,28 +97,71 @@ async def end(interaction: discord.Interaction):
         del client.sessions[user_id]
         await interaction.response.send_message("Your session has been ended.")
     else:
-        await interaction.response.send_message("Start a session first by mentioning me (@Darcy).")
+        await interaction.response.send_message(
+            "Start a session first by mentioning me (@Darcy)."
+        )
 
-@client.tree.command(name="add_big_booms", description="Add multiple BOOMs to your count!", guild=GUILD_OBJECT)
+
+@client.tree.command(
+    name="add_big_booms",
+    description="Add multiple BOOMs to your count!",
+    guild=GUILD_OBJECT,
+)
 async def add_big_booms(interaction: discord.Interaction):
     user_id = interaction.user.id
-    
+
     if user_id not in client.sessions:
-        await interaction.response.send_message("Start a session first by mentioning me (@Darcy).")
+        await interaction.response.send_message(
+            "Start a session first by mentioning me (@Darcy)."
+        )
         return
 
-    await interaction.response.send_message("How many big BOOMs do you want to add? Type a number.")
+    await interaction.response.send_message(
+        "How many big BOOMs do you want to add? Type a number."
+    )
 
     def check(msg):
-        return msg.author.id == user_id and msg.channel.id == interaction.channel_id and msg.content.isdigit()
+        return (
+            msg.author.id == user_id
+            and msg.channel.id == interaction.channel_id
+            and msg.content.isdigit()
+        )
 
     try:
         msg = await client.wait_for("message", timeout=30.0, check=check)
         boom_count = int(msg.content)
         client.sessions[user_id]["booms"] += boom_count
-        await msg.channel.send(f"Added {boom_count} big BOOMs! Now at {client.sessions[user_id]['booms']} big BOOMs!")
+        await msg.channel.send(
+            f"Added {boom_count} big BOOMs! Now at {client.sessions[user_id]['booms']} big BOOMs!"
+        )
     except TimeoutError:
         await interaction.channel.send("You took too long to respond. Try again!")
+
+
+class SimpleView(View):
+    def __init__(self):
+        super().__init__(timeout=180)  # Timeout after 3 minutes
+
+    @discord.ui.button(label="Click me!", style=discord.ButtonStyle.primary)
+    async def button_callback(self, interaction: discord.Interaction, button: Button):
+        await interaction.response.send_message("Button was clicked!", ephemeral=True)
+
+    @discord.ui.button(label="Another option", style=discord.ButtonStyle.secondary)
+    async def second_button(self, interaction: discord.Interaction, button: Button):
+        await interaction.response.send_message(
+            "You clicked the second button!", ephemeral=True
+        )
+
+
+# Command to send an interactive message
+@client.tree.command(
+    name="interactive", description="Send an interactive message with buttons"
+)
+async def interactive(interaction: discord.Interaction):
+    view = SimpleView()
+    await interaction.response.send_message(
+        "Here's an interactive message. Try clicking a button!", view=view
+    )
 
 
 if __name__ == "__main__":
