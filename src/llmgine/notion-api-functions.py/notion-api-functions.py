@@ -5,7 +5,7 @@
 import os
 from dataclasses import dataclass
 from datetime import date
-from typing import NewType
+from typing import Any, NewType, Optional
 
 import notion_client
 from dotenv import load_dotenv
@@ -23,6 +23,7 @@ notion_project_id_type = NewType("notion_project_id_type", str)
 notion_task_id_type = NewType("notion_task_id_type", str)
 notion_progress_type = NewType("notion_progress_type", str)
 notion_api_key_type = NewType("notion_api_key_type", str)
+json_type = dict[str, Any]
 
 
 @dataclass
@@ -217,34 +218,56 @@ class NotionTaskAPI:
         # url has no dashes, but the id has them
         return id_with_dashes.replace("-", "")
 
-    def get_tasks(
-        self, userID_inCharge: UserID_type, notion_project_id: notion_project_id_type
-    ) -> list[notion_task_id_type]:
-        # Function to read tasks from projects database
-        # Function to read tasks from projects database
+    def get_tasks_custom_filter(self, filter_obj: object) -> list[notion_task_id_type]:
+        """
+        This is if the llms want to use a custom filter
 
-        # filter by Project AND UserID
-        filter_obj = {
-            "and": [
-                {
-                    "property": "In Charge",
-                    "people": {"contains": userID_inCharge.notion_id},
-                },
-            ]
-        }
+
+        """
 
         # quering Task database
         response = self.client.databases.query(
             database_id=self.tasks_database_id,
             filter=filter_obj,  # should database id be notion_project_id?
         )
-        tasks = response.get("results", [])
+        tasks: list[json_type] = response.get("results", [])
 
         task_ids: list[notion_task_id_type] = [
             notion_task_id_type(task["id"]) for task in tasks
         ]  # tasks are random json
+
         # TODO how to just request ids without other data?
+
         return task_ids
+
+    def get_tasks(
+        self,
+        userID_inCharge: Optional[UserID_type],
+        notion_project_id: Optional[notion_project_id_type],
+    ) -> list[notion_task_id_type]:
+        # Function to read tasks from projects database
+
+        # This logic allows you to use None values to not filter by properties
+
+        filter_by_in_charge = None
+        if userID_inCharge:
+            filter_by_in_charge = {
+                "property": "In Charge",
+                "people": {"contains": userID_inCharge.notion_id},
+            }
+
+        filter_by_project = None
+        if notion_project_id:
+            filter_by_project = {
+                # TODO
+            }
+
+        filter_list = [filter_by_in_charge, filter_by_project]
+        filter_list = [f for f in filter_list if filter is not None]
+
+        filter_obj = {"and": filter_list}
+
+        return self.get_tasks_custom_filter(filter=filter_obj)
 
     def update_task(
         self,
