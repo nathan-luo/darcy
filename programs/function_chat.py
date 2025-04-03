@@ -22,6 +22,7 @@ from engines.tool_chat_engine import ToolChatEngine
 from llmgine.bootstrap import ApplicationBootstrap, ApplicationConfig
 from llmgine.observability.events import LogLevel
 
+
 # Set up logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -38,6 +39,8 @@ class FunctionChatConfig(ApplicationConfig):
     # OpenAI configuration
     openai_api_key: Optional[str] = None
     model: str = "gpt-4o-mini"
+
+    enable_console_handler = False
 
     # System prompt
     system_prompt: str = "You are a helpful assistant with access to tools for weather information, sending emails, and calculating expressions."

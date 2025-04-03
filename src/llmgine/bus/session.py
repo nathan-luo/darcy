@@ -42,12 +42,12 @@ class BusSession:
             # On exit, all handlers are automatically unregistered
     """
 
-    def __init__(self):
+    def __init__(self, id: Optional[str] = None):
         """Initialize a new bus session with a unique ID."""
         # Import MessageBus locally to avoid circular dependency at import time
         from llmgine.bus.bus import MessageBus
 
-        self.session_id = str(uuid.uuid4())
+        self.session_id = id or str(uuid.uuid4())
         self.start_time = time.time()
         self.bus = MessageBus()
         self._active = True

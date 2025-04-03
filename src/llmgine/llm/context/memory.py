@@ -11,10 +11,9 @@ from llmgine.llm.engine.core import LLMEngine
 
 
 class SimpleChatHistory:
-    def __init__(self, engine: LLMEngine):
-        self.engine = engine
-        self.engine_id = engine.engine_id
-        self.session_id = engine.session_id
+    def __init__(self, engine_id: str, session_id: str):
+        self.engine_id = engine_id
+        self.session_id = session_id
         self.context_manager_id = str(uuid.uuid4())
         self.bus = MessageBus()
         self.response_log: List[Any] = []  # Logs raw responses/inputs

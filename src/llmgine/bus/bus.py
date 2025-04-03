@@ -116,12 +116,12 @@ class MessageBus:
             self._tracing_enabled = False
             logger.info("Tracing disabled for MessageBus")
 
-    def create_session(self):
+    def create_session(self, id: Optional[str] = None):
         """Create a new session for grouping related commands and events."""
         # Import BusSession locally to avoid circular dependency
         from llmgine.bus.session import BusSession
 
-        return BusSession()
+        return BusSession(id=id)
 
     async def start(self) -> None:
         """Start the message bus event processing loop."""
