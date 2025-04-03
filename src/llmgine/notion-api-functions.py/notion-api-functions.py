@@ -217,15 +217,6 @@ class NotionTaskAPI:
         # url has no dashes, but the id has them
         return id_with_dashes.replace("-", "")
 
-    def get_all_tasks(self) -> list[notion_task_id_type]:
-        # Function to read tasks from projects database
-
-        response = self.client.databases.query(database_id=self.tasks_database_id)
-
-        tasks = response.get("results", [])
-
-        return [notion_task_id_type(task["id"]) for task in tasks]
-
     def get_tasks(
         self, userID_inCharge: UserID_type, notion_project_id: notion_project_id_type
     ) -> list[notion_task_id_type]:
@@ -248,7 +239,12 @@ class NotionTaskAPI:
             filter=filter_obj,  # should database id be notion_project_id?
         )
         tasks = response.get("results", [])
-        return tasks
+
+        task_ids: list[notion_task_id_type] = [
+            notion_task_id_type(task["id"]) for task in tasks
+        ]  # tasks are random json
+        # TODO how to just request ids without other data?
+        return task_ids
 
     def update_task(
         self,
@@ -332,16 +328,18 @@ notion_api_production = NotionTaskAPI(
 #     userID=henryID,
 # )
 
-projects = notion_api_production.get_active_projects()
+projects: list[notion_project_id_type] = notion_api_production.get_active_projects()
 print("projects ", projects)
-tasks = notion_api_production.get_all_tasks()
+tasks: list[notion_task_id_type] = notion_api_production.get_all_tasks()
 print("tasks ", tasks)
 
 
 # notion_api_production.create_project(project_name="Test Project" + CHATBOT_FINGERPRINT)
 
 # get the tasks for each project
-# for proj in projects:
-#     tasks = notion_api_production.get_tasks(userID=henryID, notion_project_id=proj)
-#     print(proj)
-#     print(tasks)
+for proj in projects:
+    tasks: list[notion_task_id_type] = notion_api_production.get_tasks(
+        userID_inCharge=henryID, notion_project_id=proj
+    )
+    print(proj)
+    print(tasks)
