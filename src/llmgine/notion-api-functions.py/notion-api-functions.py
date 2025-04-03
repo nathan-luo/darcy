@@ -306,7 +306,6 @@ class NotionTaskAPI:
             }
 
         # ERROR
-        # notion_client.errors.APIResponseError: Status is expected to be status.
 
         # TODO fix  : i think it wants us to define a bunch of status props
         # notion_client.errors.APIResponseError: body failed validation. Fix one:
