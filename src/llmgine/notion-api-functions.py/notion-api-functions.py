@@ -176,11 +176,39 @@ name_to_id = {
 
 def get_properties_of_database(database_id: notion_database_id_type) -> list[str]:
     # AI: Get properties of a database
+    print("fn get_properties_of_database")
     database = NOTION_CLIENT.databases.retrieve(database_id=database_id)
     return database["properties"].keys()
 
 
 print(get_properties_of_database(NOTION_PRODUCTION_DATABASE_ID_TASKS))
+
+
+# ======================================
+# Functions - get enums
+# ======================================
+
+
+def get_enum_ids(database_id: notion_database_id_type):
+    # AI: Get status ids of a database
+
+    print("fn get_enum_ids")
+    database = NOTION_CLIENT.databases.retrieve(database_id=database_id)
+    print(database["properties"]["Status"])
+
+
+# print(get_enum_ids(NOTION_PRODUCTION_DATABASE_ID_TASKS))
+class STATUS_ENUM_NOTION_PRODUCTION_DATABASE_ID_TASKS(str, Enum):
+    # AI: Using str as base class to maintain string values while having enum functionality
+    NotStarted = "e07b4872-6baf-464e-8ad9-abf768286e49"
+    InProgress = "80d361e4-d127-4e1b-b7bf-06e07e2b7890"
+    Blocked = "rb_~"
+    ToReview = "Q=S~"
+    Done = "`acO"
+    Archive = "aAlA"
+
+
+# TODO other enums
 
 
 # ======================================
@@ -195,7 +223,7 @@ class NotionTaskAPI:
         projects_database_id: notion_database_id_type,
     ):
         self.client = NOTION_CLIENT
-        self.tasks_database_id = tasks_database_id
+        self.tasks_database_id = tasks_database_id  # TODO rm and use constants
         self.projects_database_id = projects_database_id
 
         self.validate_database_id(client=self.client, database_id=self.tasks_database_id)
@@ -280,7 +308,9 @@ class NotionTaskAPI:
         self,
         notion_task_id: notion_task_id_type,
         task_name: Optional[str] = None,
-        task_status: Optional[NotionStatus] = None,
+        task_status: Optional[
+            STATUS_ENUM_NOTION_PRODUCTION_DATABASE_ID_TASKS
+        ] = None,  # TODO should maybe make a property?
         task_due_date: Optional[date] = None,
         task_in_charge: Optional[list[UserID_type]] = None,
         task_event_project: Optional[notion_project_id_type] = None,
@@ -308,6 +338,7 @@ class NotionTaskAPI:
         # ERROR
 
         # TODO     <<<< THIS IS BETTER. Find status ids
+        # TODO https://developers.notion.com/reference/property-object#status
 
         # TODO fix  : i think it wants us to define a bunch of status props
         # notion_client.errors.APIResponseError: body failed validation. Fix one:
@@ -334,7 +365,7 @@ class NotionTaskAPI:
 
         if task_status:
             properties["Status"] = {
-                "Status": {"name": task_status.value}
+                "Status": {"id": task_status.value}  # This doesn't work
                 # TODO add extra?
             }
 
@@ -448,6 +479,6 @@ print("tasks ", tasks)
 notion_api_production.update_task(
     notion_task_id=notion_task_id_type("1c9c2e93a41281799f82d5f5aa40b6d5"),
     task_name="Test Task - update task" + CHATBOT_FINGERPRINT,
-    task_status=NotionStatus.IN_PROGRESS,
+    task_status=STATUS_ENUM_NOTION_PRODUCTION_DATABASE_ID_TASKS.InProgress,
     task_due_date=date(2025, 1, 1),
 )
