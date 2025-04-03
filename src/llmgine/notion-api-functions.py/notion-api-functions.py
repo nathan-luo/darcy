@@ -21,8 +21,9 @@ notion_id_type = NewType("notion_id_type", str)
 notion_database_id_type = NewType("notion_database_id_type", str)
 notion_project_id_type = NewType("notion_project_id_type", str)
 notion_task_id_type = NewType("notion_task_id_type", str)
-notion_progress_type = NewType("notion_progress_type", str)
 notion_api_key_type = NewType("notion_api_key_type", str)
+
+notion_status_type = NewType("notion_status_type", str)  # TODO do i need?
 
 
 @dataclass
@@ -269,8 +270,8 @@ class NotionTaskAPI:
     def update_task(
         self,
         notion_task_id: notion_task_id_type,
-        notion_progress: notion_progress_type,
         task_name: Optional[str] = None,
+        task_status: Optional[notion_status_type] = None,
         task_due_date: Optional[date] = None,
         task_in_charge: Optional[list[UserID_type]] = None,
         task_event_project: Optional[notion_project_id_type] = None,
@@ -281,14 +282,32 @@ class NotionTaskAPI:
 
         print(
             notion_task_id,
-            notion_progress,
             task_name,
+            task_status,
             task_due_date,
             task_in_charge,
             task_event_project,
         )
 
-        pass
+        properties = {}
+        if task_name:
+            properties["Name"] = {
+                "title": [{"text": {"content": task_name + CHATBOT_FINGERPRINT}}]
+            }
+        # if task_status: properties["Status"] = {"select": {"name": task_status}}
+        if task_due_date:
+            properties["Due Dates"] = {"date": {"start": task_due_date.isoformat()}}
+        if task_in_charge:
+            properties["In Charge"] = {
+                "people": [{"object": "user", "id": task_in_charge[0].notion_id}]
+            }  # TODO update
+        if task_event_project:
+            properties["Event/Project"] = {"relation": {"contains": task_event_project}}
+
+        self.client.pages.update(
+            page_id=notion_task_id,
+            properties=properties,
+        )
 
     def get_active_projects(self) -> list[notion_project_id_type]:
         """
@@ -373,9 +392,17 @@ print("tasks ", tasks)
 # notion_api_production.create_project(project_name="Test Project" + CHATBOT_FINGERPRINT)
 
 # get the tasks for each project
-for proj in projects:
-    tasks: list[notion_task_id_type] = notion_api_production.get_tasks(
-        userID_inCharge=henryID, notion_project_id=proj
-    )
-    print("proj ============", proj)
-    print("tasks", tasks)
+# for proj in projects:
+#     tasks: list[notion_task_id_type] = notion_api_production.get_tasks(
+#         userID_inCharge=henryID, notion_project_id=proj
+#     )
+#     print("proj ============", proj)
+#     print("tasks", tasks)
+
+
+notion_api_production.update_task(
+    notion_task_id=notion_task_id_type("1c9c2e93a41281799f82d5f5aa40b6d5"),
+    task_name="Test Task - update task" + CHATBOT_FINGERPRINT,
+    task_status=notion_status_type("In-Progress"),
+    task_due_date=date(2025, 1, 1),
+)
