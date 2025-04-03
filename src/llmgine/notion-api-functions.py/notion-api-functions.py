@@ -227,7 +227,7 @@ class NotionTaskAPI:
         return [notion_task_id_type(task["id"]) for task in tasks]
 
     def get_tasks(
-        self, userID: UserID_type, notion_project_id: notion_project_id_type
+        self, userID_inCharge: UserID_type, notion_project_id: notion_project_id_type
     ) -> list[notion_task_id_type]:
         # Function to read tasks from projects database
         # Function to read tasks from projects database
@@ -235,14 +235,17 @@ class NotionTaskAPI:
         # filter by Project AND UserID
         filter_obj = {
             "and": [
-                # TODO add notion_project_id
-                {"property": "In Charge", "people": {"contains": userID.notion_id}},
+                {
+                    "property": "In Charge",
+                    "people": {"contains": userID_inCharge.notion_id},
+                },
             ]
         }
 
         # quering Task database
         response = self.client.databases.query(
-            database_id=self.tasks_database_id, filter=filter_obj
+            database_id=self.tasks_database_id,
+            filter=filter_obj,  # should database id be notion_project_id?
         )
         tasks = response.get("results", [])
         return tasks
@@ -330,14 +333,15 @@ notion_api_production = NotionTaskAPI(
 # )
 
 projects = notion_api_production.get_active_projects()
+print("projects ", projects)
 tasks = notion_api_production.get_all_tasks()
-print(tasks)
+print("tasks ", tasks)
 
 
 # notion_api_production.create_project(project_name="Test Project" + CHATBOT_FINGERPRINT)
 
 # get the tasks for each project
-for proj in projects:
-    tasks = notion_api_production.get_tasks(userID=henryID, notion_project_id=proj)
-    print(proj)
-    print(tasks)
+# for proj in projects:
+#     tasks = notion_api_production.get_tasks(userID=henryID, notion_project_id=proj)
+#     print(proj)
+#     print(tasks)
