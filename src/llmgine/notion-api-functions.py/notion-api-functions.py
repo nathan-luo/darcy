@@ -226,7 +226,22 @@ class NotionTaskAPI:
         # Function to read tasks from projects database
 
         # filter by Project AND UserID
-        pass
+        filter_obj = {
+            "and": [
+                {
+                    "property": "Events/ Project Relation",
+                    "relation": {"contains": notion_project_id},
+                },
+                {"property": "In charge", "people": {"contains": userID.notion_id}},
+            ]
+        }
+
+        # quering Task database
+        response = self.client.databases.query(
+            database_id=self.tasks_database_id, filter=filter_obj
+        )
+        tasks = response.get("results", [])
+        return tasks
 
     def update_task(
         self,
@@ -244,6 +259,12 @@ class NotionTaskAPI:
         response = self.client.databases.query(
             database_id=self.projects_database_id,
             # TODO filter based on active
+            filter={
+                "or": [
+                    {"property": "Progress", "select": {"equals": "On-Going"}},
+                    {"property": "Progress", "select": {"equals": "In-Progress"}},
+                ]
+            },
         )
 
         projects: list[notion_project_id_type] = []
@@ -259,6 +280,8 @@ class NotionTaskAPI:
         # TODO is this a correct ID?
         # This is what the url is 1c8c2e93a41280808718ef53e0144f87?v=1c8c2e93a4128012bf84000ceefaeedb
         # This is is returned by the function 1c8c2e93-a412-805e-a263-efad29cd7a2f
+
+        # naurrr isn't it supposed to be 1c8c2e93a41280808718ef53e0144f87
 
         return projects
 
@@ -305,6 +328,7 @@ notion_api_production = NotionTaskAPI(
 projects = notion_api_production.get_active_projects()
 tasks = notion_api_production.get_all_tasks()
 print(tasks)
+
 
 # notion_api_production.create_project(project_name="Test Project" + CHATBOT_FINGERPRINT)
 
