@@ -188,7 +188,9 @@ def get_enum_ids(database_id: notion_database_id_type, property_name: str):
     print(database["properties"][property_name])
 
 
-# print(get_enum_ids(NOTION_PRODUCTION_DATABASE_ID_TASKS, "Status"))
+print(get_enum_ids(NOTION_PRODUCTION_DATABASE_ID_TASKS, "Status"))
+
+
 class STATUS_ENUM_NOTION_PRODUCTION_DATABASE_ID_TASKS(str, Enum):
     # AI: Using str as base class to maintain string values while having enum functionality
     NotStarted = "e07b4872-6baf-464e-8ad9-abf768286e49"
@@ -199,12 +201,31 @@ class STATUS_ENUM_NOTION_PRODUCTION_DATABASE_ID_TASKS(str, Enum):
     Archive = "aAlA"
 
 
-# TODO other enums
+# print(get_enum_ids(NOTION_PRODUCTION_DATABASE_ID_PROJECTS, "Type"))
+class TYPE_ENUM_NOTION_PRODUCTION_DATABASE_ID_TASKS(str, Enum):
+    # AI: Using str as base class to maintain string values while having enum functionality
+    Note = "c7af628b-b687-4c38-b8ac-8d3172cc58aa"
+    Event = "79ab91d2-901a-493d-89c4-b5d5d70ab024"
+    Project = "bf8121f3-e6aa-4c9c-a915-e8b21cb200a6"
+    Admin = "fa093f19-64cd-4f7c-ad2a-ed69650ede6d"
+    Program = "ad80bc15-002e-4bed-98a7-70d0ccbdd405"
+    Portfolio = "cf8a3888-75ee-4655-b5ed-a263b5515682"
 
-print(get_enum_ids(NOTION_PRODUCTION_DATABASE_ID_PROJECTS, "Type"))
-exit()
 
 print(get_enum_ids(NOTION_PRODUCTION_DATABASE_ID_PROJECTS, "Progress"))
+
+
+class PROGRESS_ENUM_NOTION_PRODUCTION_DATABASE_ID_PROJECTS(str, Enum):
+    # AI: Using str as base class to maintain string values while having enum functionality
+    OnGoing = "b10d8750-5430-4e9a-982b-0b9ef8f9268d"
+    Proposal = "d40f9c53-6818-470e-805f-f6575431a933"
+    Approved = "8e86bc47-37fe-468d-9aa8-a69c016f387d"
+    Planning = "55c457f3-6430-4616-b338-546fc7b03832"
+    InProgress = "6f35999d-6364-4409-8b2c-8844a00acc55"
+    Finished = "2576eecb-5171-4de5-8c11-76910ec79be2"
+    Cancelled = "ab281fe4-971c-4034-8a49-529ff2751844"
+    Archive = "a9d94b23-8214-4b80-81e4-50cba18d8ca5"
+    Paused = "22b284af-d310-4c94-bd42-df558fe4bbcd"
 
 
 # ======================================
