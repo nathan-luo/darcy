@@ -235,6 +235,11 @@ class NotionTaskAPI:
         # filter by Project AND UserID
         filter_obj = {
             "and": [
+                # TODO impl notion_project_id
+                # {
+                #     "property": "Events/ Project Relation",
+                #     "relation": {"contains": notion_project_id},
+                # },
                 {
                     "property": "In Charge",
                     "people": {"contains": userID_inCharge.notion_id},
