@@ -5,7 +5,7 @@
 import os
 from dataclasses import dataclass
 from datetime import date
-from typing import NewType
+from typing import NewType, Optional
 
 import notion_client
 from dotenv import load_dotenv
@@ -270,11 +270,24 @@ class NotionTaskAPI:
         self,
         notion_task_id: notion_task_id_type,
         notion_progress: notion_progress_type,
-        date: date,
-        userID: UserID_type,
+        task_name: Optional[str] = None,
+        task_due_date: Optional[date] = None,
+        task_in_charge: Optional[list[UserID_type]] = None,
+        task_event_project: Optional[notion_project_id_type] = None,
     ) -> None:
-        # Function to update tasks
-        print(notion_task_id, notion_progress, date, userID)
+        """
+        Update a task in the tasks database
+        """
+
+        print(
+            notion_task_id,
+            notion_progress,
+            task_name,
+            task_due_date,
+            task_in_charge,
+            task_event_project,
+        )
+
         pass
 
     def get_active_projects(self) -> list[notion_project_id_type]:
