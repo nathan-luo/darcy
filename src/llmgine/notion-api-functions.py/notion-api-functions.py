@@ -68,13 +68,6 @@ NOTION_CLIENT: notion_client.Client = notion_client.Client(auth=NOTION_API_KEY)
 # testing vs production
 # ---------------------
 
-
-NOTION_TESTING_DATABASE_ID_TASKS: notion_database_id_type = notion_database_id_type(
-    "1c8c2e93a412802d93e8d8e581615d03"
-)
-NOTION_TESTING_DATABASE_ID_PROJECTS: notion_database_id_type = notion_database_id_type(
-    "1c8c2e93a41280808718ef53e0144f87"
-)
 NOTION_PRODUCTION_DATABASE_ID_TASKS: notion_database_id_type = notion_database_id_type(
     "ed8ba37a719a47d7a796c2d373c794b9"
 )
@@ -275,8 +268,8 @@ class NotionTaskAPI:
             # TODO filter based on active
             filter={
                 "or": [
-                    {"property": "Status", "select": {"equals": "On-Going"}},
-                    {"property": "Status", "select": {"equals": "In-Progress"}},
+                    {"property": "Progress", "select": {"equals": "On-Going"}},
+                    {"property": "Progress", "select": {"equals": "In-Progress"}},
                 ]
             },
         )
