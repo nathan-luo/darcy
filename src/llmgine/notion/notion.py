@@ -206,9 +206,9 @@ def get_active_projects() -> list[dict]:
 
 def create_task(
     task_name: str,
-    due_date: str,
     user_id: str,  # TODO change to a list
-    notion_project_id: str,
+    due_date: Optional[str] = None,
+    notion_project_id: Optional[str] = None,
     # TODO add more
 ) -> str:
     """
@@ -223,16 +223,20 @@ def create_task(
     Returns:
         str: Success or failure of the creation
     """
-    date = datetime.strptime(due_date, "%Y-%m-%d")
+    properties = {
+        "Name": {"title": [{"text": {"content": task_name}}]},
+        "In Charge": {"people": [{"object": "user", "id": user_id}]},
+    }
+    if due_date:
+        date = datetime.strptime(due_date, "%Y-%m-%d")
+        properties["Due Dates"] = {"date": {"start": date.isoformat()}}
+    if notion_project_id:
+        properties["Event/Project"] = {"relation": [{"id": notion_project_id}]}
+
     notion_client = NotionClient()
     response = notion_client.pages.create(
         parent={"database_id": NOTION_PRODUCTION_DATABASE_ID_TASKS},
-        properties={
-            "Name": {"title": [{"text": {"content": task_name}}]},
-            "Due Dates": {"date": {"start": date.isoformat()}},
-            "In Charge": {"people": [{"object": "user", "id": user_id}]},
-            "Event/Project": {"relation": [{"id": notion_project_id}]},
-        },
+        properties=properties,
     )
     return response
 
