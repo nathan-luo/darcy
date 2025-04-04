@@ -4,16 +4,13 @@ This module provides a way to register, describe, and execute tools
 that can be called by language models.
 """
 
-import asyncio
-import inspect
 import json
-import re
 import uuid
-from typing import Any, Dict, List, Optional, Type, Union
+from typing import Any, Dict, List, Optional, Type
 
 from llmgine.bus.bus import MessageBus
-from llmgine.llm.engine.core import LLMEngine
-from llmgine.llm.tools.tool import Tool, Parameter, ToolFunction, AsyncToolFunction
+from llmgine.llm.tools.tool import Tool
+from llmgine.llm.tools.tool_register import ToolRegister
 from llmgine.llm.tools.tool_parser import (
     OpenAIToolParser,
     ClaudeToolParser,
@@ -36,49 +33,22 @@ class ToolManager:
     ):
         """Initialize the tool manager."""
         self.tool_manager_id = str(uuid.uuid4())
-        self.tools: Dict[str, Tool] = {}
         self.engine_id = engine_id
         self.session_id = session_id
         self.message_bus = MessageBus()
-        self.tool_parser = self._get_parser(llm_model_name)
+        self.tools: Dict[str, Tool] = {}
+        self.__tool_parser = self._get_parser(llm_model_name)
+        self.__tool_register = ToolRegister()
 
-    def _get_parser(self, llm_model_name: Optional[str] = None):
-        """Get the appropriate tool parser based on the LLM model name."""
-        if llm_model_name == "openai":
-            tool_parser = OpenAIToolParser()
-        elif llm_model_name == "claude":
-            tool_parser = ClaudeToolParser()
-        elif llm_model_name == "deepseek":
-            tool_parser = DeepSeekToolParser()
-        else:
-            tool_parser = OpenAIToolParser()
-        return tool_parser
-
-    async def register_tool(
-        self, function: Union[ToolFunction, AsyncToolFunction]
-    ) -> None:
-        """Register a function as a tool.
+    async def register_tool(self, tool: Tool):
+        """Register a tool, tool manager will publish the tool 
+            registration event and hand it to the tool register.
 
         Args:
-            function: The function to register
-
-        Raises:
-            ValueError: If the function has no description
+            tool: The tool to register
         """
-        
-        # Get the name, description, parameters, and async status of the function
-        name = function.__name__
-        description = self._get_function_description(function)
-        parameters = self._get_function_parameters(function)
-        is_async = asyncio.iscoroutinefunction(function)
-
-        tool = Tool(
-            name=name,
-            description=description,
-            parameters=parameters,
-            function=function,
-            is_async=is_async,
-        )
+        name, tool = self.__tool_register.register_tool(tool)
+        self.tools[name] = tool
 
         # Publish the tool registration event
         await self.message_bus.publish(
@@ -90,25 +60,26 @@ class ToolManager:
             )
         )
 
-        self.tools[name] = tool
-
     async def get_tools(self) -> List[Tool]:
-        """Get all registered tools.
+        """Get all registered tools from the tool register.
 
         Returns:
             A list of tools in the registered model's format
         """
+        # Collect all tools from the tool register
+        tools = list(self.tools.values())
+
         # Publish the tool compilation event
         await self.message_bus.publish(
             ToolCompiledEvent(
                 tool_manager_id=self.tool_manager_id,
                 session_id=self.session_id,
                 engine_id=self.engine_id,
-                tool_compiled_list=[tool.to_dict() for tool in self.tools.values()],
+                tool_compiled_list=[tool.to_dict() for tool in tools],
             )
         )
 
-        return [self.tool_parser.parse_tool(tool) for tool in self.tools.values()]
+        return [self.__tool_parser.parse_tool(tool) for tool in tools]
 
     async def execute_tool_call(self, tool_call: ToolCall) -> Any:
         """Execute a tool from a ToolCall object.
@@ -127,12 +98,12 @@ class ToolManager:
         try:
             # Parse arguments
             arguments = json.loads(tool_call.arguments)
-            return await self._execute_tool(tool_name, arguments)
+            return await self.__execute_tool(tool_name, arguments)
         except json.JSONDecodeError as e:
             error_msg = f"Invalid JSON arguments for tool {tool_name}: {e}"
             raise ValueError(error_msg) from e
 
-    async def _execute_tool(self, tool_name: str, arguments: Dict[str, Any]) -> Any:
+    async def __execute_tool(self, tool_name: str, arguments: Dict[str, Any]) -> Any:
         """Execute a tool with the given arguments.
 
         Args:
@@ -186,120 +157,14 @@ class ToolManager:
             )
             raise e
 
-    def _annotation_to_json_type(self, annotation: Type) -> str:
-        """Convert a Python type annotation to a JSON schema type.
-
-        Args:
-            annotation: The type annotation to convert
-
-        Returns:
-            A JSON schema type string
-        """
-        # Simple mapping of Python types to JSON schema types
-        if annotation is str:
-            return "string"
-        elif annotation is int:
-            return "integer"
-        elif annotation is float:
-            return "number"
-        elif annotation is bool:
-            return "boolean"
-        elif annotation is list or annotation is List:
-            return "array"
-        elif annotation is dict or annotation is Dict:
-            return "object"
+    def _get_parser(self, llm_model_name: Optional[str] = None):
+        """Get the appropriate tool parser based on the LLM model name."""
+        if llm_model_name == "openai":
+            tool_parser = OpenAIToolParser()
+        elif llm_model_name == "claude":
+            tool_parser = ClaudeToolParser()
+        elif llm_model_name == "deepseek":
+            tool_parser = DeepSeekToolParser()
         else:
-            # Default to string for complex types
-            return "string"
-
-    def _get_function_description(self, function: Union[ToolFunction, AsyncToolFunction]) -> str:
-        """Get the description of a function.
-
-        Args:
-            function: The function to get the description of
-
-        Returns:
-            The description of the function
-
-        Raises:
-            ValueError: If the function has no description
-        """
-        function_desc_pattern = r"^\s*(.+?)(?=\s*Args:|$)"
-        desc_doc = re.search(function_desc_pattern, function.__doc__ or "", re.MULTILINE)
-
-        if desc_doc:
-            description = desc_doc.group(1).strip()
-            description = " ".join(line.strip() for line in description.split("\n"))
-        else:
-            raise ValueError(f"Function '{function.__name__}' has no description provided")
-        
-        return description
-
-    def _get_function_parameters(self, function: Union[ToolFunction, AsyncToolFunction]) -> List[Parameter]:
-        """Get the parameters of a function.
-
-        Args:
-            function: The function to get the parameters of
-
-        Returns:
-            A list of function parameters, each with a name, type, and description
-
-        Raises:
-            ValueError: If the function has no parameters
-        """
-
-
-        # Extract parameters from function signature
-        sig = inspect.signature(function)
-        parameters: List[Parameter] = []
-        param_dict = {}
-
-        # Find the Args section
-        args_match = re.search(
-            r"Args:(.*?)(?:Returns:|Raises:|$)", function.__doc__ or "", re.DOTALL
-        )
-        if args_match:
-            args_section = args_match.group(1).strip()
-
-            # Pattern to match parameter documentation
-            # Matches both single-line and multi-line parameter descriptions
-            param_pattern = r"(\w+):\s*((?:(?!\w+:).+?\n?)+)"
-
-            # Find all parameters in the Args section
-            for match in re.finditer(param_pattern, args_section, re.MULTILINE):
-                param_name = match.group(1)
-                param_desc = match.group(2).strip()
-
-                param_dict[param_name] = param_desc
-
-        for param_name, param in sig.parameters.items():
-            param_type = "string"
-            param_required = False
-            param_desc = f"Parameter: {param_name}"
-
-            if param.annotation != inspect.Parameter.empty:
-                # Convert type annotation to JSON schema type
-                param_type = self._annotation_to_json_type(param.annotation)
-
-            # Add to required list if no default value
-            if param.default is inspect.Parameter.empty:
-                param_required = True
-
-            # If the parameter has a description in the Args section, use it
-            if param_name in param_dict:
-                param_desc = param_dict[param_name]
-            else:
-                raise ValueError(
-                    f"Parameter '{param_name}' has no description in the Args section"
-                )
-
-            parameters.append(
-                Parameter(
-                    name=param_name,
-                    description=param_desc,
-                    type=param_type,
-                    required=param_required,
-                )
-            )
-
-        return parameters
+            tool_parser = OpenAIToolParser()
+        return tool_parser
