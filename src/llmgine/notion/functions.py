@@ -57,7 +57,7 @@ CHATBOT_FINGERPRINT = ">DarcyBotWasHere<"
 load_dotenv()
 
 # AI: Convert environment variable to proper type after validation
-NOTION_API_KEY: notion_api_key_type = notion_api_key_type(os.getenv("NOTION_API_KEY", ""))
+NOTION_API_KEY: notion_api_key_type = notion_api_key_type(os.getenv("NOTION_TOKEN", ""))
 if not NOTION_API_KEY:
     raise ValueError("NOTION_API_KEY environment variable is not set")
 
@@ -159,6 +159,23 @@ name_to_id = {
     "Rudra Tiwari": "1bbd872b-594c-8167-b7bb-000231b0eaa5",
 }
 
+lookup_discord_id = {
+    "241085495398891521": {
+        "name": "Nathan Luo",
+        "role": "AI Director",
+        "notion_id": "f746733c-66cc-4cbc-b553-c5d3f03ed240",
+    },
+    "373796704450772992": {
+        "name": "Pranav Jayanty",
+        "role": "AI Officer",
+        "notion_id": "c005948c-9115-4a4d-b3c2-78286fa75fdb",
+    },
+    "1195065884713156728": {
+        "name": "Antoine Dulauroy",
+        "role": "AI Officer",
+        "notion_id": "1bbd872b-594c-81f5-bc03-0002a7229ca6",
+    },
+}
 
 # ======================================
 # Functions - helpers
@@ -287,7 +304,9 @@ class NotionTaskAPI:
         return [notion_task_id_type(task["id"]) for task in tasks]
 
     def get_tasks(
-        self, userID_inCharge: UserID_type, notion_project_id: notion_project_id_type
+        self,
+        userID_inCharge: str,
+        notion_project_id: Optional[notion_project_id_type],
     ) -> list[notion_task_id_type]:
         """
         Get all tasks from the tasks database
@@ -295,18 +314,24 @@ class NotionTaskAPI:
         """
 
         # filter by Project AND UserID
-        filter_obj = {
-            "and": [
-                {
-                    "property": "Event/Project",
-                    "relation": {"contains": notion_project_id},
-                },
-                {
-                    "property": "In Charge",
-                    "people": {"contains": userID_inCharge.notion_id},
-                },
-            ]
-        }
+        if notion_project_id:
+            filter_obj = {
+                "and": [
+                    {
+                        "property": "Event/Project",
+                        "relation": {"contains": notion_project_id},
+                    },
+                    {
+                        "property": "In Charge",
+                        "people": {"contains": userID_inCharge},
+                    },
+                ]
+            }
+        else:
+            filter_obj = {
+                "property": "In Charge",
+                "people": {"contains": userID_inCharge},
+            }
 
         # quering Task database
         response = self.client.databases.query(
@@ -432,43 +457,43 @@ class NotionTaskAPI:
 # Basic testing
 
 
-henryID = UserID_type(
-    name="Henry",
-    discord_id=discord_id_type("872718183692402688"),
-    notion_id=notion_id_type("149d872b-594c-8184-ba71-00021997dcb9"),
-)
-
-notion_api_production = NotionTaskAPI(
-    tasks_database_id=NOTION_PRODUCTION_DATABASE_ID_TASKS,
-    projects_database_id=NOTION_PRODUCTION_DATABASE_ID_PROJECTS,
-)
-
-# notion_api_production.create_task(
-#     task_name="Test Task" + CHATBOT_FINGERPRINT,
-#     due_date=date(2025, 1, 1),
-#     userID=henryID,
+# henryID = UserID_type(
+#     name="Henry",
+#     discord_id=discord_id_type("872718183692402688"),
+#     notion_id=notion_id_type("149d872b-594c-8184-ba71-00021997dcb9"),
 # )
 
-projects: list[notion_project_id_type] = notion_api_production.get_active_projects()
-print("projects ", projects)
-tasks: list[notion_task_id_type] = notion_api_production.get_all_tasks()
-print("tasks ", tasks)
+# notion_api_production = NotionTaskAPI(
+#     tasks_database_id=NOTION_PRODUCTION_DATABASE_ID_TASKS,
+#     projects_database_id=NOTION_PRODUCTION_DATABASE_ID_PROJECTS,
+# )
+
+# # notion_api_production.create_task(
+# #     task_name="Test Task" + CHATBOT_FINGERPRINT,
+# #     due_date=date(2025, 1, 1),
+# #     userID=henryID,
+# # )
+
+# projects: list[notion_project_id_type] = notion_api_production.get_active_projects()
+# print("projects ", projects)
+# tasks: list[notion_task_id_type] = notion_api_production.get_all_tasks()
+# print("tasks ", tasks)
 
 
-# notion_api_production.create_project(project_name="Test Project" + CHATBOT_FINGERPRINT)
+# # notion_api_production.create_project(project_name="Test Project" + CHATBOT_FINGERPRINT)
 
-# get the tasks for each project
-# for proj in projects:
-#     tasks: list[notion_task_id_type] = notion_api_production.get_tasks(
-#         userID_inCharge=henryID, notion_project_id=proj
-#     )
-#     print("proj ============", proj)
-#     print("tasks", tasks)
+# # get the tasks for each project
+# # for proj in projects:
+# #     tasks: list[notion_task_id_type] = notion_api_production.get_tasks(
+# #         userID_inCharge=henryID, notion_project_id=proj
+# #     )
+# #     print("proj ============", proj)
+# #     print("tasks", tasks)
 
 
-notion_api_production.update_task(
-    notion_task_id=notion_task_id_type("1c9c2e93a41281799f82d5f5aa40b6d5"),
-    task_name="Test Task - update task" + CHATBOT_FINGERPRINT,
-    task_status=STATUS_ENUM_NOTION_PRODUCTION_DATABASE_ID_TASKS.ToReview,
-    task_due_date=date(2025, 1, 1),
-)
+# notion_api_production.update_task(
+#     notion_task_id=notion_task_id_type("1c9c2e93a41281799f82d5f5aa40b6d5"),
+#     task_name="Test Task - update task" + CHATBOT_FINGERPRINT,
+#     task_status=STATUS_ENUM_NOTION_PRODUCTION_DATABASE_ID_TASKS.ToReview,
+#     task_due_date=date(2025, 1, 1),
+# )

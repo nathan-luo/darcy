@@ -21,7 +21,13 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 from engines.tool_chat_engine import ToolChatEngine
 from llmgine.bootstrap import ApplicationBootstrap, ApplicationConfig
 from llmgine.observability.events import LogLevel
-
+from llmgine.notion.notion import (
+    get_active_tasks,
+    get_active_projects,
+    create_task,
+    update_task,
+    get_all_users,
+)
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -43,7 +49,11 @@ class FunctionChatConfig(ApplicationConfig):
     enable_console_handler = False
 
     # System prompt
-    system_prompt: str = "You are a helpful assistant with access to tools for weather information, sending emails, and calculating expressions."
+    system_prompt: str = """
+    You are Darcy, a Discord bot that is essentially a CRUD interface for the Notion database.
+    When you call functions, always do them step by step. For example, if you need to get someone's tasks,
+    you should first get all users, then only after that, you should get the tasks for each user.
+    """
     enable_tracing: bool = False
 
 
@@ -78,10 +88,11 @@ class FunctionChatBootstrap(ApplicationBootstrap[FunctionChatConfig]):
         )
 
         # Register the tools
-        await self.engine.register_tool(get_weather)
-        await self.engine.register_tool(send_email)
-        await self.engine.register_tool(calculate)
-
+        await self.engine.register_tool(get_active_tasks)
+        await self.engine.register_tool(get_active_projects)
+        await self.engine.register_tool(create_task)
+        await self.engine.register_tool(update_task)
+        await self.engine.register_tool(get_all_users)
         return self.engine
 
     async def shutdown(self):
