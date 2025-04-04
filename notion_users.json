@@ -1,0 +1,970 @@
+{
+    "object": "list",
+    "results": [
+        {
+            "object": "user",
+            "id": "5ed4a4e5-9626-4307-b032-1b530b8ebb1e",
+            "name": "Kevin Tang",
+            "avatar_url": "https://lh3.googleusercontent.com/a/ACg8ocIyQ-er7nVmza6sdH3J8CUgqPiAqw3JqgEBkDzDUMul=s100",
+            "type": "person",
+            "person": {
+                "email": "kevin.tang@dscubed.org.au"
+            }
+        },
+        {
+            "object": "user",
+            "id": "8b352898-aa01-40c8-b813-1d674666ebe5",
+            "name": "Danielle Tran",
+            "avatar_url": "https://s3-us-west-2.amazonaws.com/public.notion-static.com/872b9e12-98a0-46d5-a1e5-7c61b3c3232c/250F0BD7-CDE4-49F9-B6F8-210A63CF99B4.jpeg",
+            "type": "person",
+            "person": {
+                "email": "danielle.tran@dscubed.org.au"
+            }
+        },
+        {
+            "object": "user",
+            "id": "46899360-7bb6-4578-af49-1e76ff6cbfdc",
+            "name": "Aopeng Wang",
+            "avatar_url": "https://lh3.googleusercontent.com/a/AAcHTtcUPTMXUuo_yYcKsrcqGDaX9jHkymWXY03HWgr9WDvc=s100",
+            "type": "person",
+            "person": {
+                "email": "aopeng@dscubed.org.au"
+            }
+        },
+        {
+            "object": "user",
+            "id": "f746733c-66cc-4cbc-b553-c5d3f03ed240",
+            "name": "Nathan Luo",
+            "avatar_url": "https://s3-us-west-2.amazonaws.com/public.notion-static.com/5eb391c8-dab6-4b3b-8362-83f6d7878e61/my-notion-face-portrait.png",
+            "type": "person",
+            "person": {
+                "email": "nathan.luo@dscubed.org.au"
+            }
+        },
+        {
+            "object": "user",
+            "id": "72af2773-0463-4d0e-bb5d-c6da6d595358",
+            "name": "Anton Huynh",
+            "avatar_url": null,
+            "type": "person",
+            "person": {
+                "email": "anton.huynh@dscubed.org.au"
+            }
+        },
+        {
+            "object": "user",
+            "id": "f5f78dd1-365c-4db2-9f40-457821e52e89",
+            "name": "Natalie",
+            "avatar_url": null,
+            "type": "person",
+            "person": {
+                "email": "natalie.lai@dscubed.org.au"
+            }
+        },
+        {
+            "object": "user",
+            "id": "cb1ca5d0-944a-462a-b18a-e7686dfa1a08",
+            "name": "Simon Nguyen",
+            "avatar_url": "https://lh3.googleusercontent.com/a/ACg8ocIP5LR3b2wmz-xW3Yj2a7HTwK1-Si1eHAKoi4U6KP2a=s100",
+            "type": "person",
+            "person": {
+                "email": "simon.nguyen@dscubed.org.au"
+            }
+        },
+        {
+            "object": "user",
+            "id": "f79ec109-12fa-4ae0-8a6f-f57d78e015d3",
+            "name": "Teresa Guo",
+            "avatar_url": "https://lh3.googleusercontent.com/a/ACg8ocL_LnTaIJiHh2Tzs26Q2kT2e8aDqMG9Qb3YEhKI_7ab=s100",
+            "type": "person",
+            "person": {
+                "email": "teresa.guo@dscubed.org.au"
+            }
+        },
+        {
+            "object": "user",
+            "id": "fffb7e1b-36c2-479a-9571-27a24079fde2",
+            "name": "Soaham",
+            "avatar_url": null,
+            "type": "person",
+            "person": {
+                "email": "soaham.chauhan@dscubed.org.au"
+            }
+        },
+        {
+            "object": "user",
+            "id": "4b4523a2-a2f9-4ed8-9520-310cb0ef9dd4",
+            "name": "Ryan Li",
+            "avatar_url": "https://lh3.googleusercontent.com/a/AGNmyxbypnpleP-NLQ92jNGuSPUNzlHteQxoCh64ouZq=s100",
+            "type": "person",
+            "person": {
+                "email": "ryan.li@dscubed.org.au"
+            }
+        },
+        {
+            "object": "user",
+            "id": "b8ce8d09-0dfd-4560-8a05-883249cce948",
+            "name": "RANIA",
+            "avatar_url": "https://s3-us-west-2.amazonaws.com/public.notion-static.com/558e3942-73e3-48cc-87e4-13ca6c1e58e3/f874144ff966ad57851cf75332e898e4.jpg",
+            "type": "person",
+            "person": {
+                "email": "rania.aziz@dscubed.org.au"
+            }
+        },
+        {
+            "object": "user",
+            "id": "314ad6eb-dc2e-49b5-8801-4afa0360f39b",
+            "name": "Michael Ren",
+            "avatar_url": "https://s3-us-west-2.amazonaws.com/public.notion-static.com/fb29abd6-6697-4bb7-8300-12a89883c3d9/my-notion-face-portrait_copy.png",
+            "type": "person",
+            "person": {
+                "email": "michael.ren@dscubed.org.au"
+            }
+        },
+        {
+            "object": "user",
+            "id": "4cb601a8-1375-4e87-832a-fcef5fd7cd96",
+            "name": "Hanshi Tang",
+            "avatar_url": "https://lh3.googleusercontent.com/a/AAcHTtfSyfrnGWLsZGJ37IBNg0wXOFH51Jc4_DiDI6jk3Pg_=s100",
+            "type": "person",
+            "person": {
+                "email": "hanshi.tang@dscubed.org.au"
+            }
+        },
+        {
+            "object": "user",
+            "id": "84fa5ffe-2848-48f5-b3d7-21269c644d5c",
+            "name": "Hannah",
+            "avatar_url": "https://s3-us-west-2.amazonaws.com/public.notion-static.com/4061799b-834f-476b-bf8e-064040443bca/my-notion-face-portrait.png",
+            "type": "person",
+            "person": {
+                "email": "hannah.luo@dscubed.org.au"
+            }
+        },
+        {
+            "object": "user",
+            "id": "302a361d-511f-44ba-a728-6cae0661e899",
+            "name": "Dhruv Ajay",
+            "avatar_url": "https://lh3.googleusercontent.com/a/ACg8ocJd0Q2euUoadrQA0DzzExn5eL43OR41WWokSeP2K9Vx=s100",
+            "type": "person",
+            "person": {
+                "email": "dhruv.ajay@dscubed.org.au"
+            }
+        },
+        {
+            "object": "user",
+            "id": "427d1cc8-6a68-406b-8397-28aca933609f",
+            "name": "Daksh Agrawal",
+            "avatar_url": "https://s3-us-west-2.amazonaws.com/public.notion-static.com/65463709-232a-430e-86de-3dea372da4ee/duck-dance.gif",
+            "type": "person",
+            "person": {
+                "email": "daksh.agrawal@dscubed.org.au"
+            }
+        },
+        {
+            "object": "user",
+            "id": "7dc516f9-25db-4aed-88de-54255d8f250a",
+            "name": "Ayushi Chauhan",
+            "avatar_url": "https://lh3.googleusercontent.com/a/AAcHTtfel9fxoVwD9neQrP4lXT6fHUOxooNODgZ23STzopw4=s100",
+            "type": "person",
+            "person": {
+                "email": "ayushi.chauhan@dscubed.org.au"
+            }
+        },
+        {
+            "object": "user",
+            "id": "ce23a115-7514-474e-9b12-7a99a7699dfe",
+            "name": "Angus Chan",
+            "avatar_url": "https://lh3.googleusercontent.com/a/ACg8ocIpcsUngItkmyvKalr0P0zYhkoR2Ck7E34mDUuCesb_=s100",
+            "type": "person",
+            "person": {
+                "email": "angus.chan@dscubed.org.au"
+            }
+        },
+        {
+            "object": "user",
+            "id": "9f52eb8c-690a-44cf-9562-6701fe5b70ab",
+            "name": "Ameya Mahesh",
+            "avatar_url": "https://lh3.googleusercontent.com/a/ACg8ocIfGFY9CsZxvjMm7JoHdoZ_HxQUCzPR7BVJpEv6aimT=s100",
+            "type": "person",
+            "person": {
+                "email": "ameya.mahesh@dscubed.org.au"
+            }
+        },
+        {
+            "object": "user",
+            "id": "0cd789b6-1545-459a-bc05-1ec885b14ee1",
+            "name": "Elyse Lee",
+            "avatar_url": null,
+            "type": "person",
+            "person": {
+                "email": "elyse.lee@dscubed.org.au"
+            }
+        },
+        {
+            "object": "user",
+            "id": "f5bd1f29-144a-4491-8a21-c283a2b9160c",
+            "name": "Avnee",
+            "avatar_url": null,
+            "type": "person",
+            "person": {
+                "email": "avnee.paul@dscubed.org.au"
+            }
+        },
+        {
+            "object": "user",
+            "id": "26ea303a-2f37-49f9-8a5b-42c5ca635cf9",
+            "name": "Brian King",
+            "avatar_url": "https://s3-us-west-2.amazonaws.com/public.notion-static.com/2e9e65b3-83ce-4198-a454-10239be010ec/BrianKing_PFP.jpg",
+            "type": "person",
+            "person": {
+                "email": "brian.king@dscubed.org.au"
+            }
+        },
+        {
+            "object": "user",
+            "id": "eefee9b7-e2e1-43aa-95ee-8b224510114a",
+            "name": "Charmaine",
+            "avatar_url": null,
+            "type": "person",
+            "person": {
+                "email": "charmaine.yang@dscubed.org.au"
+            }
+        },
+        {
+            "object": "user",
+            "id": "23fc1ca8-785b-4951-8ea5-347432175865",
+            "name": "Clement Chau",
+            "avatar_url": "https://lh3.googleusercontent.com/a/ACg8ocKjqStpaTX2NDOlzE5oVSmcwPMYfTbw3RvY5iP3mnEX=s100",
+            "type": "person",
+            "person": {
+                "email": "clement.chau@dscubed.org.au"
+            }
+        },
+        {
+            "object": "user",
+            "id": "74c1fb03-539a-4de4-8eb1-38492cbeb143",
+            "name": "Hayden Ma",
+            "avatar_url": null,
+            "type": "person",
+            "person": {
+                "email": "hayden.ma@dscubed.org.au"
+            }
+        },
+        {
+            "object": "user",
+            "id": "1a50bf15-9932-4b7c-8003-776950d5821e",
+            "name": "Jake",
+            "avatar_url": "https://s3-us-west-2.amazonaws.com/public.notion-static.com/71b09a31-9cbf-4315-92d3-7674369512a0/PXL_20240130_051436032.PORTRAIT.jpg",
+            "type": "person",
+            "person": {
+                "email": "jake.gerstel@dscubed.org.au"
+            }
+        },
+        {
+            "object": "user",
+            "id": "0e36fbe3-66f3-484b-922c-ac8c0bca47b6",
+            "name": "Jamie Marks",
+            "avatar_url": "https://lh3.googleusercontent.com/a/ACg8ocKM4Xe22_QemccMZW739L95927MViAsbBkaCh0cnMYz=s100",
+            "type": "person",
+            "person": {
+                "email": "jamie.marks@dscubed.org.au"
+            }
+        },
+        {
+            "object": "user",
+            "id": "ffb0a19b-0b2f-4b2d-9e97-5f9d35109bb3",
+            "name": "Lawrence",
+            "avatar_url": null,
+            "type": "person",
+            "person": {
+                "email": "lawrence.hider@dscubed.org.au"
+            }
+        },
+        {
+            "object": "user",
+            "id": "55860929-ef83-408c-b4ae-8ee3d8a8bedd",
+            "name": "Nam Le",
+            "avatar_url": "https://lh3.googleusercontent.com/a/ACg8ocLH0jJcwl5nl-sbo6MVe5dj0zIwVBSqjebQh8xuHLpk=s100",
+            "type": "person",
+            "person": {
+                "email": "nam.le@dscubed.org.au"
+            }
+        },
+        {
+            "object": "user",
+            "id": "d9e67f1e-b37c-4bf8-9ab9-81e4a78ecfbc",
+            "name": "Nick Muir",
+            "avatar_url": null,
+            "type": "person",
+            "person": {
+                "email": "nicholas.muir@dscubed.org.au"
+            }
+        },
+        {
+            "object": "user",
+            "id": "eddb1224-a77e-4aeb-8ca5-6e5be6e5ef8f",
+            "name": "Paul Su",
+            "avatar_url": "https://s3-us-west-2.amazonaws.com/public.notion-static.com/43e16342-4be8-4c18-83a4-5093341b8888/1697175867243.jpg",
+            "type": "person",
+            "person": {
+                "email": "paul.su@dscubed.org.au"
+            }
+        },
+        {
+            "object": "user",
+            "id": "c3185939-1d7b-4bb5-af3e-bc7534b1ce0c",
+            "name": "Ruby Nguyen",
+            "avatar_url": "https://lh3.googleusercontent.com/a/ACg8ocLEThpF8XNffff8SW0RXjyB9Ww7keBCtRO1dbvCs8Kc=s100",
+            "type": "person",
+            "person": {
+                "email": "ruby.nguyen@dscubed.org.au"
+            }
+        },
+        {
+            "object": "user",
+            "id": "a45d963f-32e6-47e1-b7ba-caf40ee8280d",
+            "name": "Geoffrey Chen",
+            "avatar_url": null,
+            "type": "person",
+            "person": {
+                "email": "geoffrey.chen@dscubed.org.au"
+            }
+        },
+        {
+            "object": "user",
+            "id": "7e1e7da1-3a93-4e48-8a2a-92fb7703cbe5",
+            "name": "Noah Say",
+            "avatar_url": null,
+            "type": "person",
+            "person": {
+                "email": "noah.say@dscubed.org.au"
+            }
+        },
+        {
+            "object": "user",
+            "id": "95fb5ae3-5126-4c48-a286-000638821d18",
+            "name": "Chris Gee",
+            "avatar_url": "https://lh3.googleusercontent.com/a/ACg8ocI8G81AantBYdAnORjL5HWQ78-7fGTPEQn2NcmRvAqHR3WqOA=s100",
+            "type": "person",
+            "person": {
+                "email": "chris.gee@dscubed.org.au"
+            }
+        },
+        {
+            "object": "user",
+            "id": "8b706d61-108c-4468-b058-a9727c852643",
+            "name": "Jesselyn Lim",
+            "avatar_url": "https://lh3.googleusercontent.com/a/ACg8ocK0_xEUfR711_Gvs-BLS62U2CDtAWt0DuK0OZDgL1_dqKkOOA=s100",
+            "type": "person",
+            "person": {
+                "email": "jesselyn.lim@dscubed.org.au"
+            }
+        },
+        {
+            "object": "user",
+            "id": "31b1c4ca-662e-4bcc-a631-772566865139",
+            "name": "Jess Zhao",
+            "avatar_url": null,
+            "type": "person",
+            "person": {
+                "email": "jessica.zhao@dscubed.org.au"
+            }
+        },
+        {
+            "object": "user",
+            "id": "c8f6b4d6-f7fc-4d04-8a67-706be192b80d",
+            "name": "Kaylyn Phan",
+            "avatar_url": null,
+            "type": "person",
+            "person": {
+                "email": "kaylyn.phan@dscubed.org.au"
+            }
+        },
+        {
+            "object": "user",
+            "id": "ea42ea13-1dc2-4f2d-9f7d-f547269a7266",
+            "name": "ethan.cheng@dscubed.org.au",
+            "avatar_url": null,
+            "type": "person",
+            "person": {
+                "email": "ethan.cheng@dscubed.org.au"
+            }
+        },
+        {
+            "object": "user",
+            "id": "f8516599-8b82-43b5-a0a0-e7df94384912",
+            "name": "Jordan",
+            "avatar_url": "https://s3-us-west-2.amazonaws.com/public.notion-static.com/dc3e56bf-0379-4e8b-a1ab-a5ebe4745c29/giphy.gif",
+            "type": "person",
+            "person": {
+                "email": "jordan.chao@dscubed.org.au"
+            }
+        },
+        {
+            "object": "user",
+            "id": "c36b1a8d-9980-4c9c-8bf0-fd158c6144ab",
+            "name": "Mark Sesuraj",
+            "avatar_url": null,
+            "type": "person",
+            "person": {
+                "email": "mark.sesuraj@dscubed.org.au"
+            }
+        },
+        {
+            "object": "user",
+            "id": "0ac8066e-1874-4ef7-aac6-46ec64ab5416",
+            "name": "Prathiksha Ashok",
+            "avatar_url": "https://lh3.googleusercontent.com/a/ACg8ocItD8UZZFGV5us5_D6s8HhcUThGFocs1IRKdCAamhtJdMpxNg=s100",
+            "type": "person",
+            "person": {
+                "email": "prathiksha.ashok@dscubed.org.au"
+            }
+        },
+        {
+            "object": "user",
+            "id": "f2103615-a0b5-46bb-b167-3ffefebb93e1",
+            "name": "Sarah Abusah",
+            "avatar_url": null,
+            "type": "person",
+            "person": {
+                "email": "sarah.abusah@dscubed.org.au"
+            }
+        },
+        {
+            "object": "user",
+            "id": "0dcaab49-891e-4e62-bc14-23ddf68c4baa",
+            "name": "Wan Azlan",
+            "avatar_url": null,
+            "type": "person",
+            "person": {
+                "email": "wan.azlan@dscubed.org.au"
+            }
+        },
+        {
+            "object": "user",
+            "id": "1d575660-d4db-48dc-bbc8-87cc8bd4ec3d",
+            "name": "Ojas",
+            "avatar_url": null,
+            "type": "person",
+            "person": {
+                "email": "ojas.manocha@dscubed.org.au"
+            }
+        },
+        {
+            "object": "user",
+            "id": "dcb83ab0-e798-4a07-93c3-550f00dc8f1a",
+            "name": "Stephanie Doan",
+            "avatar_url": null,
+            "type": "person",
+            "person": {
+                "email": "stephanie.doan@dscubed.org.au"
+            }
+        },
+        {
+            "object": "user",
+            "id": "de0afb5c-030b-46c4-8cec-221730c12ebd",
+            "name": "dscubed",
+            "avatar_url": null,
+            "type": "person",
+            "person": {
+                "email": "membership@dscubed.org.au"
+            }
+        },
+        {
+            "object": "user",
+            "id": "d7d7cd61-1f98-4b06-b313-27a07ea761b1",
+            "name": "Nathan",
+            "avatar_url": "https://s3-us-west-2.amazonaws.com/public.notion-static.com/0f5f1eec-63c6-4cd8-8933-e3a7eb0ddd08/203526.jpg",
+            "type": "person",
+            "person": {
+                "email": "jiacheng7@student.unimelb.edu.au"
+            }
+        },
+        {
+            "object": "user",
+            "id": "dc00fced-7146-4c0e-aefe-c74d939bc7b8",
+            "name": "Harshit Badam",
+            "avatar_url": "https://lh3.googleusercontent.com/a/ACg8ocI2UQKsn8Lmuj4TgP4OhsvcmTqjV2De32LQgUZtw1U=s100",
+            "type": "person",
+            "person": {
+                "email": "harshit.badam@dscubed.org.au"
+            }
+        },
+        {
+            "object": "user",
+            "id": "1a2f8f56-d93a-4174-9ae3-426cb5614630",
+            "name": "Shawn Kim",
+            "avatar_url": "https://lh3.googleusercontent.com/a/ACg8ocKktYW-uDQfNwp0hQhTzqQshLyfF6uHMccT0HwGSifmhBnJsg=s100",
+            "type": "person",
+            "person": {
+                "email": "shawn.kim@dscubed.org.au"
+            }
+        },
+        {
+            "object": "user",
+            "id": "0c79bde0-3dee-4bf6-b6da-e6080c59cd8e",
+            "name": "Divyansh ",
+            "avatar_url": "https://s3-us-west-2.amazonaws.com/public.notion-static.com/78aa9c5d-9f52-402e-b4bf-dc443441cde2/Red_Logo_Icon_Wallpaper.jpg",
+            "type": "person",
+            "person": {
+                "email": "divyansh@dscubed.org.au"
+            }
+        },
+        {
+            "object": "user",
+            "id": "117d872b-594c-81ee-b390-00027f46882c",
+            "name": "Paige Nguyen",
+            "avatar_url": "https://lh3.googleusercontent.com/a/ACg8ocI66QE1skWTfRFjwR22UvQj8c3kdYmgLuOfXMCUNfKtqHuTEg=s100",
+            "type": "person",
+            "person": {
+                "email": "paige.nguyen@dscubed.org.au"
+            }
+        },
+        {
+            "object": "user",
+            "id": "117d872b-594c-8100-8d62-0002223c005d",
+            "name": "Gurshan Nanda",
+            "avatar_url": null,
+            "type": "person",
+            "person": {
+                "email": "gurshan.nanda@dscubed.org.au"
+            }
+        },
+        {
+            "object": "user",
+            "id": "117d872b-594c-81cc-95db-00029eda628a",
+            "name": "Dharani Baskaran",
+            "avatar_url": "https://lh3.googleusercontent.com/a/ACg8ocJzX2fDiybF_52QpNNdPOVv9RDZEJKOsQXReh7D0C6EeVJfNw=s100",
+            "type": "person",
+            "person": {
+                "email": "dharani.baskaran@dscubed.org.au"
+            }
+        },
+        {
+            "object": "user",
+            "id": "117d872b-594c-814b-8bcd-0002bec43618",
+            "name": "Andy Li",
+            "avatar_url": null,
+            "type": "person",
+            "person": {
+                "email": "andy.li@dscubed.org.au"
+            }
+        },
+        {
+            "object": "user",
+            "id": "51518819-39c6-49b8-b9f9-fb56b4e916d7",
+            "name": "Terry Yu",
+            "avatar_url": "https://lh3.googleusercontent.com/a/ACg8ocLCES_cAAip4FvpwluFQ1c4na2VWOJZMhCQ30LQMqElZcLRxQ=s100",
+            "type": "person",
+            "person": {
+                "email": "terry.yu@dscubed.org.au"
+            }
+        },
+        {
+            "object": "user",
+            "id": "117d872b-594c-8158-ae3f-000240aab4c1",
+            "name": "DSCubed Outreach",
+            "avatar_url": null,
+            "type": "person",
+            "person": {
+                "email": "outreach@dscubed.org.au"
+            }
+        },
+        {
+            "object": "user",
+            "id": "bcb8ffb2-be38-4d92-8a68-43f21b12c209",
+            "name": "Eric",
+            "avatar_url": null,
+            "type": "person",
+            "person": {
+                "email": "eric.qiu@dscubed.org.au"
+            }
+        },
+        {
+            "object": "user",
+            "id": "fbc90953-4abf-4d56-80db-0c9df043bebe",
+            "name": "bike pham",
+            "avatar_url": "https://lh3.googleusercontent.com/a/ACg8ocILkdyZwy5zED-8hzHOaNtupwUYJ3OqgWEHG_VgO751aNzWfw=s100",
+            "type": "person",
+            "person": {
+                "email": "bike.pham@dscubed.org.au"
+            }
+        },
+        {
+            "object": "user",
+            "id": "f383e9cb-0095-4555-8f23-a7bfcaaa7c7d",
+            "name": "Jedi",
+            "avatar_url": null,
+            "type": "person",
+            "person": {
+                "email": "jedicruz.9@gmail.com"
+            }
+        },
+        {
+            "object": "user",
+            "id": "91fbb869-72b6-4e39-8905-bd626af0597e",
+            "name": "jake paul",
+            "avatar_url": null,
+            "type": "person",
+            "person": {
+                "email": "jake.paul@dscubed.org.au"
+            }
+        },
+        {
+            "object": "user",
+            "id": "47a28de2-00dd-4822-b73e-b19506df9bd8",
+            "name": "Aditya Yadav",
+            "avatar_url": null,
+            "type": "person",
+            "person": {
+                "email": "aditya.yadav@dscubed.org.au"
+            }
+        },
+        {
+            "object": "user",
+            "id": "7bb29edc-bfcd-4ecd-bb2e-dab992a9ae81",
+            "name": "Mohand Mender",
+            "avatar_url": "https://lh3.googleusercontent.com/a/ACg8ocKx6wqRtWKVs-NrqlxUuiMj4xZCyKp4cXqKYlEkQXx2gWomcg=s100",
+            "type": "person",
+            "person": {
+                "email": "mohand.mender@dscubed.org.au"
+            }
+        },
+        {
+            "object": "user",
+            "id": "144d872b-594c-819d-a5ac-0002b701ee00",
+            "name": "Irene",
+            "avatar_url": null,
+            "type": "person",
+            "person": {
+                "email": "irene.chiam@dscubed.org.au"
+            }
+        },
+        {
+            "object": "user",
+            "id": "144d872b-594c-81c7-b610-00029b02bba9",
+            "name": "Abhin Rustagi",
+            "avatar_url": "https://lh3.googleusercontent.com/a/ACg8ocINYV6Nlagx3QksH16Wigg5L8GAMj62S7sjkMmloW5DG5QlVyM=s100",
+            "type": "person",
+            "person": {
+                "email": "abhin.rustagi@dscubed.org.au"
+            }
+        },
+        {
+            "object": "user",
+            "id": "144d872b-594c-813b-a24b-000246c48adb",
+            "name": "Animesh",
+            "avatar_url": null,
+            "type": "person",
+            "person": {
+                "email": "animesh.pandey@dscubed.org.au"
+            }
+        },
+        {
+            "object": "user",
+            "id": "144d872b-594c-812d-8589-0002838bda39",
+            "name": "Ishan Deshpande",
+            "avatar_url": null,
+            "type": "person",
+            "person": {
+                "email": "ishan.deshpande@dscubed.org.au"
+            }
+        },
+        {
+            "object": "user",
+            "id": "147d872b-594c-81ae-9f01-0002a25dc7c7",
+            "name": "Tanat Chanwangsa",
+            "avatar_url": "https://lh3.googleusercontent.com/a/ACg8ocI1_iP2_5hKIAxn12HHLIMsD3ZGVS0zIczzQNOYeidojZb20g=s100",
+            "type": "person",
+            "person": {
+                "email": "tanat.chanwangsa@dscubed.org.au"
+            }
+        },
+        {
+            "object": "user",
+            "id": "149d872b-594c-8184-ba71-00021997dcb9",
+            "name": "Henry Routson",
+            "avatar_url": "https://lh3.googleusercontent.com/a/ACg8ocKWuBjJWwbb-qfKLKt1Cq2I07ZfSUX_dpfQlbRSilqt4vSyeA=s100",
+            "type": "person",
+            "person": {
+                "email": "henry.routson@dscubed.org.au"
+            }
+        },
+        {
+            "object": "user",
+            "id": "c005948c-9115-4a4d-b3c2-78286fa75fdb",
+            "name": "Pranav Jayanty",
+            "avatar_url": "https://lh3.googleusercontent.com/a/ACg8ocICb3D1I1Nsvd-OftE58--yd6HC_3QpZWrnG57e_I37XK_8Yw=s100",
+            "type": "person",
+            "person": {
+                "email": "pranav.jayanty@dscubed.org.au"
+            }
+        },
+        {
+            "object": "user",
+            "id": "1bbd872b-594c-8100-aead-00026f26d36d",
+            "name": "Pavan Dev",
+            "avatar_url": "https://lh3.googleusercontent.com/a/ACg8ocKyD3hUzZn_cS7bcZuxidFON7kMOfNJpP1idHQdYE1Dcliu3A=s100",
+            "type": "person",
+            "person": {
+                "email": "pavan.dev@dscubed.org.au"
+            }
+        },
+        {
+            "object": "user",
+            "id": "1bbd872b-594c-81a3-b7d2-0002e41f8537",
+            "name": "Lachlan Chue",
+            "avatar_url": "https://lh3.googleusercontent.com/a/ACg8ocKLEgBv94lfEz71_QSUyOSsCwvloJc6B8xVnP2mFn0tSbCfgg=s100",
+            "type": "person",
+            "person": {
+                "email": "lachlan.chue@dscubed.org.au"
+            }
+        },
+        {
+            "object": "user",
+            "id": "1bbd872b-594c-813f-88ba-00022d2ea8d8",
+            "name": "Addie Nguyen",
+            "avatar_url": "https://lh3.googleusercontent.com/a/ACg8ocKJIhUaVqM6he1qGB1EIAlz-ybCo7OtsAWHtBRmfmCNQp00ug=s100",
+            "type": "person",
+            "person": {
+                "email": "addie.nguyen@dscubed.org.au"
+            }
+        },
+        {
+            "object": "user",
+            "id": "1bbd872b-594c-8172-9c64-0002867fd2c9",
+            "name": "Jiacheng Zheng",
+            "avatar_url": "https://lh3.googleusercontent.com/a/ACg8ocLEAD6sWfLxiBPo4bwFcuw6LyXVjzbr8XjeGVidawUxC9heRQ=s100",
+            "type": "person",
+            "person": {
+                "email": "jiacheng.zheng@dscubed.org.au"
+            }
+        },
+        {
+            "object": "user",
+            "id": "1bad872b-594c-81bb-95f1-00025ff97f57",
+            "name": "Anthea Lee",
+            "avatar_url": "https://lh3.googleusercontent.com/a/ACg8ocKaB578D3kN1a9cL2WnkDbb7D9ObhiRDw9GtLkt-2pnggI-vQ=s100",
+            "type": "person",
+            "person": {
+                "email": "anthea.lee@dscubed.org.au"
+            }
+        },
+        {
+            "object": "user",
+            "id": "1bad872b-594c-8110-91e2-0002c091f384",
+            "name": "Dhruv Verma",
+            "avatar_url": null,
+            "type": "person",
+            "person": {
+                "email": "dhruv.verma@dscubed.org.au"
+            }
+        },
+        {
+            "object": "user",
+            "id": "1bbd872b-594c-815a-a001-000245072ba6",
+            "name": "Frank Ngo",
+            "avatar_url": null,
+            "type": "person",
+            "person": {
+                "email": "frank.ngo@dscubed.org.au"
+            }
+        },
+        {
+            "object": "user",
+            "id": "1bad872b-594c-817c-aa7b-000212ba08a1",
+            "name": "Carmen Wong",
+            "avatar_url": null,
+            "type": "person",
+            "person": {
+                "email": "carmen.wong@dscubed.org.au"
+            }
+        },
+        {
+            "object": "user",
+            "id": "1bbd872b-594c-8159-9858-000210dbca44",
+            "name": "Zim",
+            "avatar_url": null,
+            "type": "person",
+            "person": {
+                "email": "zim.do@dscubed.org.au"
+            }
+        },
+        {
+            "object": "user",
+            "id": "1bad872b-594c-8129-89c2-0002ee1ba61e",
+            "name": "Eric He",
+            "avatar_url": "https://lh3.googleusercontent.com/a/ACg8ocIpx5oP35Hw3RJQv2EYfbc5KXjpI5X8yt_58fhypX6eKzotbQ=s100",
+            "type": "person",
+            "person": {
+                "email": "eric.he@dscubed.org.au"
+            }
+        },
+        {
+            "object": "user",
+            "id": "1bbd872b-594c-81b7-bb3d-00020c61fc37",
+            "name": "Damien Trinh",
+            "avatar_url": null,
+            "type": "person",
+            "person": {
+                "email": "damien.trinh@dscubed.org.au"
+            }
+        },
+        {
+            "object": "user",
+            "id": "1bbd872b-594c-815b-b5f2-0002f50ecfe5",
+            "name": "Keith Howen",
+            "avatar_url": "https://lh3.googleusercontent.com/a/ACg8ocIwI4STk-PlZaEtjBmT1BcEZWLnG5jKTRPNANbp1LwBYTHUEw=s100",
+            "type": "person",
+            "person": {
+                "email": "keith.howen@dscubed.org.au"
+            }
+        },
+        {
+            "object": "user",
+            "id": "1bbd872b-594c-81c6-9711-00027493224c",
+            "name": "Chi Nguyen",
+            "avatar_url": null,
+            "type": "person",
+            "person": {
+                "email": "chi.nguyen@dscubed.org.au"
+            }
+        },
+        {
+            "object": "user",
+            "id": "1bbd872b-594c-818b-8142-00022dae03c4",
+            "name": "Eddie Li",
+            "avatar_url": null,
+            "type": "person",
+            "person": {
+                "email": "eddie.li@dscubed.org.au"
+            }
+        },
+        {
+            "object": "user",
+            "id": "1bbd872b-594c-8167-b7bb-000231b0eaa5",
+            "name": "Rudra Tiwari",
+            "avatar_url": "https://lh3.googleusercontent.com/a/ACg8ocKkP-iAoejkp0y7jb1-l_WfNP2huIpoSpK25orEeuVQA48toA=s100",
+            "type": "person",
+            "person": {
+                "email": "rudra.tiwari@dscubed.org.au"
+            }
+        },
+        {
+            "object": "user",
+            "id": "1bbd872b-594c-8198-b16d-00029b7b516a",
+            "name": "Stanley",
+            "avatar_url": null,
+            "type": "person",
+            "person": {
+                "email": "stanley.zaranski@dscubed.org.au"
+            }
+        },
+        {
+            "object": "user",
+            "id": "1bbd872b-594c-8123-a9c8-0002e6ee833b",
+            "name": "Yiwen Zhang",
+            "avatar_url": null,
+            "type": "person",
+            "person": {
+                "email": "yiwen.zhang@dscubed.org.au"
+            }
+        },
+        {
+            "object": "user",
+            "id": "1bbd872b-594c-813e-86da-0002cd09543b",
+            "name": "Aishwary Shree",
+            "avatar_url": "https://lh3.googleusercontent.com/a/ACg8ocJZkS46J_HP4jzYHO5Ggql5lkh5GS6y4s7WzQtBrLJ-65vC1A=s100",
+            "type": "person",
+            "person": {
+                "email": "aishwary.shree@dscubed.org.au"
+            }
+        },
+        {
+            "object": "user",
+            "id": "1bbd872b-594c-816b-b37d-000274bbfbe2",
+            "name": "Shayomi",
+            "avatar_url": null,
+            "type": "person",
+            "person": {
+                "email": "shayomi.sudarshan@dscubed.org.au"
+            }
+        },
+        {
+            "object": "user",
+            "id": "1bbd872b-594c-81f5-bc03-0002a7229ca6",
+            "name": "Antoine",
+            "avatar_url": null,
+            "type": "person",
+            "person": {
+                "email": "antoine.dulauroy@dscubed.org.au"
+            }
+        },
+        {
+            "object": "user",
+            "id": "1bbd872b-594c-816f-b62c-000253e00baa",
+            "name": "lorraine sanares",
+            "avatar_url": null,
+            "type": "person",
+            "person": {
+                "email": "lorraine.sanares@dscubed.org.au"
+            }
+        },
+        {
+            "object": "user",
+            "id": "1bbd872b-594c-81e9-a745-000238c87ef8",
+            "name": "Alina",
+            "avatar_url": null,
+            "type": "person",
+            "person": {
+                "email": "alina.noor@dscubed.org.au"
+            }
+        },
+        {
+            "object": "user",
+            "id": "1bbd872b-594c-8160-8126-00029d7b0a08",
+            "name": "Liao Ziang",
+            "avatar_url": null,
+            "type": "person",
+            "person": {
+                "email": "ziang.liao@dscubed.org.au"
+            }
+        },
+        {
+            "object": "user",
+            "id": "a7d75959-4535-48a3-baee-667b045c9f27",
+            "name": "Nathan",
+            "avatar_url": "https://s3-us-west-2.amazonaws.com/public.notion-static.com/5a6d470f-a865-4432-a8b5-a971fc15d53f/1e907871-4d56-40fc-a1c0-042e9f1923cd.png",
+            "type": "bot",
+            "bot": {
+                "owner": {
+                    "type": "workspace",
+                    "workspace": true
+                },
+                "workspace_name": "Data Science Students Society"
+            }
+        },
+        {
+            "object": "user",
+            "id": "15cd872b-594c-8195-ae86-00272da2ac7d",
+            "name": "Make",
+            "avatar_url": "https://s3-us-west-2.amazonaws.com/public.notion-static.com/542d08c6-d64f-4793-b2aa-357329a401a3/Make-App-Icon-Square.png",
+            "type": "bot",
+            "bot": {}
+        },
+        {
+            "object": "user",
+            "id": "d58c140b-5dda-4f0d-846b-4c35818bbe67",
+            "name": "IT Team",
+            "avatar_url": null,
+            "type": "bot",
+            "bot": {}
+        }
+    ],
+    "next_cursor": null,
+    "has_more": false,
+    "type": "user",
+    "user": {},
+    "request_id": "ecb7d798-741a-45c0-82a9-218d450c47ae"
+}

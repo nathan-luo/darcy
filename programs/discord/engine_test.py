@@ -18,6 +18,13 @@ from llmgine.bootstrap import ApplicationBootstrap, ApplicationConfig
 from llmgine.bus.bus import MessageBus
 from programs.function_chat import get_weather  # The weather tool we'll use
 from dataclasses import dataclass, field
+from llmgine.notion.notion import (
+    get_all_users,
+    get_active_tasks,
+    get_active_projects,
+    create_task,
+    update_task,
+)
 
 dotenv.load_dotenv()
 
@@ -93,7 +100,11 @@ async def use_engine(command: ToolEnginePromptCommand, session_id: str):
         )
 
         # Register tools
-        await engine.register_tool(get_weather)
+        await engine.register_tool(get_all_users)
+        await engine.register_tool(get_active_tasks)
+        await engine.register_tool(get_active_projects)
+        await engine.register_tool(create_task)
+        await engine.register_tool(update_task)
 
         # Set the session_id on the command if not already set
         if not command.session_id:
