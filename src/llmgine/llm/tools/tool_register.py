@@ -1,9 +1,14 @@
 import re
 import inspect
 import asyncio
-from typing import List, Dict, Union, Optional, Type
+import os
+import importlib
+import logging
+from typing import List, Dict, Union, Optional, Type, Tuple
 
 from llmgine.llm.tools.tool import Tool, Parameter, ToolFunction, AsyncToolFunction
+
+logger = logging.getLogger(__name__)
 
 class ToolRegister:
     def __init__(self, platform: Optional[str] = None):
@@ -11,7 +16,7 @@ class ToolRegister:
 
     def register_tool(
         self, function: Union[ToolFunction, AsyncToolFunction]
-    ) -> None:
+    ) -> Tuple[str, Tool]:
         """Register a function as a tool.
 
         Args:
@@ -36,6 +41,50 @@ class ToolRegister:
         )
 
         return name, tool
+
+    def register_tools(self, platform_list: List[str]) -> Dict[str, Tool]:
+        """Register all relevant tools for a list of platforms. Completely independent from register_tool.
+
+        Args:
+            platform_list: A list of platform names
+        """
+
+        tools = {}
+        for platform in platform_list:
+            for function in self._get_functions_for_platform(platform):
+                name, tool = self.register_tool(function)
+                tools[name] = tool
+        return tools
+    
+    def _get_functions_for_platform(self, platform: str) -> List[Union[ToolFunction, AsyncToolFunction]]:
+        """Get all functions for a specific platform. 
+        The functions for 'platform' are stored in the folder 'platform_tools' with the file name '{platform.lower()}_tools.py',
+        and in a variable called '{platform.upper()}_TOOLS'.
+
+        Args:
+            platform: The platform to get functions for
+            
+        Returns:
+            List of tool functions for the platform
+        """
+        functions = []
+        platform_tools_dir = os.path.join(os.path.dirname(__file__), "platform_tools")
+        
+        # Check directory for platform-specific files
+        if os.path.exists(platform_tools_dir):
+            for filename in os.listdir(platform_tools_dir):
+                if f'{platform.lower()}_tools' in filename.lower() and filename.endswith('.py'):
+                    module_name = f"llmgine.llm.tools.platform_tools.{filename[:-3]}"
+                    try:
+                        module = importlib.import_module(module_name)
+                        if hasattr(module, f"{platform.upper()}_TOOLS"):
+                            functions.extend(getattr(module, f"{platform.upper()}_TOOLS"))
+                        else:
+                            logger.warning(f"No tools found for {platform} in {module_name}")
+                    except ImportError as e:
+                        logger.error(f"When registering tools for {platform}, failed to import {module_name}: {e}")
+                        
+        return functions
 
     def _get_function_description(self, function: Union[ToolFunction, AsyncToolFunction]) -> str:
         """Get the description of a function.

@@ -60,6 +60,27 @@ class ToolManager:
             )
         )
 
+    async def register_tools(self, platform_list: List[str]):
+        """Register tools for a specific platform. Completely independent from register_tool.
+
+        Args:
+            platform_list: A list of platform names
+        """
+        
+        # Register tools for each platform
+        for name, tool in self.__tool_register.register_tools(platform_list).items():
+            self.tools[name] = tool
+
+            # Publish the tool registration event
+            await self.message_bus.publish(
+                ToolRegisterEvent(
+                    tool_manager_id=self.tool_manager_id,
+                    session_id=self.session_id,
+                    engine_id=self.engine_id,
+                    tool_info=tool.to_dict(),
+                )
+            )
+
     async def get_tools(self) -> List[Tool]:
         """Get all registered tools from the tool register.
 
