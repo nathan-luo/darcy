@@ -1,10 +1,40 @@
-import discord
 import asyncio
+import os
 import random
 import string
-from discord.ext import commands
+from dataclasses import dataclass
 from enum import Enum
-from typing import Dict, Any, Optional, Callable, Awaitable, List
+from typing import Any, Awaitable, Callable, Dict, List, Optional
+import sys
+
+import discord
+import dotenv
+from discord.ext import commands
+
+# Add the parent directory to the path so we can import from sibling directories
+from llmgine.bootstrap import ApplicationBootstrap, ApplicationConfig
+from llmgine.bus.bus import MessageBus
+from llmgine.messages.commands import CommandResult
+
+# Import our engine components
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../.."))
+from engines.notion_crud_engine import (
+    NotionCRUDEngine,
+    NotionCRUDEngineConfirmationCommand,
+    NotionCRUDEnginePromptCommand,
+    NotionCRUDEngineStatusEvent,
+)
+from llmgine.notion.notion import (
+    get_all_users,
+    get_active_tasks,
+    get_active_projects,
+    create_task,
+    update_task,
+)
+
+import logging
+
+logging.basicConfig(level=logging.INFO)
 
 
 # Session status types
@@ -37,7 +67,10 @@ class SessionManager:
         return session_id
 
     async def create_session(
-        self, message: discord.Message, initial_data: Optional[Dict[str, Any]] = None
+        self,
+        message: discord.Message,
+        initial_data: Optional[Dict[str, Any]] = None,
+        expire_after_minutes: Optional[int] = None,
     ) -> str:
         """Create a new session and return its ID"""
         session_id = self.generate_session_id()
@@ -61,7 +94,35 @@ class SessionManager:
             "updated_at": discord.utils.utcnow(),
         }
 
+        # Schedule expiration if requested
+        if expire_after_minutes:
+            self.active_sessions[session_id]["expires_at"] = (
+                discord.utils.utcnow()
+                + discord.utils.timedelta(minutes=expire_after_minutes)
+            )
+
+            # Schedule the expiration task
+            self.bot.loop.create_task(
+                self._expire_session(session_id, expire_after_minutes)
+            )
+
         return session_id
+
+    # Add this method to handle session expiration
+    async def _expire_session(self, session_id: str, minutes: int):
+        """Background task to expire a session after a set time"""
+        await asyncio.sleep(minutes * 60)  # Convert to seconds
+
+        # Check if session still exists and hasn't been completed yet
+        if (
+            session_id in self.active_sessions
+            and self.active_sessions[session_id]["status"] != SessionStatus.COMPLETED
+        ):
+            await self.update_session_status(
+                session_id,
+                SessionStatus.COMPLETED,
+                f"Session expired after {minutes} minutes",
+            )
 
     def get_session(self, session_id: str) -> Optional[Dict[str, Any]]:
         """Get session data by ID"""
@@ -122,10 +183,10 @@ class SessionManager:
         prompt_text: str,
         timeout: int = 60,
         input_type: str = "yes_no",
-    ) -> Dict[str, Any]:
+    ) -> bool:
         """Request input from a user for a specific session"""
         if session_id not in self.active_sessions:
-            return {"error": "Session not found"}
+            raise ValueError("Session not found")
 
         session = self.active_sessions[session_id]
 
@@ -149,10 +210,10 @@ class SessionManager:
 
             # Process the result
             if view.value is None:
-                result = {"response": "timeout"}
+                result = False
                 await prompt_msg.edit(content=f"⏱️ Request timed out", view=None)
             else:
-                result = {"response": "yes" if view.value else "no"}
+                result = view.value
                 resp_text = "✅ Confirmed" if view.value else "❌ Declined"
                 await prompt_msg.edit(content=f"{resp_text}", view=None)
 
@@ -258,30 +319,16 @@ async def on_message(message):
         print(message)
         print(message.content)
 
-        # Example showing how to use the process_session function
-        async def my_process_function(session):
-            # Simulate some work
-            await session_manager.update_session_status(
-                session_id,
-                SessionStatus.PROCESSING,
-                "Processing... Please wait...",
+        command = NotionCRUDEnginePromptCommand(prompt=message.content)
+        result = await use_engine(command, session_id)
+        if hasattr(result, "result"):
+            await message.channel.send(
+                f"🔄 **Session {session_id} Result**: {result.result}"
             )
-            await asyncio.sleep(1)
-            return {"success": True, "processed_data": "some result"}
-
-        await session_manager.process_session(session_id, my_process_function)
-
-        # Update to waiting for input
-        await session_manager.update_session_status(
-            session_id,
-            SessionStatus.WAITING_FOR_INPUT,
-            "Loading...",
-        )
-
-        await session_manager.request_user_input(
-            session_id, "Do you want to proceed?", timeout=30
-        )
-
+        else:
+            await message.channel.send(
+                f"❌ **Session {session_id} Error**: An error occurred"
+            )
         await session_manager.complete_session(session_id, "Session completed")
 
     await bot.process_commands(message)
@@ -316,8 +363,98 @@ async def request_input_command(ctx, session_id):
         await ctx.send(f"Session {session_id} not found")
 
 
-import os
-import dotenv
+@dataclass
+class DiscordBotConfig(ApplicationConfig):
+    """Configuration for the Discord Bot application."""
 
-dotenv.load_dotenv()
-bot.run(os.getenv("DARCY_KEY"))
+    # Application-specific configuration
+    name: str = "Discord AI Bot"
+    description: str = "A Discord bot with AI capabilities"
+
+    enable_tracing: bool = False
+    enable_console_handler: bool = True
+
+    # OpenAI configuration
+    model: str = "gpt-4o-mini"
+
+
+async def handle_confirmation_command(command: NotionCRUDEngineConfirmationCommand):
+    response = await session_manager.request_user_input(
+        command.session_id, command.prompt, timeout=30
+    )
+    return CommandResult(success=True, original_command=command, result=response)
+
+
+async def handle_status_event(event: NotionCRUDEngineStatusEvent):
+    """Handle a status event."""
+    await session_manager.update_session_status(
+        event.session_id, SessionStatus.PROCESSING, event.status
+    )
+
+
+async def use_engine(command: NotionCRUDEnginePromptCommand, session_id: str):
+    """Create and configure a new engine for this command.
+
+    This matches the pattern in function_engine_session.py, creating a new
+    engine within a session context for each command.
+    """
+    # Get the MessageBus singleton
+    bus = MessageBus()
+
+    # Create a session for this command
+    async with bus.create_session(id=session_id) as session:
+        # Create a new engine for this command - using session_id as the engine_id too
+        engine = NotionCRUDEngine(
+            session_id=session_id,  # Use the same session_id for the engine
+            system_prompt="You are Darcy, a discord assistant for the Data Science Student Society. Always respond in the same style, grammar, syntax and tone as the prompt.",
+            api_key=os.getenv("OPENAI_API_KEY"),
+            model="gpt-4o-mini",
+        )
+        await engine.register_tool(get_all_users)
+        await engine.register_tool(get_active_tasks)
+        await engine.register_tool(get_active_projects)
+        await engine.register_tool(create_task)
+        await engine.register_tool(update_task)
+        bus.register_command_handler(
+            session_id,
+            NotionCRUDEngineConfirmationCommand,
+            handle_confirmation_command,
+        )
+        bus.register_event_handler(
+            session_id, NotionCRUDEngineStatusEvent, handle_status_event
+        )
+        # Set the session_id on the command if not already set
+        if not command.session_id:
+            command.session_id = session_id
+
+        # Process the command and return the result
+        result = await engine.handle_prompt_command(command)
+        return result
+
+
+async def main():
+    """Main function to bootstrap the application and run the bot."""
+    global bootstrap
+
+    # Bootstrap the application once
+    config = DiscordBotConfig()
+    bootstrap = ApplicationBootstrap(config)
+    await bootstrap.bootstrap()
+
+    # Start the message bus
+    bus = MessageBus()
+    await bus.start()
+    print("Message bus started")
+
+    dotenv.load_dotenv()
+
+    try:
+        # Run the bot
+        await bot.start(os.getenv("DARCY_KEY"))
+    finally:
+        # Ensure the bus is stopped when the application ends
+        await bus.stop()
+
+
+if __name__ == "__main__":
+    asyncio.run(main())
