@@ -261,7 +261,12 @@ async def on_message(message):
         # Example showing how to use the process_session function
         async def my_process_function(session):
             # Simulate some work
-            await asyncio.sleep(2)
+            await session_manager.update_session_status(
+                session_id,
+                SessionStatus.PROCESSING,
+                "Processing... Please wait...",
+            )
+            await asyncio.sleep(1)
             return {"success": True, "processed_data": "some result"}
 
         await session_manager.process_session(session_id, my_process_function)
@@ -270,7 +275,7 @@ async def on_message(message):
         await session_manager.update_session_status(
             session_id,
             SessionStatus.WAITING_FOR_INPUT,
-            "Waiting for external command to request input...",
+            "Loading...",
         )
 
         await session_manager.request_user_input(
