@@ -31,6 +31,7 @@ class SampleEngine:
     def __init__(self):
         """Initialize the sample engine."""
         self.engine_id = str(uuid.uuid4())
+        self.session_id = str(uuid.uuid4())
 
 # Define a class for managing LLM interactions
 class LLMManager:
@@ -89,7 +90,7 @@ class ChatApplication:
     def __init__(self, api_key, model, system_message="You are a helpful assistant."):
         self.llm_manager = LLMManager(api_key)
         self.engine = SampleEngine()
-        self.tool_manager = ToolManager(llm_model_name=model, engine_reference=self.engine)
+        self.tool_manager = ToolManager(engine_id=self.engine.engine_id, session_id=self.engine.session_id, llm_model_name=model)
         self.context = ChatContext(system_message)
     
     async def register_tool(self, func):

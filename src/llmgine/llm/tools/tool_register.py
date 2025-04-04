@@ -11,9 +11,6 @@ from llmgine.llm.tools.tool import Tool, Parameter, ToolFunction, AsyncToolFunct
 logger = logging.getLogger(__name__)
 
 class ToolRegister:
-    def __init__(self, platform: Optional[str] = None):
-        self.platform = platform or "notion"
-
     def register_tool(
         self, function: Union[ToolFunction, AsyncToolFunction]
     ) -> Tuple[str, Tool]:

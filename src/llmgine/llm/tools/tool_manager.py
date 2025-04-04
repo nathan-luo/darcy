@@ -176,7 +176,8 @@ class ToolManager:
                     tool_result=str(e),
                 )
             )
-            raise e
+
+            return str(e)
 
     def _get_parser(self, llm_model_name: Optional[str] = None):
         """Get the appropriate tool parser based on the LLM model name."""
