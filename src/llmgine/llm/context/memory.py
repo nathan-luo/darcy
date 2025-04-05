@@ -6,7 +6,10 @@ import uuid
 
 from llmgine.bus.bus import MessageBus
 from llmgine.llm.context import ContextManager
-from llmgine.llm.context.context_events import ChatHistoryRetrievedEvent
+from llmgine.llm.context.context_events import (
+    ChatHistoryRetrievedEvent,
+    ChatHistoryUpdatedEvent,
+)
 from llmgine.llm.engine.core import LLMEngine
 
 
@@ -50,6 +53,17 @@ class SimpleChatHistory:
             history_entry["content"] = ""  # Or potentially remove the content key?
 
         self.chat_history.append(history_entry)
+        temp = asyncio.create_task(
+            self.bus.publish(
+                ChatHistoryUpdatedEvent(
+                    engine_id=self.engine_id,
+                    session_id=self.session_id,
+                    context_manager_id=self.context_manager_id,
+                    context=self.chat_history,
+                )
+            )
+        )
+        print(temp)
 
     def store_string(self, string: str, role: str):
         """Store a simple user or system message."""

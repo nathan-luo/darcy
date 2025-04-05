@@ -90,3 +90,18 @@ class EventLogWrapper(ObservabilityBaseEvent):
     original_event_type: str
     original_event_data: Dict[str, Any]
     session_id: Optional[str] = None
+
+    def get_value(self, key: str, default: Any = None) -> Any:
+        """Get a value from the original event data.
+
+        This makes it easier for handlers to access specific fields from the original event
+        without needing to handle the dictionary directly.
+
+        Args:
+            key: The key to look up in the original event data
+            default: Value to return if the key is not found
+
+        Returns:
+            The value associated with the key, or the default if not found
+        """
+        return self.original_event_data.get(key, default)
