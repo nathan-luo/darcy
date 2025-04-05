@@ -74,14 +74,14 @@ def get_all_users() -> list[dict]:
 
 
 def get_active_tasks(
-    userID_inCharge: Optional[str] = None,
+    notion_user_id: Optional[str] = None,
     notion_project_id: Optional[str] = None,
 ) -> list[dict]:
     """
     Get all active tasks from the tasks database with provided filters
 
     Args:
-        userID_inCharge: The user ID of the person in charge of the task
+        notion_user_id: The NOTION user ID of the person in charge of the task (DO NOT USE DISCORD USER ID)
         notion_project_id: The ID of the project the task is associated with (need to call get_active_projects to get the list of projects and their ids)
 
     Returns:
@@ -106,10 +106,10 @@ def get_active_tasks(
             "property": "Event/Project",
             "relation": {"contains": notion_project_id},
         })
-    if userID_inCharge:
+    if notion_user_id:
         filter_obj["and"].append({
             "property": "In Charge",
-            "people": {"contains": userID_inCharge},
+            "people": {"contains": notion_user_id},
         })
 
     # quering Task database
@@ -118,7 +118,7 @@ def get_active_tasks(
         filter=filter_obj,  # should database id be notion_project_id?
     )
     tasks = response.get("results", [])
-    parsed_tasks = []
+    parsed_tasks = {}
     for task in tasks:
         # Get properties safely
         properties = task.get("properties", {})
@@ -140,7 +140,7 @@ def get_active_tasks(
 
         # Parse due date safely
         due_date = None
-        due_date_prop = properties.get("Due Date", {})
+        due_date_prop = properties.get("Due Dates", {})
         date_obj = due_date_prop.get("date", {})
         if date_obj:
             due_date = date_obj.get("start")
@@ -153,20 +153,19 @@ def get_active_tasks(
             project = relation_list[0].get("id")
 
         # Parse userID in charge safely
-        userID_inCharge = None
+        notion_user_id = None
         userID_inCharge_prop = properties.get("In Charge", {})
         userID_inCharge_list = userID_inCharge_prop.get("people", [])
         if userID_inCharge_list and len(userID_inCharge_list) > 0:
-            userID_inCharge = userID_inCharge_list[0].get("id")
+            notion_user_id = userID_inCharge_list[0].get("id")
 
-        parsed_tasks.append({
-            "id": task.get("id"),
+        parsed_tasks[task.get("id")] = {
             "name": name,
             "status": status,
             "due_date": due_date,
             "project": project,
-            "userID_inCharge": userID_inCharge,
-        })
+            "notion_user_id": notion_user_id,
+        }
 
     return parsed_tasks
 
@@ -188,7 +187,7 @@ def get_active_projects() -> list[dict]:
         },
     )
     projects = response.get("results", [])
-    parsed_projects = []
+    parsed_projects = {}
     for project in projects:
         name = None
         name_prop = project.get("properties", {}).get("Name", {})
@@ -196,10 +195,7 @@ def get_active_projects() -> list[dict]:
         if title_list and len(title_list) > 0:
             text_obj = title_list[0].get("text", {})
             name = text_obj.get("content")
-        parsed_projects.append({
-            "id": project.get("id"),
-            "name": name,
-        })
+        parsed_projects[project.get("id")] = name
 
     return parsed_projects
 
@@ -228,8 +224,7 @@ def create_task(
         "In Charge": {"people": [{"object": "user", "id": user_id}]},
     }
     if due_date:
-        date = datetime.strptime(due_date, "%Y-%m-%d")
-        properties["Due Dates"] = {"date": {"start": date.isoformat()}}
+        properties["Due Dates"] = {"date": {"start": due_date}}
     if notion_project_id:
         properties["Event/Project"] = {"relation": [{"id": notion_project_id}]}
 
@@ -257,8 +252,8 @@ def update_task(
     Args:
         notion_task_id: The ID of the task to update
         task_name: The name of the task
-        task_status: The status of the task
-        task_due_date: The due date of the task
+        task_status: The status of the task (to label a task as finished or completed, use Done word)
+        task_due_date: The due date of the task ISO 8601 with timezone (we are in AEST)
         task_in_charge: The user ID of the person in charge of the task
         task_event_project: The ID of the project the task is associated with (need to call get_active_projects to get the list of projects and their ids)
 
@@ -266,7 +261,7 @@ def update_task(
         Success or failure of the update
     """
     properties = {}
-
+    print("HELLO I AM HERE")
     if task_name:
         properties["Name"] = {"title": [{"text": {"content": task_name}}]}
 
@@ -274,8 +269,10 @@ def update_task(
         properties["Status"] = {"status": {"name": task_status}}
 
     if task_due_date:
-        date = datetime.strptime(task_due_date, "%Y-%m-%d")
-        properties["Due Dates"] = {"date": {"start": date.isoformat()}}
+        print("HELLO I AM HERE 2")
+        date = datetime.fromisoformat(task_due_date)
+        properties["Due Dates"] = {"date": {"start": date}}
+        print("HELLO I AM HERE 3")
 
     if task_in_charge:
         properties["In Charge"] = {
@@ -290,6 +287,7 @@ def update_task(
         page_id=notion_task_id,
         properties=properties,
     )
+    print(response)
     return response
 
 
@@ -297,11 +295,11 @@ if __name__ == "__main__":
     from pprint import pprint
     import time
 
-    # start_time = time.time()
-    # tasks = get_active_tasks()
-    # pprint(tasks)
-    # end_time = time.time()
-    # print(f"Time taken: {end_time - start_time} seconds")
+    start_time = time.time()
+    tasks = get_active_tasks()
+    pprint(tasks)
+    end_time = time.time()
+    print(f"Time taken: {end_time - start_time} seconds")
 
     # start_time = time.time()
     # projects = get_active_projects()
@@ -329,7 +327,7 @@ if __name__ == "__main__":
     # end_time = time.time()
     # print(f"Time taken: {end_time - start_time} seconds")
 
-    start_time = time.time()
-    pprint(get_all_users())
-    end_time = time.time()
-    print(f"Time taken: {end_time - start_time} seconds")
+    # start_time = time.time()
+    # pprint(get_all_users())
+    # end_time = time.time()
+    # print(f"Time taken: {end_time - start_time} seconds")

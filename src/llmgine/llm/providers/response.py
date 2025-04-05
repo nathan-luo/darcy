@@ -305,7 +305,8 @@ class OpenAIManager:
                 "model": model,
                 "messages": context,
                 "temperature": temperature or 0.7,
-                "max_tokens": max_tokens or 512,
+                "max_tokens": max_tokens or 5068,
+                "parallel_tool_calls": False,
             }
 
             # Only add tools if provided
