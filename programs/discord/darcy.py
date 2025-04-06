@@ -60,6 +60,7 @@ The current date and time is {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}, we 
 
 """
 
+BOT_SELF_ID = 1344539668573716520
 
 intents = discord.Intents.default()
 intents.message_content = True
@@ -87,13 +88,55 @@ async def on_message(message):
         print(message.content)
         user_mentions = [user.id for user in message.mentions]
         print(f"User mentions: {user_mentions}")
-        payload = []
+        mentions_payload = []
+        for user_mention in user_mentions:
+            if user_mention == BOT_SELF_ID:
+                continue
+            mentions_payload.append({
+                user_mention: DISCORD_TO_NOTION_USER_MAP[str(user_mention)]
+            })
         author_payload = "The Author of this message is:" + str({
             message.author.id: DISCORD_TO_NOTION_USER_MAP[str(message.author.id)]
         })
-        for user_mention in user_mentions[1:]:
-            payload.append({user_mention: DISCORD_TO_NOTION_USER_MAP[str(user_mention)]})
-        message.content = message.content + f"\n\n{author_payload}\n\n{payload}"
+
+        # Get the last 10 messages from the channel
+        chat_history = []
+        async for msg in message.channel.history(limit=20):
+            print("alsdfasdf")
+            print(f"{msg.author.display_name}: {msg.content}")
+            print(msg)
+            print("Result" in msg.content)
+            print(msg.author == message.author)
+            print(msg.author)
+            print(msg.author.id)
+            print("akshdasdjhsad")
+            if msg.author.id == BOT_SELF_ID:
+                if "Result" not in msg.content:
+                    continue
+            # Format each message with author and content
+            chat_history.append(f"{msg.author.display_name}: {msg.content}")
+
+        # Create the chat history payload with the most recent messages first
+        chat_history.reverse()
+        chat_history_payload = "Chat History:\n" + "\n".join(chat_history)
+        if message.reference is not None:
+            # Get the original (replied to) message
+            replied_message = await message.channel.fetch_message(
+                message.reference.message_id
+            )
+
+            # Now you can access the content of the replied message
+            replied_content = replied_message.content
+            replied_author = replied_message.author.display_name
+            # Example: Echo the replied message
+            reply_payload = f"The current request is responding to a message, and that message is: {replied_author}: {replied_content}"
+        else:
+            reply_payload = ""
+        message.content = (
+            message.content
+            + f"\n\n{reply_payload}\n\n{author_payload}\n\n{mentions_payload}\n\n{chat_history_payload}"
+        )
+        print(message.content)
         command = NotionCRUDEnginePromptCommand(prompt=message.content)
         result = await use_engine(command, session_id)
         if result.result:
@@ -154,7 +197,6 @@ async def use_engine(command: NotionCRUDEnginePromptCommand, session_id: str):
             session_id=session_id,  # Use the same session_id for the engine
             system_prompt=SYSTEM_PROMPT,
             api_key=os.getenv("OPENAI_API_KEY"),
-            model="gpt-4o",
         )
         await engine.register_tool(get_all_users)
         await engine.register_tool(get_active_tasks)
