@@ -112,9 +112,6 @@ class SessionManager:
     async def update_session_status(
         self, session_id: str, status: SessionStatus, message: Optional[str] = None
     ) -> bool:
-        print(
-            f"======================Updating session status for {session_id} to {status}======================="
-        )
         """Update a session's status and optionally its message"""
         if session_id not in self.active_sessions:
             return False
@@ -217,35 +214,3 @@ class SessionManager:
         # del self.active_sessions[session_id]
 
         return True
-
-    async def process_session(
-        self,
-        session_id: str,
-        processor_func: Callable[[Dict[str, Any]], Awaitable[Dict[str, Any]]],
-    ) -> Dict[str, Any]:
-        """Process a session using the provided async function"""
-        if session_id not in self.active_sessions:
-            return {"error": "Session not found"}
-
-        session = self.active_sessions[session_id]
-
-        # Update status to processing
-        await self.update_session_status(
-            session_id, SessionStatus.PROCESSING, "Processing..."
-        )
-
-        # Use typing indicator during processing
-        async with session["channel"].typing():
-            try:
-                # Call the provided processing function
-                result = await processor_func(session)
-
-                # Update session data with result
-                await self.update_session_data(session_id, {"process_result": result})
-
-                return result
-            except Exception as e:
-                await self.update_session_status(
-                    session_id, SessionStatus.ERROR, f"Error during processing: {str(e)}"
-                )
-                return {"error": str(e)}
