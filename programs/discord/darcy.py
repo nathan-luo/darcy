@@ -60,7 +60,8 @@ The current date and time is {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}, we 
 
 """
 
-BOT_SELF_ID = 1344539668573716520
+# BOT_SELF_ID = 1344539668573716520
+BOT_SELF_ID = 1358692586000355409  # daryl
 
 intents = discord.Intents.default()
 intents.message_content = True
@@ -235,10 +236,10 @@ async def main():
     print("Message bus started")
 
     dotenv.load_dotenv()
-
+    print(os.getenv("DARYL_KEY"))
     try:
         # Run the bot
-        await bot.start(os.getenv("DARCY_KEY"))
+        await bot.start(os.getenv("DARYL_KEY"))
     finally:
         # Ensure the bus is stopped when the application ends
         await bus.stop()
