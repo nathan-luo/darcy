@@ -16,6 +16,8 @@ class UserData:
     discord_id: discord_user_id
 
 
+
+
 USER_LIST : list[UserData] = [
     UserData(
         name="Danielle Tran",
@@ -472,42 +474,25 @@ USER_LIST : list[UserData] = [
 
 
 
-
-DISCORD_TO_NOTION_USER_MAP_NEW : dict[discord_user_id, dict[str, str | notion_user_id]] = {
-    user.discord_id: { 
-        "name": user.name,
-        "role": user.role,
-        "notion_id": user.notion_id
-      } for user in USER_LIST
+DISCORD_TO_NOTION_USER_MAP_NEW : dict[discord_user_id, UserData] = {
+    user.discord_id: user for user in USER_LIST
 }
-
-
-
-
-
-NOTION_TO_DISCORD_USER_MAP_NEW : dict[notion_user_id, dict[str, str | discord_user_id]] = {
-    user.notion_id: { 
-        "name": user.name,
-        "role": user.role,
-        "discord_id": user.discord_id
-      } for user in USER_LIST
+NOTION_TO_DISCORD_USER_MAP_NEW : dict[notion_user_id, UserData] = {
+    user.notion_id: user for user in USER_LIST
 }
-
-
-
 
 def notion_to_discord_user_map(notion_id: notion_user_id) -> discord_user_id | None: 
-    user_data : UserData | None = NOTION_TO_DISCORD_USER_MAP_NEW.get(notion_id, None) # type: ignore
+    user_data : UserData | None = NOTION_TO_DISCORD_USER_MAP_NEW.get(notion_id, None)
     if user_data is None:
         return None
-    return user_data["discord_id"] # TODO try to avoid string lookup
+    return user_data.discord_id
 
 
 def discord_to_notion_user_map(discord_id: discord_user_id) -> notion_user_id | None :
-    user_data : UserData | None = DISCORD_TO_NOTION_USER_MAP_NEW.get(discord_id, None) # type: ignore
+    user_data : UserData | None = DISCORD_TO_NOTION_USER_MAP_NEW.get(discord_id, None)
     if user_data is None:
         return None
-    return user_data["notion_id"] # TODO try to avoid string lookup
+    return user_data.notion_id
 
 
 
