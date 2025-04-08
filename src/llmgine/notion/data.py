@@ -473,7 +473,7 @@ USER_LIST : list[UserData] = [
 
 
 
-DISCORD_TO_NOTION_USER_MAP_NEW = {
+DISCORD_TO_NOTION_USER_MAP_NEW : dict[discord_user_id, dict[str, str | notion_user_id]] = {
     user.discord_id: { 
         "name": user.name,
         "role": user.role,
@@ -485,10 +485,39 @@ DISCORD_TO_NOTION_USER_MAP_NEW = {
 
 
 
-NOTION_TO_DISCORD_USER_MAP_NEW = {
+NOTION_TO_DISCORD_USER_MAP_NEW : dict[notion_user_id, dict[str, str | discord_user_id]] = {
     user.notion_id: { 
         "name": user.name,
         "role": user.role,
         "discord_id": user.discord_id
       } for user in USER_LIST
 }
+
+
+
+
+def notion_to_discord_user_map(notion_id: notion_user_id) -> discord_user_id | None: 
+    user_data : UserData | None = NOTION_TO_DISCORD_USER_MAP_NEW.get(notion_id, None) # type: ignore
+    if user_data is None:
+        return None
+    return user_data["discord_id"] # TODO try to avoid string lookup
+
+
+def discord_to_notion_user_map(discord_id: discord_user_id) -> notion_user_id | None :
+    user_data : UserData | None = DISCORD_TO_NOTION_USER_MAP_NEW.get(discord_id, None) # type: ignore
+    if user_data is None:
+        return None
+    return user_data["notion_id"] # TODO try to avoid string lookup
+
+
+
+
+
+# testing
+
+for user in USER_LIST:
+    assert(notion_to_discord_user_map(user.notion_id) == user.discord_id)
+    assert(discord_to_notion_user_map(user.discord_id) == user.notion_id)
+
+
+print("Done testing")
