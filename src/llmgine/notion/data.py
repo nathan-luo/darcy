@@ -16,7 +16,7 @@ class UserData:
     discord_id: discord_user_id
 
 
-USER_LIST = [
+USER_LIST : list[UserData] = [
     UserData(
         name="Danielle Tran",
         role="External Vice President",
@@ -168,7 +168,7 @@ USER_LIST = [
         discord_id=discord_user_id("437985276892282880"),
     ),
     UserData(
-        name="ethan.cheng@dscubed.org.au",
+        name="Ethan Cheng",
         role="Industry Officer",
         notion_id=notion_user_id("ea42ea13-1dc2-4f2d-9f7d-f547269a7266"),
         discord_id=discord_user_id("324364692547960842"),
