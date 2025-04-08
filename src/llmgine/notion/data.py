@@ -8,6 +8,10 @@ from dataclasses import dataclass
 notion_user_id = NewType("notion_user_id", str)
 discord_user_id = NewType("discord_user_id", str)
 
+
+
+# TODO need to write functions to automatically keep this up to date
+
 @dataclass
 class UserData:
     name: str
@@ -441,7 +445,7 @@ USER_LIST : list[UserData] = [
     ),
     UserData(
         name="Shayomi",
-        role="AI Officer",
+        role="AI Officer", # TODO
         notion_id=notion_user_id("1bbd872b-594c-816b-b37d-000274bbfbe2"),
         discord_id=discord_user_id("744518516350386298"),
     ),
