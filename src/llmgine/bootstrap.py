@@ -18,7 +18,6 @@ from llmgine.observability.events import LogLevel, ObservabilityBaseEvent
 from llmgine.observability.handlers import (
     ConsoleEventHandler,
     FileEventHandler,
-    ObservabilityEventHandler,
 )
 
 logger = logging.getLogger(__name__)
@@ -151,9 +150,7 @@ class ApplicationBootstrap(Generic[TConfig]):
         if console_handler:
             logger.info("Registering ConsoleEventHandler for BaseEvent.")
             # Use the global session for observability handlers
-            self.message_bus.register_event_handler(
-                "global", ObservabilityBaseEvent, console_handler.handle
-            )
+            self.message_bus.register_observability_handler(console_handler)
 
         # Register File Handler for EventLogWrapper (to log wrapped events)
         if file_handler:
@@ -162,9 +159,7 @@ class ApplicationBootstrap(Generic[TConfig]):
 
             logger.info("Registering FileEventHandler for EventLogWrapper.")
             # Use the global session for observability handlers
-            self.message_bus.register_event_handler(
-                "global", EventLogWrapper, file_handler.handle
-            )
+            self.message_bus.register_observability_handler(file_handler)
 
         if not console_handler and not file_handler:
             logger.warning(

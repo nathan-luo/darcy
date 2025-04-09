@@ -9,25 +9,20 @@ from datetime import datetime
 import logging
 import time
 import traceback
+import uuid
 from typing import Any, Callable, Dict, List, Optional, Type, TypeVar, cast, Union
 from dataclasses import asdict
 from enum import Enum
 import contextvars
 
 from llmgine.messages.commands import Command, CommandResult
-from llmgine.messages.events import (
-    Event,
-)
-from llmgine.observability.events import (
-    ObservabilityBaseEvent as ObservabilityBaseEvent,
-    Metric,
-    MetricEvent,
-    SpanContext,
-    TraceEvent,
-    uuid,
-    EventLogWrapper,
-)
+from llmgine.messages.events import Event
+
+# Import only what's needed at the module level and use local imports for the rest
+# to avoid circular dependencies
+from llmgine.observability.events import SpanContext
 from llmgine.bus.session import BusSession
+from llmgine.observability.handlers.base import ObservabilityEventHandler
 
 
 # Create a logger adapter that ensures session_id is always present
@@ -56,7 +51,7 @@ current_session_id: contextvars.ContextVar[Optional[str]] = contextvars.ContextV
 )
 
 TCommand = TypeVar("TCommand", bound=Command)
-TEvent = TypeVar("TEvent", bound=Event | ObservabilityBaseEvent)
+TEvent = TypeVar("TEvent", bound=Event)
 CommandHandler = Callable[[TCommand], CommandResult]
 AsyncCommandHandler = Callable[[TCommand], "asyncio.Future[CommandResult]"]
 EventHandler = Callable[[TEvent], None]
@@ -87,11 +82,13 @@ class MessageBus:
 
         # Simplified handler storage - only one session ID concept
         self._command_handlers: Dict[str, Dict[Type[Command], AsyncCommandHandler]] = {}
-        self._event_handlers: Dict[
-            str, Dict[Type[Event | ObservabilityBaseEvent], List[AsyncEventHandler]]
-        ] = {}
+        self._event_handlers: Dict[str, Dict[Type[Event], List[AsyncEventHandler]]] = {}
         self._event_queue: Optional[asyncio.Queue] = None
         self._processing_task: Optional[asyncio.Task] = None
+        self._observability_handlers: List[ObservabilityEventHandler] = []
+
+        # Add span tracking to store start times
+        self._span_start_times: Dict[str, Dict[str, Any]] = {}
 
         # Tracing configuration - enabled by default
         self._tracing_enabled = True
@@ -115,6 +112,27 @@ class MessageBus:
         if self._tracing_enabled:
             self._tracing_enabled = False
             logger.info("Tracing disabled for MessageBus")
+
+    def register_observability_handler(self, handler: ObservabilityEventHandler) -> None:
+        """Register an observability handler for this message bus."""
+        self._observability_handlers.append(handler)
+
+        # Also register the handler to receive specialized observability events
+        # Import types here to avoid circular imports
+        from llmgine.observability.events import (
+            ObservabilityBaseEvent,
+            TraceEvent,
+            MetricEvent,
+        )
+
+        # Register for general Event type to handle all events (existing behavior)
+        self.register_event_handler("global", Event, handler.handle)
+
+        # Also register for specific observability event types
+        # This ensures the handler will receive these events even if the event hierarchy changes
+        self.register_event_handler("global", ObservabilityBaseEvent, handler.handle)
+        self.register_event_handler("global", TraceEvent, handler.handle)
+        self.register_event_handler("global", MetricEvent, handler.handle)
 
     def create_session(self, id: Optional[str] = None):
         """Create a new session for grouping related commands and events."""
@@ -258,13 +276,31 @@ class MessageBus:
             trace_id=trace_id, span_id=span_id, parent_span_id=parent_span_id
         )
 
+        # Store start time info for this span
+        start_time = datetime.now()
+        start_time_str = start_time.isoformat()
+        self._span_start_times[span_id] = {
+            "name": name,
+            "start_time": start_time,
+            "start_time_str": start_time_str,
+            "attributes": attributes or {},
+        }
+
+        # Import the TraceEvent class
+        from llmgine.observability.events import TraceEvent, LogLevel
+
+        # Create a trace start event
         start_event = TraceEvent(
             name=name,
             span_context=span_context,
-            start_time=datetime.now().isoformat(),
+            is_start=True,
+            start_time=start_time_str,
+            end_time=None,
             attributes=attributes or {},
-            source=source or "MessageBus.start_span",
+            level=LogLevel.DEBUG,
         )
+        start_event.metadata["source"] = source or "MessageBus.start_span"
+
         await self.publish(start_event)
         return span_context
 
@@ -293,15 +329,45 @@ class MessageBus:
                 ),
             })
 
+        # Import the TraceEvent class
+        from llmgine.observability.events import TraceEvent, LogLevel
+
+        # Get end time
+        end_time = datetime.now()
+        end_time_str = end_time.isoformat()
+
+        # Try to retrieve and set start time
+        span_id = span_context.span_id
+        start_time_str = None
+        duration_ms = None
+
+        if span_id in self._span_start_times:
+            start_info = self._span_start_times[span_id]
+            start_time_str = start_info["start_time_str"]
+            start_time = start_info["start_time"]
+            # Calculate duration
+            duration_ms = (end_time - start_time).total_seconds() * 1000
+            # Merge attributes from start event if they're not in the end attributes
+            for k, v in start_info["attributes"].items():
+                if k not in final_attributes:
+                    final_attributes[k] = v
+            # Clean up - no longer needed
+            del self._span_start_times[span_id]
+
+        # Create trace end event
         end_event = TraceEvent(
             name=name,
             span_context=span_context,
-            end_time=datetime.now().isoformat(),
-            duration_ms=None,  # Duration calculation requires start time
+            is_start=False,
+            start_time=start_time_str,
+            end_time=end_time_str,
+            duration_ms=duration_ms,
             status=status,
             attributes=final_attributes,
-            source=source or "MessageBus.end_span",
+            level=LogLevel.DEBUG,
         )
+        end_event.metadata["source"] = source or "MessageBus.end_span"
+
         await self.publish(end_event)
 
     async def emit_metric(
@@ -312,13 +378,18 @@ class MessageBus:
         tags: Optional[Dict[str, str]] = None,
         source: Optional[str] = None,
     ) -> None:
-        """Creates and publishes a single metric event."""
-        # Metrics are still published even when tracing is disabled
+        """Creates and publishes a single metric."""
+        # Import necessary classes
+        from llmgine.observability.events import Metric, MetricEvent, LogLevel
+
+        # Create metric instance
         metric = Metric(name=name, value=value, unit=unit, tags=tags or {})
-        metric_event = MetricEvent(
-            metrics=[metric],
-            source=source or "MessageBus.emit_metric",
-        )
+
+        # Create a metric event (not a regular event anymore)
+        metric_event = MetricEvent(metrics=[metric], level=LogLevel.DEBUG)
+        metric_event.metadata["source"] = source or "MessageBus.emit_metric"
+        metric_event.metadata["metric_name"] = name
+
         await self.publish(metric_event)
 
     # --- Command Execution and Event Publishing ---
@@ -445,8 +516,8 @@ class MessageBus:
             if session_token is not None:
                 current_session_id.reset(session_token)
 
-    async def publish(self, event: Event | ObservabilityBaseEvent) -> None:
-        """Publish an event onto the event queue and potentially a logging wrapper."""
+    async def publish(self, event: Event) -> None:
+        """Publish an event onto the event queue."""
 
         # --- Simple Session ID Handling ---
         # Only inherit session ID if the event has a session_id attribute and it's None
@@ -456,7 +527,7 @@ class MessageBus:
                 event.session_id = session_id
         # --- End Session ID Handling ---
 
-        # Get current span and session ID for logging/metadata
+        # Get current span and session ID for metadata
         current_span = current_span_context.get()
         event_session_id = getattr(event, "session_id", None)
 
@@ -469,57 +540,13 @@ class MessageBus:
                 event.metadata.setdefault("session_id", event_session_id)
 
         logger.info(f"Publishing event {type(event).__name__}")
+        for handler in self._observability_handlers:
+            await handler.handle(event)
 
         try:
-            # Determine if the event is observational or a log wrapper itself
-            is_log_or_observability = isinstance(
-                event, (EventLogWrapper, ObservabilityBaseEvent)
-            )
-
-            if is_log_or_observability:
-                # If it's already a log/observability event, just queue it directly.
-                await self._event_queue.put(event)
-                logger.debug(
-                    f"Queued observability/log event directly: {type(event).__name__}"
-                )
-            else:
-                # For regular application events:
-                # 1. Create and publish the EventLogWrapper for logging purposes.
-                original_event_type_name = type(event).__name__
-                try:
-                    original_event_data = self._event_to_dict(event)
-                except Exception as e:
-                    logger.error(
-                        f"Failed to serialize event {original_event_type_name}: {e}"
-                    )
-                    original_event_data = {
-                        "error": "Serialization failed",
-                        "event_repr": repr(event),
-                    }
-
-                wrapper_kwargs = {
-                    "source": "MessageBus.publish",
-                    "original_event_type": original_event_type_name,
-                    "original_event_data": original_event_data,
-                    # Add session_id if the EventLogWrapper class supports it and it exists
-                    **(
-                        {"session_id": event_session_id}
-                        if hasattr(EventLogWrapper, "session_id") and event_session_id
-                        else {}
-                    ),
-                }
-                wrapper_event = EventLogWrapper(**wrapper_kwargs)
-
-                # Recursively call publish for the wrapper event.
-                # This will hit the `is_log_or_observability` branch in the next call,
-                # queueing the wrapper without further recursion.
-                await self.publish(wrapper_event)
-                logger.debug(f"Published EventLogWrapper for {original_event_type_name}")
-
-                # 2. Queue the original event for its specific handlers.
-                await self._event_queue.put(event)
-                logger.debug(f"Queued original event: {original_event_type_name}")
-
+            # Queue event for processing
+            await self._event_queue.put(event)
+            logger.debug(f"Queued event: {type(event).__name__}")
         except Exception as e:
             logger.error(f"Error during event publishing: {e}", exc_info=True)
 
@@ -552,7 +579,7 @@ class MessageBus:
 
         logger.info("Event processing loop finished")
 
-    async def _handle_event(self, event: Event | ObservabilityBaseEvent) -> None:
+    async def _handle_event(self, event: Event) -> None:
         """Handle a single event by calling all registered handlers."""
         event_type = type(event)
         handlers_to_run = []
@@ -580,16 +607,18 @@ class MessageBus:
                         h for h in handlers if h not in handlers_to_run
                     ])
 
-        # Skip tracing for observability events to avoid loops
-        is_observability_event = isinstance(
-            event, ObservabilityBaseEvent
-        )  # Removed EventLogWrapper from this check
         span_context = None
         trace_token = None
 
+        # Import TraceEvent at the method level to avoid circular imports
+        from llmgine.observability.events import TraceEvent
+
+        # Check if this event is a trace event itself - if so, don't create a new trace for it
+        is_trace_event = isinstance(event, TraceEvent)
+
         try:
-            # Create span for event handling - only if tracing is enabled and not an observability event
-            if self._tracing_enabled and not is_observability_event:
+            # Create span for event handling - only if tracing is enabled and this is not a trace event
+            if self._tracing_enabled and not is_trace_event:
                 span_attributes = {
                     "event_id": getattr(event, "id", "N/A"),
                     "event_type": event_type.__name__,
@@ -629,8 +658,8 @@ class MessageBus:
             else:
                 logger.debug(f"No handlers for event type {event_type.__name__}")
 
-            # End span if created - only if tracing is enabled
-            if self._tracing_enabled and not is_observability_event and span_context:
+            # End span if created - only if tracing is enabled and this is not a trace event
+            if self._tracing_enabled and span_context and not is_trace_event:
                 await self.end_span(
                     span_context=span_context,
                     name=f"Handle Event: {event_type.__name__}",
@@ -639,8 +668,8 @@ class MessageBus:
                 )
 
         except Exception as e:
-            # Handle span error - only if tracing is enabled
-            if self._tracing_enabled and not is_observability_event and span_context:
+            # Handle span error - only if tracing is enabled and this is not a trace event
+            if self._tracing_enabled and span_context and not is_trace_event:
                 await self.end_span(
                     span_context=span_context,
                     name=f"Handle Event: {event_type.__name__}",

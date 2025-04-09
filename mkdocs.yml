@@ -5,7 +5,7 @@ site_description: A llm engine to build anything you can imagine.
 site_author: Nathan Luo
 edit_uri: edit/main/docs/
 repo_name: nathan-luo/llmgine
-copyright: Maintained by <a href="https://nathan-luo.com">nathan-luo</a>.
+copyright: Maintained by <a href="https://nathanluo.com">Nathan Luo</a>.
 
 nav:
   - Home: index.md

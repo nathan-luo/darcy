@@ -1,28 +1,20 @@
 """Observability events for LLMgine.
 
-This package provides observability components including logging, metrics, and tracing.
+This package provides observability components including metrics and tracing utilities.
 """
 
 from llmgine.observability.events import (
-    ObservabilityBaseEvent,
-    LogEvent,
+    EventLogWrapper,
     LogLevel,
     Metric,
-    MetricEvent,
+    ObservabilityBaseEvent,
     SpanContext,
-    TraceEvent,
-    ToolManagerLogEvent,
-    EventLogWrapper
 )
 
 __all__ = [
-    "ObservabilityBaseEvent",
-    "LogEvent",
+    "EventLogWrapper",
     "LogLevel",
     "Metric",
-    "MetricEvent",
+    "ObservabilityBaseEvent",
     "SpanContext",
-    "TraceEvent",
-    "ToolManagerLogEvent",
-    "EventLogWrapper"
 ]

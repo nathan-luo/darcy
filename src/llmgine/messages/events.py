@@ -7,10 +7,13 @@ Events represent things that have happened in the system.
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, ForwardRef, TYPE_CHECKING
 import uuid
 
 from llmgine.messages.commands import Command, CommandResult
+
+if TYPE_CHECKING:
+    from llmgine.observability.events import Metric, SpanContext
 
 
 @dataclass

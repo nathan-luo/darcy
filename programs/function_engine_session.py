@@ -28,8 +28,9 @@ class FunctionEngineSessionConfig(ApplicationConfig):
     name: str = "Function Engine Session"
     description: str = "A simple chat application with function calling capabilities"
 
-    enable_tracing: bool = False
-    enable_console_handler: bool = False
+    enable_tracing: bool = True
+    enable_console_handler: bool = True
+    enable_file_handler: bool = True
 
     # OpenAI configuration
     model: str = "gpt-4o-mini"

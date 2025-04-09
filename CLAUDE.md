@@ -10,8 +10,7 @@
 
 ## Code Style Guidelines
 - **Python Version**: Python 3.9+
-- **Formatting**: Ruff for linting and formatting
-- **Line Length**: 120 characters maximum
+- **Formatting**: Ruff for linting and formatting (line length: 90 characters)
 - **Imports**: Use isort (via Ruff) - group imports by standard library, third-party, local
 - **Types**: Strict typing with MyPy - all functions must have type annotations
 - **Naming**: Follow PEP8 - snake_case for functions/variables, PascalCase for classes
@@ -20,11 +19,9 @@
 - **Pre-commit Hooks**: All code must pass pre-commit hooks before committing
 
 ## Architecture & Design Philosophy
-- Follow Domain-Driven Design principles from Cosmic Python book
-- Use event-driven architecture with command/event message buses
-- Embrace "ports and adapters" / hexagonal architecture
-- Practice inversion of control and dependency injection
-- Focus on small, composable patterns rather than monolithic frameworks
+- Event-driven architecture with command/event message buses
+- Domain-Driven Design principles from Cosmic Python book
+- "Ports and adapters" / hexagonal architecture with dependency injection
 - Separate domain models from infrastructure concerns
 - Design for testability with clear abstractions and interfaces
 
