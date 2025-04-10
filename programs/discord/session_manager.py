@@ -1,10 +1,14 @@
-import discord
 import asyncio
-import random
-import string
-from discord.ext import commands
+from datetime import timedelta
 from enum import Enum
-from typing import Dict, Any, Optional, Callable, Awaitable, List
+import random
+from typing import Any, Awaitable, Callable, Dict, List, Optional
+
+import discord
+from discord.ext import commands
+from .components import YesNoView
+
+import string
 
 
 # Session status types
@@ -37,7 +41,10 @@ class SessionManager:
         return session_id
 
     async def create_session(
-        self, message: discord.Message, initial_data: Optional[Dict[str, Any]] = None
+        self,
+        message: discord.Message,
+        initial_data: Optional[Dict[str, Any]] = None,
+        expire_after_minutes: Optional[int] = None,
     ) -> str:
         """Create a new session and return its ID"""
         session_id = self.generate_session_id()
@@ -61,7 +68,34 @@ class SessionManager:
             "updated_at": discord.utils.utcnow(),
         }
 
+        # Schedule expiration if requested
+        if expire_after_minutes:
+            self.active_sessions[session_id]["expires_at"] = (
+                discord.utils.utcnow() + timedelta(minutes=expire_after_minutes)
+            )
+
+            # Schedule the expiration task
+            self.bot.loop.create_task(
+                self._expire_session(session_id, expire_after_minutes)
+            )
+
         return session_id
+
+    # Add this method to handle session expiration
+    async def _expire_session(self, session_id: str, minutes: int):
+        """Background task to expire a session after a set time"""
+        await asyncio.sleep(minutes * 60)  # Convert to seconds
+
+        # Check if session still exists and hasn't been completed yet
+        if (
+            session_id in self.active_sessions
+            and self.active_sessions[session_id]["status"] != SessionStatus.COMPLETED
+        ):
+            await self.update_session_status(
+                session_id,
+                SessionStatus.COMPLETED,
+                f"Session expired after {minutes} minutes",
+            )
 
     def get_session(self, session_id: str) -> Optional[Dict[str, Any]]:
         """Get session data by ID"""
@@ -122,10 +156,10 @@ class SessionManager:
         prompt_text: str,
         timeout: int = 60,
         input_type: str = "yes_no",
-    ) -> Dict[str, Any]:
+    ) -> bool:
         """Request input from a user for a specific session"""
         if session_id not in self.active_sessions:
-            return {"error": "Session not found"}
+            raise ValueError("Session not found")
 
         session = self.active_sessions[session_id]
 
@@ -149,11 +183,15 @@ class SessionManager:
 
             # Process the result
             if view.value is None:
-                result = {"response": "timeout"}
+                result = False
                 await prompt_msg.edit(content=f"⏱️ Request timed out", view=None)
             else:
-                result = {"response": "yes" if view.value else "no"}
-                resp_text = "✅ Confirmed" if view.value else "❌ Declined"
+                result = view.value
+                resp_text = (
+                    f"✅ **Session {session_id} Accepted**: {prompt_text}"
+                    if view.value
+                    else f"❌ **Session {session_id} Declined**: {prompt_text}"
+                )
                 await prompt_msg.edit(content=f"{resp_text}", view=None)
 
         # Update session and return result
@@ -176,148 +214,3 @@ class SessionManager:
         # del self.active_sessions[session_id]
 
         return True
-
-    async def process_session(
-        self,
-        session_id: str,
-        processor_func: Callable[[Dict[str, Any]], Awaitable[Dict[str, Any]]],
-    ) -> Dict[str, Any]:
-        """Process a session using the provided async function"""
-        if session_id not in self.active_sessions:
-            return {"error": "Session not found"}
-
-        session = self.active_sessions[session_id]
-
-        # Update status to processing
-        await self.update_session_status(
-            session_id, SessionStatus.PROCESSING, "Processing..."
-        )
-
-        # Use typing indicator during processing
-        async with session["channel"].typing():
-            try:
-                # Call the provided processing function
-                result = await processor_func(session)
-
-                # Update session data with result
-                await self.update_session_data(session_id, {"process_result": result})
-
-                return result
-            except Exception as e:
-                await self.update_session_status(
-                    session_id, SessionStatus.ERROR, f"Error during processing: {str(e)}"
-                )
-                return {"error": str(e)}
-
-
-class YesNoView(discord.ui.View):
-    def __init__(self, timeout, original_author):
-        super().__init__(timeout=timeout)
-        self.value = None
-        self.original_author = original_author
-
-    async def interaction_check(self, interaction):
-        return interaction.user == self.original_author
-
-    @discord.ui.button(label="Yes", style=discord.ButtonStyle.green)
-    async def yes_button(self, interaction, button):
-        self.value = True
-        await interaction.response.defer()
-        self.stop()
-
-    @discord.ui.button(label="No", style=discord.ButtonStyle.red)
-    async def no_button(self, interaction, button):
-        self.value = False
-        await interaction.response.defer()
-        self.stop()
-
-
-# Example usage of the framework
-intents = discord.Intents.default()
-intents.message_content = True
-intents.messages = True
-
-bot = commands.Bot(command_prefix="!", intents=intents)
-session_manager = SessionManager(bot)
-
-
-@bot.event
-async def on_ready():
-    print(f"Logged in as {bot.user}")
-
-
-@bot.event
-async def on_message(message):
-    if message.author == bot.user:
-        return
-
-    if bot.user.mentioned_in(message):
-        # Create a new session when the bot is mentioned
-        session_id = await session_manager.create_session(message)
-        print(f"Session created: {session_id}")
-        print(message)
-        print(message.content)
-
-        # Example showing how to use the process_session function
-        async def my_process_function(session):
-            # Simulate some work
-            await session_manager.update_session_status(
-                session_id,
-                SessionStatus.PROCESSING,
-                "Processing... Please wait...",
-            )
-            await asyncio.sleep(1)
-            return {"success": True, "processed_data": "some result"}
-
-        await session_manager.process_session(session_id, my_process_function)
-
-        # Update to waiting for input
-        await session_manager.update_session_status(
-            session_id,
-            SessionStatus.WAITING_FOR_INPUT,
-            "Loading...",
-        )
-
-        await session_manager.request_user_input(
-            session_id, "Do you want to proceed?", timeout=30
-        )
-
-        await session_manager.complete_session(session_id, "Session completed")
-
-    await bot.process_commands(message)
-
-
-@bot.command(name="input")
-async def request_input_command(ctx, session_id):
-    """Test command to request input for a specific session"""
-    if session_manager.get_session(session_id):
-        await ctx.send(f"Requesting input for session {session_id}")
-
-        result = await session_manager.request_user_input(
-            session_id, "Do you want to proceed?", timeout=30
-        )
-
-        await ctx.send(f"Input result: {result}")
-
-        # Process the result
-        if result.get("response") == "yes":
-            # Example showing processing after receiving input
-            async def continue_processing(session):
-                await asyncio.sleep(2)
-                return {"completion": "success"}
-
-            await session_manager.process_session(session_id, continue_processing)
-            await session_manager.complete_session(
-                session_id, "Process completed successfully!"
-            )
-        else:
-            await session_manager.complete_session(session_id, "Process canceled by user")
-    else:
-        await ctx.send(f"Session {session_id} not found")
-
-
-import os
-import dotenv
-
-dotenv.load_dotenv()
-bot.run(os.getenv("DARCY_KEY"))

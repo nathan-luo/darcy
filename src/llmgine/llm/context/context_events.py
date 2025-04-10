@@ -17,3 +17,10 @@ class ChatHistoryRetrievedEvent(ContextEvent):
     """Event for when chat history is retrieved."""
 
     context: List[Dict[str, Any]] = field(default_factory=list)
+
+
+@dataclass
+class ChatHistoryUpdatedEvent(ContextEvent):
+    """Event for when chat history is updated."""
+
+    context: List[Dict[str, Any]] = field(default_factory=list)

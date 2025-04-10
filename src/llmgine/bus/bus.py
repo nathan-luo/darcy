@@ -446,7 +446,7 @@ class MessageBus:
                 current_session_id.reset(session_token)
 
     async def publish(self, event: Event | ObservabilityBaseEvent) -> None:
-        """Publish an event onto the event queue."""
+        """Publish an event onto the event queue and potentially a logging wrapper."""
 
         # --- Simple Session ID Handling ---
         # Only inherit session ID if the event has a session_id attribute and it's None
@@ -456,53 +456,72 @@ class MessageBus:
                 event.session_id = session_id
         # --- End Session ID Handling ---
 
-        # Get current span and session ID for logging
+        # Get current span and session ID for logging/metadata
         current_span = current_span_context.get()
         event_session_id = getattr(event, "session_id", None)
 
-        # Add metadata if available
+        # Add metadata if available (use setdefault to avoid overwriting existing)
         if hasattr(event, "metadata") and isinstance(event.metadata, dict):
             if current_span:
-                event.metadata["trace_id"] = current_span.trace_id
-                event.metadata["span_id"] = current_span.span_id
+                event.metadata.setdefault("trace_id", current_span.trace_id)
+                event.metadata.setdefault("span_id", current_span.span_id)
             if event_session_id:
-                event.metadata["session_id"] = event_session_id
+                event.metadata.setdefault("session_id", event_session_id)
 
-        logger.debug(f"Publishing event {type(event).__name__}")
+        logger.info(f"Publishing event {type(event).__name__}")
 
         try:
-            # Handle EventLogWrapper specially
-            if isinstance(event, EventLogWrapper):
+            # Determine if the event is observational or a log wrapper itself
+            is_log_or_observability = isinstance(
+                event, (EventLogWrapper, ObservabilityBaseEvent)
+            )
+
+            if is_log_or_observability:
+                # If it's already a log/observability event, just queue it directly.
                 await self._event_queue.put(event)
-                return
+                logger.debug(
+                    f"Queued observability/log event directly: {type(event).__name__}"
+                )
+            else:
+                # For regular application events:
+                # 1. Create and publish the EventLogWrapper for logging purposes.
+                original_event_type_name = type(event).__name__
+                try:
+                    original_event_data = self._event_to_dict(event)
+                except Exception as e:
+                    logger.error(
+                        f"Failed to serialize event {original_event_type_name}: {e}"
+                    )
+                    original_event_data = {
+                        "error": "Serialization failed",
+                        "event_repr": repr(event),
+                    }
 
-            # Create wrapper for other event types
-            original_event_type_name = type(event).__name__
-            try:
-                original_event_data = self._event_to_dict(event)
-            except Exception as e:
-                logger.error(f"Failed to serialize event {original_event_type_name}: {e}")
-                original_event_data = {
-                    "error": "Serialization failed",
-                    "event_repr": repr(event),
+                wrapper_kwargs = {
+                    "source": "MessageBus.publish",
+                    "original_event_type": original_event_type_name,
+                    "original_event_data": original_event_data,
+                    # Add session_id if the EventLogWrapper class supports it and it exists
+                    **(
+                        {"session_id": event_session_id}
+                        if hasattr(EventLogWrapper, "session_id") and event_session_id
+                        else {}
+                    ),
                 }
+                wrapper_event = EventLogWrapper(**wrapper_kwargs)
 
-            # Create the wrapper with minimal parameters
-            wrapper_kwargs = {
-                "source": "MessageBus.publish",
-                "original_event_type": original_event_type_name,
-                "original_event_data": original_event_data,
-            }
+                # Recursively call publish for the wrapper event.
+                # This will hit the `is_log_or_observability` branch in the next call,
+                # queueing the wrapper without further recursion.
+                await self.publish(wrapper_event)
+                logger.debug(f"Published EventLogWrapper for {original_event_type_name}")
 
-            # Only add session_id if supported
-            if hasattr(EventLogWrapper, "session_id") and event_session_id:
-                wrapper_kwargs["session_id"] = event_session_id
-
-            wrapper_event = EventLogWrapper(**wrapper_kwargs)
-            await self._event_queue.put(wrapper_event)
+                # 2. Queue the original event for its specific handlers.
+                await self._event_queue.put(event)
+                logger.debug(f"Queued original event: {original_event_type_name}")
 
         except Exception as e:
-            logger.error(f"Error preparing event for queue: {e}", exc_info=True)
+            logger.error(f"Error during event publishing: {e}", exc_info=True)
 
     async def _process_events(self) -> None:
         """Process events from the queue indefinitely."""
@@ -563,8 +582,8 @@ class MessageBus:
 
         # Skip tracing for observability events to avoid loops
         is_observability_event = isinstance(
-            event, (ObservabilityBaseEvent, EventLogWrapper)
-        )
+            event, ObservabilityBaseEvent
+        )  # Removed EventLogWrapper from this check
         span_context = None
         trace_token = None
 
