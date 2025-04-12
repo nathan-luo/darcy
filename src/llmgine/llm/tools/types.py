@@ -1,17 +1,30 @@
 import asyncio
-import asyncio
 from dataclasses import dataclass
-from typing import Any, Dict, Union, Callable, List
-from typing import Any, Dict, Union, Callable, List
+from typing import Any, Callable, Dict, List, Union
 
-# Type for tool function
-ToolFunction = Callable[..., Any]
-AsyncToolFunction = Callable[..., "asyncio.Future[Any]"]
+
+@dataclass
+class ToolCall:
+    """Represents a tool call from an LLM."""
+
+    id: str
+    type: str = "function"
+    name: str = ""
+    arguments: str = "{}"
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert tool call to dictionary format."""
+        return {
+            "id": self.id,
+            "type": self.type,
+            "function": {"name": self.name, "arguments": self.arguments},
+        }
+
 
 @dataclass
 class Parameter:
     """A parameter for a tool.
-    
+
     Attributes:
         name: The name of the parameter
         description: A description of the parameter
@@ -38,11 +51,15 @@ class Parameter:
         }
 
 
+# Type for tool function
+ToolFunction = Callable[..., Any]
+AsyncToolFunction = Callable[..., "asyncio.Future[Any]"]
+
 
 @dataclass
 class Tool:
     """Contains all information about a tool.
-    
+
     Attributes:
         name: The name of the tool
         description: A description of what the tool does
@@ -64,4 +81,3 @@ class Tool:
             "parameters": [param.to_dict() for param in self.parameters],
             "is_async": self.is_async
         }
-

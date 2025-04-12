@@ -10,6 +10,7 @@ from enum import Enum
 from typing import Any, Dict, List, Optional
 import uuid
 
+from llmgine.llm.tools.types import ToolCall
 from llmgine.messages.commands import Command, CommandResult
 
 
@@ -44,24 +45,6 @@ class Event:
 #     result: Any = None
 #     error: Optional[str] = None
 #     execution_time_ms: Optional[float] = None
-
-
-@dataclass
-class ToolCall:
-    """Represents a tool call from an LLM."""
-
-    id: str
-    type: str = "function"
-    name: str = ""
-    arguments: str = "{}"
-
-    def to_dict(self) -> Dict[str, Any]:
-        """Convert tool call to dictionary format."""
-        return {
-            "id": self.id,
-            "type": self.type,
-            "function": {"name": self.name, "arguments": self.arguments},
-        }
 
 
 @dataclass

@@ -7,8 +7,9 @@ from llmgine.bus.bus import MessageBus
 from llmgine.llm.context.memory import SimpleChatHistory
 from llmgine.llm.providers.response import OpenAIManager
 from llmgine.llm.tools.tool_manager import ToolManager
+from llmgine.llm.tools.types import ToolCall
 from llmgine.messages.commands import Command, CommandResult
-from llmgine.messages.events import ToolCall, LLMResponse, Event
+from llmgine.messages.events import LLMResponse, Event
 from llmgine.notion.notion import get_tasks, get_projects, create_task, update_task
 from dataclasses import dataclass, field
 

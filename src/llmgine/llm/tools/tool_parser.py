@@ -7,7 +7,7 @@ any LLM.
 from abc import ABC, abstractmethod
 from typing import Any, Dict, List, Optional, Type, Union
 
-from llmgine.llm.tools.tool import Tool
+from llmgine.llm.tools.types import Tool
 
 
 class ToolParser:

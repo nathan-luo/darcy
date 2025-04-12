@@ -12,25 +12,10 @@ from openai import AsyncOpenAI
 from llmgine.bus.bus import MessageBus
 from llmgine.llm.engine.core import LLMEngine
 from llmgine.llm.providers.llm_manager_events import LLMResponseEvent
-from llmgine.messages.events import ToolCall
+from llmgine.llm.tools.types import ToolCall
 
 # Set up logging
 logger = logging.getLogger(__name__)
-
-# Where to store this?
-USAGE_PATH_REGISTRY: Dict[str, Dict[str, List[str]]] = {
-    "openai": {
-        "prompt_tokens": ["usage", "prompt_tokens"],
-        "completion_tokens": ["usage", "completion_tokens"],
-        "total_tokens": ["usage", "total_tokens"],
-    },
-    "anthropic": {
-        "prompt_tokens": ["usage", "input_tokens"],
-        "completion_tokens": ["usage", "output_tokens"],
-        "total_tokens": ["usage", "total_tokens"],
-    },
-    # Add more providers as needed
-}
 
 
 @dataclass
@@ -39,28 +24,36 @@ class Usage:
     completion_tokens: int
     total_tokens: int
 
-
 # Defining exactly what every class must provide
-class LLMResponse(ABC):
-    @property
-    @abstractmethod
-    def content(self) -> str: ...
+class LLMResponse:
+    def __init__(self, raw_response: Any):
+        self.raw = raw_response
 
     @property
-    @abstractmethod
-    def tool_calls(self) -> List[ToolCall]: ...
+    def content(self) -> str: raise NotImplementedError
 
     @property
-    @abstractmethod
-    def has_tool_calls(self) -> bool: ...
+    def tool_calls(self) -> List[ToolCall]: raise NotImplementedError
 
     @property
-    @abstractmethod
-    def finish_reason(self) -> str: ...
+    def has_tool_calls(self) -> bool: raise NotImplementedError
 
     @property
-    @abstractmethod
-    def usage(self) -> Usage: ...
+    def finish_reason(self) -> str: raise NotImplementedError
+
+    @property
+    def usage(self) -> Usage: raise NotImplementedError
+
+    @property
+    def metrics(self) -> Dict[str, Any]: raise NotImplementedError
+
+    @property
+    def model(self) -> Dict[str, Any]: raise NotImplementedError
+
+    @property
+    def reasoning(self) -> str: raise NotImplementedError
+
+    @property
 
 
 # Generic LLM response parser

@@ -7,7 +7,10 @@ from openai import AsyncOpenAI
 from openai.types.chat import ChatCompletion
 
 from llmgine.llm.providers import LLMProvider, create_tool_call
-from llmgine.messages.events import LLMResponse, ToolCall
+from llmgine.llm.tools.types import ToolCall
+from llmgine.messages.events import LLMResponse
+
+
 
 
 class OpenAIProvider(LLMProvider):

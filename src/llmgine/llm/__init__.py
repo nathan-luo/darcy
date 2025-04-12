@@ -6,7 +6,8 @@ context handling, and tool execution.
 """
 
 # Response format - central types
-from llmgine.messages.events import LLMResponse, ToolCall
+from llmgine.llm.tools.types import Tool, ToolCall
+from llmgine.messages.events import LLMResponse
 
 # Engine components
 from llmgine.llm.engine import (
@@ -33,7 +34,6 @@ from llmgine.llm.providers import (
 
 # Tool management
 from llmgine.llm.tools import (
-    Tool, 
     ToolManager
 )
 

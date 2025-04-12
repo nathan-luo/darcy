@@ -8,7 +8,8 @@ from abc import ABC, abstractmethod
 from typing import Any, Dict, List, Optional, Protocol, Union
 import uuid
 
-from llmgine.messages.events import LLMResponse, ToolCall
+from llmgine.llm.tools.types import ToolCall
+from llmgine.messages.events import LLMResponse
 
 
 class LLMProvider(Protocol):

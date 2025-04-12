@@ -13,13 +13,13 @@ from typing import Any, Dict, List, Optional, Type, Union
 
 from llmgine.bus.bus import MessageBus
 from llmgine.llm.engine.core import LLMEngine
-from llmgine.llm.tools.tool import Tool, Parameter, ToolFunction, AsyncToolFunction
+from llmgine.llm.tools.types import AsyncToolFunction
 from llmgine.llm.tools.tool_parser import (
     OpenAIToolParser,
     ClaudeToolParser,
     DeepSeekToolParser,
 )
-from llmgine.messages.events import ToolCall
+from llmgine.llm.tools.types import Parameter, Tool, ToolCall, ToolFunction
 from llmgine.llm.tools.tool_events import (
     ToolRegisterEvent,
     ToolCompiledEvent,
