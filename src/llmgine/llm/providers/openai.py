@@ -10,7 +10,7 @@ from llmgine.llm.providers import LLMProvider, create_tool_call
 from llmgine.llm.providers.response import ResponseTokens
 from llmgine.llm.tools.types import ToolCall
 from llmgine.messages.events import LLMResponse
-
+from llmgine.bus.bus import MessageBus
 
 class OpenAIResponse(LLMResponse):
     def __init__(self, response: ChatCompletion) -> None:
@@ -56,6 +56,7 @@ class OpenAIProvider(LLMProvider):
     def __init__(self, api_key: str, base_url: str, model: str) -> None:
         self.model = model
         self.client = AsyncOpenAI(api_key=api_key, base_url=base_url)
+        self.bus = MessageBus()
 
     async def generate(
         self,
@@ -67,8 +68,10 @@ class OpenAIProvider(LLMProvider):
         max_completion_tokens: int = 5068,
         response_format: Optional[Dict] = None,
         reasoning_effort: Optional[Literal["low", "medium", "high"]] = None,
+        test: bool = False,
         **kwargs: Any,
     ) -> LLMResponse:
+        # id = str(uuid.uuid4())
         payload = {
             "model": self.model,
             "messages": context,
@@ -86,9 +89,18 @@ class OpenAIProvider(LLMProvider):
 
         if reasoning_effort:
             payload["reasoning_effort"] = reasoning_effort
-
-        response = await self.client.chat.completions.create(**payload)
-        return OpenAIResponse(response)
+        payload.update(**kwargs)
+        # self.bus.emit(LLMCallEvent(id=id, provider=Providers.OPENAI, payload=payload))
+        try:
+            response = await self.client.chat.completions.create(**payload)
+        except Exception as e:
+            # self.bus.emit(LLMResponseEvent(call_id=id, provider=Providers.OPENAI, response=e))
+            raise e
+        # self.bus.emit(LLMResponseEvent(call_id=id, provider=Providers.OPENAI, response=response))
+        if test:
+            return response
+        else:
+            return OpenAIResponse(response)
 
     def stream():
         # TODO: Implement streaming
