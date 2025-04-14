@@ -1,3 +1,8 @@
+"""
+This file contains the UI components for the discord bot, including:
+- Yes/No Button View
+- Interaction check
+"""
 import discord
 
 

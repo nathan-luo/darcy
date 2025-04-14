@@ -1,11 +1,7 @@
 import asyncio
 from datetime import datetime
 import os
-import random
-import string
 from dataclasses import dataclass
-from enum import Enum
-from typing import Any, Awaitable, Callable, Dict, List, Optional
 import sys
 
 import discord
@@ -27,13 +23,6 @@ from engines.notion_crud_engine import (
     NotionCRUDEngineConfirmationCommand,
     NotionCRUDEnginePromptCommand,
     NotionCRUDEngineStatusEvent,
-)
-from llmgine.notion.notion import (
-    create_task,
-    get_active_projects,
-    get_active_tasks,
-    get_all_users,
-    update_task,
 )
 from llmgine.notion.data import DISCORD_TO_NOTION_USER_MAP
 
@@ -61,6 +50,7 @@ The current date and time is {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}, we 
 """
 
 BOT_SELF_ID = 1344539668573716520
+MAX_RESPONSE_LENGTH = 1900
 
 intents = discord.Intents.default()
 intents.message_content = True
@@ -83,11 +73,7 @@ async def on_message(message):
     if bot.user.mentioned_in(message):
         # Create a new session when the bot is mentioned
         session_id = await session_manager.create_session(message, expire_after_minutes=1)
-        print(f"Session created: {session_id}")
-        print(message)
-        print(message.content)
         user_mentions = [user.id for user in message.mentions]
-        print(f"User mentions: {user_mentions}")
         mentions_payload = []
         for user_mention in user_mentions:
             if user_mention == BOT_SELF_ID:
@@ -102,14 +88,6 @@ async def on_message(message):
         # Get the last 10 messages from the channel
         chat_history = []
         async for msg in message.channel.history(limit=20):
-            print("alsdfasdf")
-            print(f"{msg.author.display_name}: {msg.content}")
-            print(msg)
-            print("Result" in msg.content)
-            print(msg.author == message.author)
-            print(msg.author)
-            print(msg.author.id)
-            print("akshdasdjhsad")
             if msg.author.id == BOT_SELF_ID:
                 if "Result" not in msg.content:
                     continue
@@ -136,12 +114,11 @@ async def on_message(message):
             message.content
             + f"\n\n{reply_payload}\n\n{author_payload}\n\n{mentions_payload}\n\n{chat_history_payload}"
         )
-        print(message.content)
         command = NotionCRUDEnginePromptCommand(prompt=message.content)
         result = await use_engine(command, session_id)
         if result.result:
             await message.channel.send(
-                f"🎁 **Session {session_id} Result**: \n\n{result.result[:1900]}"
+                f"🎁 **Session {session_id} Result**: \n\n{result.result[:MAX_RESPONSE_LENGTH]}"
             )
         else:
             await message.channel.send(
@@ -198,19 +175,18 @@ async def use_engine(command: NotionCRUDEnginePromptCommand, session_id: str):
             system_prompt=SYSTEM_PROMPT,
             api_key=os.getenv("OPENAI_API_KEY"),
         )
-        await engine.register_tool(get_all_users)
-        await engine.register_tool(get_active_tasks)
-        await engine.register_tool(get_active_projects)
-        await engine.register_tool(create_task)
-        await engine.register_tool(update_task)
+
         bus.register_command_handler(
             session_id,
             NotionCRUDEngineConfirmationCommand,
             handle_confirmation_command,
         )
         bus.register_event_handler(
-            session_id, NotionCRUDEngineStatusEvent, handle_status_event
+            session_id, 
+            NotionCRUDEngineStatusEvent, 
+            handle_status_event
         )
+
         # Set the session_id on the command if not already set
         if not command.session_id:
             command.session_id = session_id

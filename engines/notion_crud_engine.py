@@ -95,6 +95,8 @@ class NotionCRUDEngine:
             engine_id=self.engine_id, session_id=self.session_id, llm_model_name="openai"
         )
 
+        self.tool_manager.register_tools(["notion"])
+
         # Set system prompt if provided
         if system_prompt:
             self.context_manager.set_system_prompt(system_prompt)
@@ -253,14 +255,6 @@ class NotionCRUDEngine:
                     self.temp_task_lookup = result
         except Exception as e:
             return CommandResult(success=False, original_command=command, error=str(e))
-
-    async def register_tool(self, function: Callable):
-        """Register a function as a tool.
-
-        Args:
-            function: The function to register as a tool
-        """
-        await self.tool_manager.register_tool(function)
 
     async def process_message(self, message: str) -> str:
         """Process a user message and return the response.
