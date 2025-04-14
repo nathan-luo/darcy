@@ -240,6 +240,22 @@ class MessageBus:
             logger.debug(
                 f"Unregistered {num_event_handlers} event handlers for session {session_id}"
             )
+            
+    def unregister_command_handler(self, command_type: Type[TCommand], session_id: str = "global") -> None:
+        if session_id in self._command_handlers:
+            if command_type in self._command_handlers[session_id]:
+                del self._command_handlers[session_id][command_type]
+                logger.debug(
+                    f"Unregistered command handler for {command_type.__name__} in session {session_id}"
+                )
+    
+    def unregister_event_handler(self, event_type: Type[TEvent], session_id: str = "global") -> None:
+        if session_id in self._event_handlers:
+            if event_type in self._event_handlers[session_id]:
+                del self._event_handlers[session_id][event_type]
+                logger.debug(
+                    f"Unregistered event handler for {event_type.__name__} in session {session_id}"
+                )
 
     # --- Observability Methods ---
 
@@ -251,13 +267,8 @@ class MessageBus:
         source: Optional[str] = None,
     ) -> SpanContext:
         """Starts a new trace span and publishes the start event."""
-        # If tracing is disabled, return a dummy span context without publishing events
         if not self._tracing_enabled:
-            return SpanContext(
-                trace_id=str(uuid.uuid4()),
-                span_id=str(uuid.uuid4()),
-                parent_span_id=parent_context.span_id if parent_context else None,
-            )
+            raise ValueError("Tracing is disabled")
 
         if parent_context:
             trace_id = parent_context.trace_id
