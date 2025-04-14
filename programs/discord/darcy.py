@@ -1,7 +1,15 @@
 import asyncio
 from datetime import datetime
 import os
+<<<<<<< HEAD
 from dataclasses import dataclass
+=======
+import random
+import string
+from dataclasses import dataclass
+from enum import Enum
+from typing import Any, Awaitable, Callable, Dict, List, Optional
+>>>>>>> tools_yz
 import sys
 
 import discord
@@ -24,6 +32,16 @@ from engines.notion_crud_engine import (
     NotionCRUDEnginePromptCommand,
     NotionCRUDEngineStatusEvent,
 )
+<<<<<<< HEAD
+=======
+from llmgine.notion.notion import (
+    create_task,
+    get_active_projects,
+    get_active_tasks,
+    get_all_users,
+    update_task,
+)
+>>>>>>> tools_yz
 from llmgine.notion.data import DISCORD_TO_NOTION_USER_MAP
 
 logging.basicConfig(level=logging.INFO)
@@ -49,8 +67,13 @@ The current date and time is {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}, we 
 
 """
 
+<<<<<<< HEAD
 BOT_SELF_ID = 1344539668573716520
 MAX_RESPONSE_LENGTH = 1900
+=======
+# BOT_SELF_ID = 1344539668573716520
+BOT_SELF_ID = 1358692586000355409  # daryl
+>>>>>>> tools_yz
 
 intents = discord.Intents.default()
 intents.message_content = True
@@ -73,7 +96,15 @@ async def on_message(message):
     if bot.user.mentioned_in(message):
         # Create a new session when the bot is mentioned
         session_id = await session_manager.create_session(message, expire_after_minutes=1)
+<<<<<<< HEAD
         user_mentions = [user.id for user in message.mentions]
+=======
+        print(f"Session created: {session_id}")
+        print(message)
+        print(message.content)
+        user_mentions = [user.id for user in message.mentions]
+        print(f"User mentions: {user_mentions}")
+>>>>>>> tools_yz
         mentions_payload = []
         for user_mention in user_mentions:
             if user_mention == BOT_SELF_ID:
@@ -88,6 +119,17 @@ async def on_message(message):
         # Get the last 10 messages from the channel
         chat_history = []
         async for msg in message.channel.history(limit=20):
+<<<<<<< HEAD
+=======
+            print("alsdfasdf")
+            print(f"{msg.author.display_name}: {msg.content}")
+            print(msg)
+            print("Result" in msg.content)
+            print(msg.author == message.author)
+            print(msg.author)
+            print(msg.author.id)
+            print("akshdasdjhsad")
+>>>>>>> tools_yz
             if msg.author.id == BOT_SELF_ID:
                 if "Result" not in msg.content:
                     continue
@@ -114,11 +156,19 @@ async def on_message(message):
             message.content
             + f"\n\n{reply_payload}\n\n{author_payload}\n\n{mentions_payload}\n\n{chat_history_payload}"
         )
+<<<<<<< HEAD
+=======
+        print(message.content)
+>>>>>>> tools_yz
         command = NotionCRUDEnginePromptCommand(prompt=message.content)
         result = await use_engine(command, session_id)
         if result.result:
             await message.channel.send(
+<<<<<<< HEAD
                 f"🎁 **Session {session_id} Result**: \n\n{result.result[:MAX_RESPONSE_LENGTH]}"
+=======
+                f"🎁 **Session {session_id} Result**: \n\n{result.result[:1900]}"
+>>>>>>> tools_yz
             )
         else:
             await message.channel.send(
@@ -175,18 +225,31 @@ async def use_engine(command: NotionCRUDEnginePromptCommand, session_id: str):
             system_prompt=SYSTEM_PROMPT,
             api_key=os.getenv("OPENAI_API_KEY"),
         )
+<<<<<<< HEAD
 
+=======
+        await engine.register_tool(get_all_users)
+        await engine.register_tool(get_active_tasks)
+        await engine.register_tool(get_active_projects)
+        await engine.register_tool(create_task)
+        await engine.register_tool(update_task)
+>>>>>>> tools_yz
         bus.register_command_handler(
             session_id,
             NotionCRUDEngineConfirmationCommand,
             handle_confirmation_command,
         )
         bus.register_event_handler(
+<<<<<<< HEAD
             session_id, 
             NotionCRUDEngineStatusEvent, 
             handle_status_event
         )
 
+=======
+            session_id, NotionCRUDEngineStatusEvent, handle_status_event
+        )
+>>>>>>> tools_yz
         # Set the session_id on the command if not already set
         if not command.session_id:
             command.session_id = session_id
@@ -211,10 +274,17 @@ async def main():
     print("Message bus started")
 
     dotenv.load_dotenv()
+<<<<<<< HEAD
 
     try:
         # Run the bot
         await bot.start(os.getenv("DARCY_KEY"))
+=======
+    print(os.getenv("DARYL_KEY"))
+    try:
+        # Run the bot
+        await bot.start(os.getenv("DARYL_KEY"))
+>>>>>>> tools_yz
     finally:
         # Ensure the bus is stopped when the application ends
         await bus.stop()
