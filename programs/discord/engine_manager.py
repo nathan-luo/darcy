@@ -56,6 +56,7 @@ class EngineManager:
                 system_prompt=self._get_system_prompt(),
                 api_key=os.getenv("OPENAI_API_KEY"),
             )
+            await engine.register_tools()
 
             # Register handlers
             self.bus.register_command_handler(

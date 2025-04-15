@@ -95,8 +95,6 @@ class NotionCRUDEngine:
             engine_id=self.engine_id, session_id=self.session_id, llm_model_name="openai"
         )
 
-        self.tool_manager.register_tools(["notion"])
-
         # Set system prompt if provided
         if system_prompt:
             self.context_manager.set_system_prompt(system_prompt)
@@ -105,6 +103,9 @@ class NotionCRUDEngine:
         self.message_bus.register_command_handler(
             self.session_id, NotionCRUDEnginePromptCommand, self.handle_prompt_command
         )
+
+    async def register_tools(self):
+        await self.tool_manager.register_tools(["notion"])
 
     async def handle_prompt_command(
         self, command: NotionCRUDEnginePromptCommand
