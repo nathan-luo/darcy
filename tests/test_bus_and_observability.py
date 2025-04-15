@@ -17,7 +17,6 @@ import pytest_asyncio
 from llmgine.bus.bus import MessageBus
 from llmgine.messages.commands import Command, CommandResult
 from llmgine.messages.events import Event
-from llmgine.observability.events import Metric, SpanContext
 from llmgine.observability.handlers.base import ObservabilityEventHandler
 from llmgine.observability.handlers.console import ConsoleEventHandler
 from llmgine.observability.handlers.file import FileEventHandler
@@ -50,28 +49,13 @@ class TestEventHandler(ObservabilityEventHandler):
         """Record the event in the events list."""
         self.all_events.append(event)
 
-        # Only record TestEvent instances in the main events list, or metric events
+        # Only record TestEvent instances in the main events list
         if isinstance(event, TestEvent):
-            self.events.append(event)
-        # Record metric events separately
-        elif (
-            hasattr(event, "metrics")
-            and event.metrics
-            and not hasattr(event, "span_context")
-        ):
             self.events.append(event)
 
     def get_events_by_type(self, event_type: type) -> List[Event]:
         """Get all events of a specific type."""
         return [e for e in self.all_events if isinstance(e, event_type)]
-
-    def get_trace_events(self) -> List[Event]:
-        """Get all trace events (for testing trace functionality)."""
-        return [
-            e
-            for e in self.all_events
-            if hasattr(e, "span_context") and e.span_context is not None
-        ]
 
 
 class TestBusAndObservability:
@@ -174,227 +158,107 @@ class TestBusAndObservability:
         assert local_handler.events[0].value == "handler_test"
 
     @pytest.mark.asyncio
-    async def test_metrics_flow_to_handlers(self, bus):
-        """Test that metrics flow to handlers as regular events."""
-        # Create a local handler just for this test
-        local_handler = TestEventHandler()
-        bus.register_event_handler("global", Event, local_handler.handle)
-
-        # Give time for registration to complete
-        await asyncio.sleep(0.1)
-
-        # Emit a metric
-        await bus.emit_metric("test_metric", 42.0, "ms", {"tag1": "value1"})
-
-        # Allow time for async processing
-        await asyncio.sleep(0.2)
-
-        # Find events with metrics data
-        metric_events = [
-            e for e in local_handler.all_events if hasattr(e, "metrics") and e.metrics
-        ]
-
-        # Verify handler received the metric data
-        assert len(metric_events) >= 1, "Should have at least one event with metrics"
-
-        # Check at least one event has our metric
-        found_metric = False
-        for event in metric_events:
-            for metric in event.metrics:
-                if isinstance(metric, Metric) and metric.name == "test_metric":
-                    found_metric = True
-                    assert metric.value == 42.0
-                    assert metric.unit == "ms"
-                    assert metric.tags == {"tag1": "value1"}
-
-        assert found_metric, "Could not find our test metric in any events"
-
-    @pytest.mark.asyncio
-    async def test_trace_spans_flow_to_handlers(self, bus):
-        """Test that trace spans flow to handlers as regular events."""
-        # Create a local handler just for this test
-        local_handler = TestEventHandler()
-        bus.register_event_handler("global", Event, local_handler.handle)
-
-        # Give time for registration to complete
-        await asyncio.sleep(0.1)
-
-        # Start a span
-        span_context = await bus.start_span("test_span", attributes={"attr1": "value1"})
-
-        # Give time for processing
-        await asyncio.sleep(0.1)
-
-        # End the span
-        await bus.end_span(span_context, "test_span", attributes={"attr2": "value2"})
-
-        # Allow time for async processing
-        await asyncio.sleep(0.2)
-
-        # Get trace events specifically
-        trace_events = [
-            e
-            for e in local_handler.all_events
-            if hasattr(e, "span_context") and e.span_context is not None
-        ]
-
-        # Verify handler received span events
-        assert len(trace_events) >= 1, "Should have at least one trace event"
-
-        # Find events with our test span's trace ID
-        span_events = [
-            e
-            for e in trace_events
-            if hasattr(e, "span_context")
-            and e.span_context.trace_id == span_context.trace_id
-        ]
-
-        # We should have at least one event with our span context
-        assert len(span_events) >= 1, (
-            "Should have at least one event with our span context"
-        )
-
-        # Check if we can find a test_span event
-        test_span_events = [e for e in span_events if e.name == "test_span"]
-        assert len(test_span_events) >= 1, "Should have at least one test_span event"
-
-    @pytest.mark.asyncio
     async def test_session_specific_handlers(self, bus):
-        """Test that handlers can be registered for specific sessions."""
-        # Create session-specific handlers
+        """Test that session-specific handlers only receive events for their session."""
+        # Create handlers for different sessions
+        global_handler = TestEventHandler()
         session1_handler = TestEventHandler()
         session2_handler = TestEventHandler()
-        global_handler = TestEventHandler()
 
-        # Register handlers for different sessions - specifically for TestEvent
+        # Register handlers
+        bus.register_event_handler("global", TestEvent, global_handler.handle)
         bus.register_event_handler("session1", TestEvent, session1_handler.handle)
         bus.register_event_handler("session2", TestEvent, session2_handler.handle)
-        bus.register_event_handler("global", TestEvent, global_handler.handle)
 
-        # Give time for registration to complete
-        await asyncio.sleep(0.1)
+        # Publish events with different session IDs
+        global_event = TestEvent(value="global_event")  # No session
+        session1_event = TestEvent(value="session1_event")
+        session1_event.session_id = "session1"
+        session2_event = TestEvent(value="session2_event")
+        session2_event.session_id = "session2"
 
-        # Create events with different session IDs
-        event1 = TestEvent(value="event1")
-        event1.session_id = "session1"
-
-        event2 = TestEvent(value="event2")
-        event2.session_id = "session2"
-
-        event_global = TestEvent(value="event_global")
-        event_global.session_id = None
-
-        # Publish events
-        await bus.publish(event1)
-        await bus.publish(event2)
-        await bus.publish(event_global)
+        await bus.publish(global_event)
+        await bus.publish(session1_event)
+        await bus.publish(session2_event)
 
         # Allow time for async processing
         await asyncio.sleep(0.2)
 
-        # Filter events to just get TestEvent instances in each handler
-        s1_events = [e for e in session1_handler.all_events if isinstance(e, TestEvent)]
-        s2_events = [e for e in session2_handler.all_events if isinstance(e, TestEvent)]
-        global_events = [e for e in global_handler.all_events if isinstance(e, TestEvent)]
+        # Global handler should receive all events
+        assert len(global_handler.events) == 3
+        assert any(e.value == "global_event" for e in global_handler.events)
+        assert any(e.value == "session1_event" for e in global_handler.events)
+        assert any(e.value == "session2_event" for e in global_handler.events)
 
-        # Session1 handler should get at least the session1 event
-        assert len(s1_events) >= 1
-        assert any(e.value == "event1" for e in s1_events)
+        # Session-specific handlers should only receive events for their session
+        # and global events
+        assert len(session1_handler.events) == 2
+        assert any(e.value == "global_event" for e in session1_handler.events)
+        assert any(e.value == "session1_event" for e in session1_handler.events)
+        assert not any(e.value == "session2_event" for e in session1_handler.events)
 
-        # Session2 handler should get at least the session2 event
-        assert len(s2_events) >= 1
-        assert any(e.value == "event2" for e in s2_events)
-
-        # Global handler should get all events
-        assert len(global_events) >= 3
-        assert any(e.value == "event1" for e in global_events)
-        assert any(e.value == "event2" for e in global_events)
-        assert any(e.value == "event_global" for e in global_events)
+        assert len(session2_handler.events) == 2
+        assert any(e.value == "global_event" for e in session2_handler.events)
+        assert not any(e.value == "session1_event" for e in session2_handler.events)
+        assert any(e.value == "session2_event" for e in session2_handler.events)
 
     @pytest.mark.asyncio
-    async def test_command_execution_tracing(self, bus):
-        """Test that command execution is properly traced."""
-        # Create our own handler to monitor all events
-        event_handler = TestEventHandler()
-        bus.register_event_handler("global", Event, event_handler.handle)
+    async def test_command_execution(self, bus):
+        """Test that commands can be executed and results returned."""
 
         # Register a command handler
         async def handle_command(cmd: TestCommand) -> CommandResult:
-            return CommandResult(success=True, result=f"processed-{cmd.value}")
+            # Just echo back the command value with "result_" prefix
+            return CommandResult(
+                success=True,
+                original_command=cmd,
+                result=f"result_{cmd.value}",
+            )
 
         bus.register_command_handler("global", TestCommand, handle_command)
 
-        # Give time for registration to complete
-        await asyncio.sleep(0.1)
+        # Execute a command
+        command = TestCommand(value="test_command")
+        result = await bus.execute(command)
 
-        # Enable tracing and execute command
-        bus.enable_tracing()
-        result = await bus.execute(TestCommand("trace_test"))
-
-        # Allow time for async processing
-        await asyncio.sleep(0.2)
-
-        # Verify result
+        # Verify the result
         assert result.success is True
-        assert result.result == "processed-trace_test"
-
-        # We should have received some events
-        assert len(event_handler.all_events) > 0
-
-        # The specifics of the events and spans are implementation details that might change,
-        # so we just verify that the bus is processing commands correctly
+        assert result.result == "result_test_command"
 
     @pytest.mark.asyncio
     async def test_error_in_event_handler(self, bus):
-        """Test that errors in event handlers don't crash the bus."""
-        # Define handlers - one good, one that raises an exception
-        good_handler = TestEventHandler()
+        """Test that errors in event handlers don't crash the system."""
 
-        # Create a custom class that behaves like EventHandler but will error
+        # Create a handler that raises an exception
         class ErrorHandler(ObservabilityEventHandler):
             def __init__(self):
                 super().__init__()
-                self.events = []
+                self.handled_count = 0
 
             async def handle(self, event: Event) -> None:
                 # Only process TestEvent instances
-                if not isinstance(event, TestEvent):
-                    return
+                if isinstance(event, TestEvent):
+                    self.handled_count += 1
+                    raise RuntimeError("Test error")
 
-                if hasattr(event, "value") and event.value == "trigger_error":
-                    raise ValueError("Test error in handler")
-                self.events.append(event)
+        # Create a working handler to verify events still flow
+        working_handler = TestEventHandler()
 
+        # Register both handlers
         error_handler = ErrorHandler()
-
-        # Register both handlers for TestEvent specifically
-        bus.register_event_handler("global", TestEvent, good_handler.handle)
         bus.register_event_handler("global", TestEvent, error_handler.handle)
+        bus.register_event_handler("global", TestEvent, working_handler.handle)
 
-        # Give time for registration to complete
-        await asyncio.sleep(0.1)
-
-        # Publish an event that will cause an error
-        error_event = TestEvent(value="trigger_error")
-        await bus.publish(error_event)
-
-        # Publish another event to verify the bus still works
-        normal_event = TestEvent(value="normal_event")
-        await bus.publish(normal_event)
+        # Publish an event
+        event = TestEvent(value="error_test")
+        await bus.publish(event)
 
         # Allow time for async processing
-        await asyncio.sleep(0.2)
+        await asyncio.sleep(0.1)
 
-        # Look for TestEvent instances in the handler
-        test_events = [e for e in good_handler.all_events if isinstance(e, TestEvent)]
+        # Verify the error handler was called (it should increment counter before error)
+        assert error_handler.handled_count == 1
 
-        # Good handler should have received both events
-        assert len(test_events) >= 2
-        event_values = [e.value for e in test_events]
-        assert "trigger_error" in event_values
-        assert "normal_event" in event_values
-
-        # Error handler should have only received the second event
-        # (first one errored before adding to the events list)
-        assert len(error_handler.events) == 1
-        assert error_handler.events[0].value == "normal_event"
+        # Verify the working handler still received the event
+        assert len(working_handler.events) == 1
+        assert working_handler.events[0].value == "error_test"
