@@ -22,26 +22,15 @@ from llmgine.bus.session import BusSession
 from llmgine.observability.handlers.base import ObservabilityEventHandler
 
 
-# Create a logger adapter that ensures session_id is always present
-class SessionLoggerAdapter(logging.LoggerAdapter):
-    """Logger adapter that ensures session_id is always present in log records."""
-
-    def process(self, msg: str, kwargs: dict) -> tuple[str, dict]:
-        """Ensure 'session_id' is always present in log records."""
-        if "extra" not in kwargs:
-            kwargs["extra"] = {}
-        if "session_id" not in kwargs["extra"]:
-            kwargs["extra"]["session_id"] = "global"
-        return msg, kwargs
-
-
 # Get the base logger and wrap it with the adapter
-base_logger = logging.getLogger(__name__)
-logger = SessionLoggerAdapter(base_logger, {})
+logger = logging.getLogger(__name__)
 
 # Context variable to hold the current session ID
-current_session_id: contextvars.ContextVar[Optional[str]] = contextvars.ContextVar(
-    "current_session_id", default=None
+trace: contextvars.ContextVar[Optional[str]] = contextvars.ContextVar(
+    "trace", default=None
+)
+span: contextvars.ContextVar[Optional[str]] = contextvars.ContextVar(
+    "span", default=None
 )
 
 TCommand = TypeVar("TCommand", bound=Command)
@@ -85,7 +74,7 @@ class MessageBus:
         self._processing_task: Optional[asyncio.Task] = None
         self._observability_handlers: List[ObservabilityEventHandler] = []
 
-        logger.info("MessageBus initialized with simplified session model")
+        logger.info("MessageBus initialized")
         self._initialized = True
 
     def register_observability_handler(self, handler: ObservabilityEventHandler) -> None:
@@ -95,13 +84,6 @@ class MessageBus:
         """
         self._observability_handlers.append(handler)
 
-        # Import types here to avoid circular imports
-        from llmgine.observability.events import ObservabilityBaseEvent
-
-        # Register for general Event type to handle all events
-        self.register_event_handler("global", Event, handler.handle)
-        self.register_event_handler("global", ObservabilityBaseEvent, handler.handle)
-
     def create_session(self, id: Optional[str] = None) -> BusSession:
         """
         Create a new session for grouping related commands and events.
@@ -110,7 +92,6 @@ class MessageBus:
         Returns:
             A new BusSession instance.
         """
-        from llmgine.bus.session import BusSession
         return BusSession(id=id)
 
     async def start(self) -> None:
@@ -160,13 +141,13 @@ class MessageBus:
         """
         Register a command handler for a specific command type and session.
         Args:
-            session_id: The session identifier (or 'global').
+            session_id: The session identifier (or 'GLOBAL').
             command_type: The type of command to handle.
             handler: The handler function/coroutine.
         Raises:
             ValueError: If a handler is already registered for the command in this session.
         """
-        session_id = session_id or "global"
+        session_id = session_id or "GLOBAL"
 
         if session_id not in self._command_handlers:
             self._command_handlers[session_id] = {}
@@ -181,7 +162,7 @@ class MessageBus:
         self._command_handlers[session_id][command_type] = async_handler
         logger.debug(
             f"Registered command handler for {command_type.__name__} in session {session_id}"
-        )
+        ) # TODO test
 
     def register_event_handler(
         self, session_id: str, event_type: Type[TEvent], handler: EventHandler
@@ -193,7 +174,7 @@ class MessageBus:
             event_type: The type of event to handle.
             handler: The handler function/coroutine.
         """
-        session_id = session_id or "global"
+        session_id = session_id or "GLOBAL"
 
         if session_id not in self._event_handlers:
             self._event_handlers[session_id] = {}
@@ -213,6 +194,10 @@ class MessageBus:
         Args:
             session_id: The session identifier.
         """
+        if session_id not in self._command_handlers:
+            logger.debug(f"No command handlers to unregister for session {session_id}")
+            return
+
         if session_id in self._command_handlers:
             num_cmd_handlers = len(self._command_handlers[session_id])
             del self._command_handlers[session_id]
@@ -230,7 +215,7 @@ class MessageBus:
             )
 
     def unregister_command_handler(
-        self, command_type: Type[TCommand], session_id: str = "global"
+        self, command_type: Type[TCommand], session_id: str = "GLOBAL"
     ) -> None:
         """
         Unregister a command handler for a specific command type and session.
@@ -246,7 +231,7 @@ class MessageBus:
                 )
 
     def unregister_event_handler(
-        self, event_type: Type[TEvent], session_id: str = "global"
+        self, event_type: Type[TEvent], session_id: str = "GLOBAL"
     ) -> None:
         """
         Unregister an event handler for a specific event type and session.
@@ -274,19 +259,15 @@ class MessageBus:
             ValueError: If no handler is registered for the command type.
         """
         command_type = type(command)
-
-        session_token = None
-        if not command.session_id:
-            command.session_id = current_session_id.get() or str(uuid.uuid4())
-
-        session_token = current_session_id.set(command.session_id)
-
+        session_id = command.session_id or "GLOBAL"
         handler = None
-        if command.session_id in self._command_handlers:
-            handler = self._command_handlers[command.session_id].get(command_type)
+        if session_id in self._command_handlers:
+            handler = self._command_handlers[session_id].get(command_type)
 
-        if handler is None and "global" in self._command_handlers:
-            handler = self._command_handlers["global"].get(command_type)
+        # Default to global handlers if no session-specific handler is found
+        if handler is None and "GLOBAL" in self._command_handlers:
+            handler = self._command_handlers["GLOBAL"].get(command_type)
+            logger.warning(f"Using global command handler for {command_type.__name__} in session {session_id}")
 
         if handler is None:
             logger.error(
@@ -310,9 +291,6 @@ class MessageBus:
             )
             return failed_result
 
-        finally:
-            if session_token is not None:
-                current_session_id.reset(session_token)
 
     async def publish(self, event: Event) -> None:
         """

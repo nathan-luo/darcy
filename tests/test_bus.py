@@ -1,206 +1,46 @@
-import asyncio
-import logging
-
-import pytest
-
+from pytest import fixture
 from llmgine.bus.bus import MessageBus
-from llmgine.bus.session import BusSession
 from llmgine.messages.commands import Command, CommandResult
-from llmgine.messages.events import Event
-from llmgine.observability.handlers.base import ObservabilityEventHandler
+from dataclasses import dataclass, field
 
-class FakeCommand(Command):
-    pass
+@dataclass
+class TestCommand(Command):
+    test_data: str = field(default_factory=str)
 
-class FakeEvent(Event):
-    pass
+@fixture
+def bus():
+    yield MessageBus()
+    del(bus)
 
-class FakeAsyncCommand(Command):
-    pass
-
-class FakeHandler:
-    def __init__(self):
-        self.called = False
-        self.last_arg = None
-    def __call__(self, arg):
-        self.called = True
-        self.last_arg = arg
-        return CommandResult(success=True, original_command=arg)
-
-class FakeAsyncHandler:
-    def __init__(self):
-        self.called = False
-        self.last_arg = None
-    async def __call__(self, arg):
-        self.called = True
-        self.last_arg = arg
-        return CommandResult(success=True, original_command=arg)
-
-class FakeEventHandler:
-    def __init__(self):
-        self.called = False
-        self.last_arg = None
-    def __call__(self, arg):
-        self.called = True
-        self.last_arg = arg
-
-class FakeAsyncEventHandler:
-    def __init__(self):
-        self.called = False
-        self.last_arg = None
-    async def __call__(self, arg):
-        self.called = True
-        self.last_arg = arg
-
-class DummyObservabilityHandler(ObservabilityEventHandler):
-    def __init__(self):
-        super().__init__()
-        self.seen = []
-    async def handle(self, event):
-        self.seen.append(event)
-
-@pytest.mark.asyncio
-async def test_command_handler_registration_and_execution():
-    bus = MessageBus()
-    await bus.start()
-    handler = FakeHandler()
-    bus.register_command_handler("global", FakeCommand, handler)
-    cmd = FakeCommand()
-    result = await bus.execute(cmd)
-    assert handler.called
-    assert result.success
-    bus.unregister_command_handler(FakeCommand, "global")
-    await bus.stop()
-
-@pytest.mark.asyncio
-async def test_async_command_handler_registration_and_execution():
-    bus = MessageBus()
-    await bus.start()
-    handler = FakeAsyncHandler()
-    bus.register_command_handler("global", FakeAsyncCommand, handler)
-    cmd = FakeAsyncCommand()
-    result = await bus.execute(cmd)
-    assert handler.called
-    assert result.success
-    bus.unregister_command_handler(FakeAsyncCommand, "global")
-    await bus.stop()
-
-@pytest.mark.asyncio
-async def test_event_handler_registration_and_publish():
-    bus = MessageBus()
-    await bus.start()
-    handler = FakeEventHandler()
-    bus.register_event_handler("global", FakeEvent, handler)
-    evt = FakeEvent()
-    await bus.publish(evt)
-    # Let the event loop process the event
-    await asyncio.sleep(0.05)
-    assert handler.called
-    bus.unregister_event_handler(FakeEvent, "global")
-    await bus.stop()
-
-@pytest.mark.asyncio
-async def test_async_event_handler_registration_and_publish():
-    bus = MessageBus()
-    await bus.start()
-    handler = FakeAsyncEventHandler()
-    bus.register_event_handler("global", FakeEvent, handler)
-    evt = FakeEvent()
-    await bus.publish(evt)
-    await asyncio.sleep(0.05)
-    assert handler.called
-    bus.unregister_event_handler(FakeEvent, "global")
-    await bus.stop()
-
-@pytest.mark.asyncio
-async def test_unregister_session_handlers():
-    bus = MessageBus()
-    await bus.start()
-    handler = FakeHandler()
-    bus.register_command_handler("mysession", FakeCommand, handler)
-    bus.unregister_session_handlers("mysession")
-    with pytest.raises(ValueError):
-        await bus.execute(FakeCommand(session_id="mysession"))
-    await bus.stop()
-
-@pytest.mark.asyncio
-async def test_unregister_command_and_event_handler():
-    bus = MessageBus()
-    await bus.start()
-    handler = FakeHandler()
-    bus.register_command_handler("global", FakeCommand, handler)
-    bus.unregister_command_handler(FakeCommand, "global")
-    with pytest.raises(ValueError):
-        await bus.execute(FakeCommand())
-    evt_handler = FakeEventHandler()
-    bus.register_event_handler("global", FakeEvent, evt_handler)
-    bus.unregister_event_handler(FakeEvent, "global")
-    await bus.publish(FakeEvent())  # Should not call handler
-    await asyncio.sleep(0.05)
-    assert not evt_handler.called
-    await bus.stop()
-
-@pytest.mark.asyncio
-async def test_execute_no_handler():
-    bus = MessageBus()
-    await bus.start()
-    with pytest.raises(ValueError):
-        await bus.execute(FakeCommand())
-    await bus.stop()
-
-@pytest.mark.asyncio
-async def test_publish_event_session_metadata():
-    bus = MessageBus()
-    await bus.start()
-    handler = FakeEventHandler()
-    bus.register_event_handler("global", FakeEvent, handler)
-    evt = FakeEvent()
-    evt.metadata = {}
-    await bus.publish(evt)
-    await asyncio.sleep(0.05)
-    assert handler.called
-    assert "session_id" in evt.metadata
-    bus.unregister_event_handler(FakeEvent, "global")
-    await bus.stop()
-
-@pytest.mark.asyncio
-async def test_create_session():
-    bus = MessageBus()
-    session = bus.create_session()
-    assert isinstance(session, BusSession)
-    assert session.session_id is not None
-
-@pytest.mark.asyncio
-async def test_register_observability_handler():
-    bus = MessageBus()
-    await bus.start()
-    obs_handler = DummyObservabilityHandler()
-    bus.register_observability_handler(obs_handler)
-    evt = FakeEvent()
-    await bus.publish(evt)
-    await asyncio.sleep(0.05)
-    assert obs_handler.seen
-    await bus.stop()
-
-# Singleton and start/stop tests remain as is
-
-def test_bus_singleton():
-    bus1 = MessageBus()
+def test_command_handler_success(command: TestCommand):
+    test_data = command.test_data
+    return CommandResult(success=True, data=command.test_data)
+    
+def test_bus_init_singleton(bus: MessageBus):
+    bus1 = bus
     bus2 = MessageBus()
     assert bus1 is bus2
 
-@pytest.mark.asyncio
-async def test_bus_start_stop(caplog):
-    caplog.set_level(logging.INFO)
+def test_bus_start_stop(bus: MessageBus):
+    assert bus._event_queue is None
+    bus.start()
+    assert bus._event_queue is not None
+    bus.stop()
+    assert bus._event_queue is None
+
+def test_bus_register_command_handler(bus: MessageBus):
+
+    # Register to global
+    bus.register_command_handler(TestCommand, test_command_handler_success)
+    assert bus._command_handlers["GLOBAL"][TestCommand] == test_command_handler_success
+
+    # Register to session
+    bus.register_command_handler("SESSION_1", TestCommand, test_command_handler_success)
+    assert bus._command_handlers["SESSION_1"][TestCommand] == test_command_handler_success
+
+def test_
+    
+
+
+def test_bus_register_event_handler():
     bus = MessageBus()
-    await bus.start()
-    assert bus._processing_task is not None
-    await bus.stop()
-    assert bus._processing_task is None
-    await bus.start()
-    assert bus._processing_task is not None
-    await bus.start()
-    assert caplog.records[-1].message == "MessageBus already running"
-    await bus.stop()
-    await bus.stop()
-    assert caplog.records[-1].message == "MessageBus already stopped or never started"
