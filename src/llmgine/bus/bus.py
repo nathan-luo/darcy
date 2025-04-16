@@ -448,7 +448,7 @@ class MessageBus:
                 if not self._surpress_event_errors:
                     raise result
                 else:
-                    self.publish(
+                    await self.publish(
                         EventHandlerFailedEvent(
                             event=event, handler=handler_name, exception=result
                         )

@@ -8,8 +8,6 @@ from abc import ABC, abstractmethod
 from typing import Any, Dict, List, Optional, Protocol, Union
 import uuid
 
-from llmgine.messages.events import LLMResponse, ToolCall
-
 
 class LLMProvider(Protocol):
     """Protocol defining the interface for an LLM provider."""
