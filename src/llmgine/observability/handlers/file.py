@@ -48,11 +48,7 @@ class FileEventHandler(ObservabilityEventHandler):
             log_data = self._event_to_dict(event)
 
             # Add event metadata
-            log_data["_event_id"] = getattr(event, "id", str(id(event)))
-            log_data["_event_timestamp"] = getattr(
-                event, "timestamp", datetime.now().isoformat()
-            )
-            log_data["_event_type"] = type(event).__name__
+            log_data["event_type"] = type(event).__name__
 
             # Make sure parent directory exists
             os.makedirs(os.path.dirname(self.log_file), exist_ok=True)

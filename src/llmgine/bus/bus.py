@@ -14,7 +14,12 @@ from enum import Enum
 import contextvars
 
 from llmgine.messages.commands import Command, CommandResult
-from llmgine.messages.events import Event
+from llmgine.messages.events import (
+    CommandResultEvent,
+    CommandStartedEvent,
+    Event,
+    EventHandlerFailedEvent,
+)
 
 # Import only what's needed at the module level and use local imports for the rest
 # to avoid circular dependencies
@@ -29,9 +34,7 @@ logger = logging.getLogger(__name__)
 trace: contextvars.ContextVar[Optional[str]] = contextvars.ContextVar(
     "trace", default=None
 )
-span: contextvars.ContextVar[Optional[str]] = contextvars.ContextVar(
-    "span", default=None
-)
+span: contextvars.ContextVar[Optional[str]] = contextvars.ContextVar("span", default=None)
 
 TCommand = TypeVar("TCommand", bound=Command)
 TEvent = TypeVar("TEvent", bound=Event)
@@ -73,9 +76,36 @@ class MessageBus:
         self._event_queue: Optional[asyncio.Queue] = None
         self._processing_task: Optional[asyncio.Task] = None
         self._observability_handlers: List[ObservabilityEventHandler] = []
-
+        self._surpress_event_errors: bool = True
+        self.event_handler_errors: List[Exception] = []
         logger.info("MessageBus initialized")
         self._initialized = True
+
+    async def reset(self) -> None:
+        """
+        Stops the bus if running. Reset the message bus to its initial state.
+        """
+        await self.stop()
+        self._command_handlers: Dict[str, Dict[Type[Command], AsyncCommandHandler]] = {}
+        self._event_handlers: Dict[str, Dict[Type[Event], List[AsyncEventHandler]]] = {}
+        self._event_queue: Optional[asyncio.Queue] = None
+        self._processing_task: Optional[asyncio.Task] = None
+        self._observability_handlers: List[ObservabilityEventHandler] = []
+        self._surpress_event_errors: bool = True
+        self.event_handler_errors: List[Exception] = []
+        logger.info("MessageBus reset")
+
+    def surpress_event_errors(self) -> None:
+        """
+        Surpress errors during event handling.
+        """
+        self._surpress_event_errors = True
+
+    def unsupress_event_errors(self) -> None:
+        """
+        Unsupress errors during event handling.
+        """
+        self._surpress_event_errors = False
 
     def register_observability_handler(self, handler: ObservabilityEventHandler) -> None:
         """
@@ -84,7 +114,7 @@ class MessageBus:
         """
         self._observability_handlers.append(handler)
 
-    def create_session(self, id: Optional[str] = None) -> BusSession:
+    def create_session(self, id_input: Optional[str] = None) -> BusSession:
         """
         Create a new session for grouping related commands and events.
         Args:
@@ -92,7 +122,7 @@ class MessageBus:
         Returns:
             A new BusSession instance.
         """
-        return BusSession(id=id)
+        return BusSession(id=id_input)
 
     async def start(self) -> None:
         """
@@ -129,25 +159,26 @@ class MessageBus:
                 logger.exception(f"Error during MessageBus shutdown: {e}")
             finally:
                 self._processing_task = None
+
         else:
             logger.info("MessageBus already stopped or never started")
 
     def register_command_handler(
         self,
-        session_id: str,
         command_type: Type[TCommand],
         handler: CommandHandler,
+        session_id: str = "ROOT",
     ) -> None:
         """
         Register a command handler for a specific command type and session.
         Args:
-            session_id: The session identifier (or 'GLOBAL').
+            session_id: The session identifier (or 'ROOT').
             command_type: The type of command to handle.
             handler: The handler function/coroutine.
         Raises:
             ValueError: If a handler is already registered for the command in this session.
         """
-        session_id = session_id or "GLOBAL"
+        session_id = session_id or "ROOT"
 
         if session_id not in self._command_handlers:
             self._command_handlers[session_id] = {}
@@ -162,19 +193,19 @@ class MessageBus:
         self._command_handlers[session_id][command_type] = async_handler
         logger.debug(
             f"Registered command handler for {command_type.__name__} in session {session_id}"
-        ) # TODO test
+        )  # TODO test
 
     def register_event_handler(
-        self, session_id: str, event_type: Type[TEvent], handler: EventHandler
+        self, event_type: Type[TEvent], handler: EventHandler, session_id: str = "ROOT"
     ) -> None:
         """
         Register an event handler for a specific event type and session.
         Args:
-            session_id: The session identifier (or 'global').
+            session_id: The session identifier (or 'ROOT').
             event_type: The type of event to handle.
             handler: The handler function/coroutine.
         """
-        session_id = session_id or "GLOBAL"
+        session_id = session_id or "ROOT"
 
         if session_id not in self._event_handlers:
             self._event_handlers[session_id] = {}
@@ -215,13 +246,13 @@ class MessageBus:
             )
 
     def unregister_command_handler(
-        self, command_type: Type[TCommand], session_id: str = "GLOBAL"
+        self, command_type: Type[TCommand], session_id: str = "ROOT"
     ) -> None:
         """
         Unregister a command handler for a specific command type and session.
         Args:
             command_type: The type of command.
-            session_id: The session identifier (default 'global').
+            session_id: The session identifier (default 'ROOT').
         """
         if session_id in self._command_handlers:
             if command_type in self._command_handlers[session_id]:
@@ -229,15 +260,19 @@ class MessageBus:
                 logger.debug(
                     f"Unregistered command handler for {command_type.__name__} in session {session_id}"
                 )
+        else:
+            raise ValueError(
+                f"No command handlers to unregister for session {session_id}"
+            )
 
-    def unregister_event_handler(
-        self, event_type: Type[TEvent], session_id: str = "GLOBAL"
+    def unregister_event_handlers(
+        self, event_type: Type[TEvent], session_id: str = "ROOT"
     ) -> None:
         """
         Unregister an event handler for a specific event type and session.
         Args:
             event_type: The type of event.
-            session_id: The session identifier (default 'global').
+            session_id: The session identifier (default 'ROOT').
         """
         if session_id in self._event_handlers:
             if event_type in self._event_handlers[session_id]:
@@ -245,6 +280,8 @@ class MessageBus:
                 logger.debug(
                     f"Unregistered event handler for {event_type.__name__} in session {session_id}"
                 )
+        else:
+            raise ValueError(f"No event handlers to unregister for session {session_id}")
 
     # --- Command Execution and Event Publishing ---
 
@@ -259,15 +296,19 @@ class MessageBus:
             ValueError: If no handler is registered for the command type.
         """
         command_type = type(command)
-        session_id = command.session_id or "GLOBAL"
-        handler = None
-        if session_id in self._command_handlers:
-            handler = self._command_handlers[session_id].get(command_type)
+        if command.session_id is None:
+            raise ValueError("Command has no session ID")
 
-        # Default to global handlers if no session-specific handler is found
-        if handler is None and "GLOBAL" in self._command_handlers:
-            handler = self._command_handlers["GLOBAL"].get(command_type)
-            logger.warning(f"Using global command handler for {command_type.__name__} in session {session_id}")
+        handler = None
+        if command.session_id in self._command_handlers:
+            handler = self._command_handlers[command.session_id].get(command_type)
+
+        # Default to ROOT handlers if no session-specific handler is found
+        if handler is None and "ROOT" in self._command_handlers:
+            handler = self._command_handlers["ROOT"].get(command_type)
+            logger.warning(
+                f"Defaulting to ROOT command handler for {command_type.__name__} in session {command.session_id}"
+            )
 
         if handler is None:
             logger.error(
@@ -277,20 +318,22 @@ class MessageBus:
 
         try:
             logger.info(f"Executing command {command_type.__name__}")
-            result = await handler(command)
+            await self.publish(CommandStartedEvent(command=command))
+            result: CommandResult = await handler(command)
             logger.info(f"Command {command_type.__name__} executed successfully")
+            await self.publish(CommandResultEvent(command_result=result))
             return result
 
         except Exception as e:
             logger.exception(f"Error executing command {command_type.__name__}: {e}")
             failed_result = CommandResult(
                 success=False,
-                original_command=command,
+                command_id=command.command_id,
                 error=f"{type(e).__name__}: {str(e)}",
                 metadata={"exception_details": traceback.format_exc()},
             )
+            await self.publish(CommandResultEvent(command_result=failed_result))
             return failed_result
-
 
     async def publish(self, event: Event) -> None:
         """
@@ -298,28 +341,16 @@ class MessageBus:
         Args:
             event: The event instance to publish.
         """
-        if hasattr(event, "session_id") and event.session_id is None:
-            session_id = current_session_id.get()
-            if session_id:
-                event.session_id = session_id
 
-        event_session_id = getattr(event, "session_id", None)
-        if (
-            hasattr(event, "metadata")
-            and isinstance(event.metadata, dict)
-            and event_session_id
-        ):
-            event.metadata.setdefault("session_id", event_session_id)
-
-        logger.info(f"Publishing event {type(event).__name__}")
-        for handler in self._observability_handlers:
-            await handler.handle(event)
+        logger.info(
+            f"Publishing event {type(event).__name__} in session {event.session_id}"
+        )
 
         try:
             await self._event_queue.put(event)
             logger.debug(f"Queued event: {type(event).__name__}")
         except Exception as e:
-            logger.error(f"Error during event publishing: {e}", exc_info=True)
+            logger.error(f"Error queing event: {e}", exc_info=True)
 
     async def _process_events(self) -> None:
         """
@@ -359,47 +390,69 @@ class MessageBus:
             event: The event instance to handle.
         """
         event_type = type(event)
-        handlers_to_run = []
-        event_session_id = getattr(event, "session_id", None)
 
-        session_token = None
-        if event_session_id:
-            session_token = current_session_id.set(event_session_id)
+        handlers = []
+        # handle session specific handlers
+        if event.session_id in self._event_handlers and event.session_id != "ROOT":
+            if event_type in self._event_handlers[event.session_id]:
+                handlers.extend(self._event_handlers[event.session_id][event_type])
 
-        if event_session_id and event_session_id in self._event_handlers:
-            for registered_type, handlers in self._event_handlers[event_session_id].items():
-                if issubclass(event_type, registered_type):
-                    handlers_to_run.extend(handlers)
+            # Default to ROOT handlers if no session-specific handler is found
+        elif event.session_id != "ROOT":
+            # there is no session in event, so we use ROOT handlers if possible
+            if "ROOT" in self._event_handlers:
+                # there is root handlers, so we use them
+                if event_type in self._event_handlers["ROOT"]:
+                    handlers.extend(self._event_handlers["ROOT"][event_type])
+                    logger.warning(
+                        f"Defaulting to ROOT event handler for {event_type.__name__} in session {event.session_id}"
+                    )
 
-        if "global" in self._event_handlers:
-            for registered_type, handlers in self._event_handlers["global"].items():
-                if issubclass(event_type, registered_type):
-                    handlers_to_run.extend([
-                        h for h in handlers if h not in handlers_to_run
-                    ])
+        # handle root handlers
+        if event.session_id == "ROOT" and "ROOT" in self._event_handlers:
+            if event_type in self._event_handlers["ROOT"]:
+                handlers.extend(self._event_handlers["ROOT"][event_type])
 
-        try:
-            if handlers_to_run:
-                logger.debug(
-                    f"Dispatching event {event_type.__name__} to {len(handlers_to_run)} handlers"
+        # Global handlers handle all events
+        if "GLOBAL" in self._event_handlers:
+            if event_type in self._event_handlers["GLOBAL"]:
+                handlers.extend(self._event_handlers["GLOBAL"][event_type])
+            logger.info(
+                f"Using GLOBAL event handlers {self._event_handlers['GLOBAL']} for {event_type.__name__} in session{event.session_id}"
+            )
+
+        if not handlers:
+            logger.warning(f"No handler registered for event type {event_type.__name__}")
+            return
+
+        for handler in self._observability_handlers:
+            try:
+                await handler.handle(event)
+            except Exception as e:
+                logger.exception(
+                    f"Error in observability handler {handler.__name__}: {e} for event {event_type.__name__} in session {event.session_id}"
                 )
-                tasks = [asyncio.create_task(handler(event)) for handler in handlers_to_run]
-                results = await asyncio.gather(*tasks, return_exceptions=True)
-                for i, result in enumerate(results):
-                    if isinstance(result, Exception):
-                        handler_name = getattr(
-                            handlers_to_run[i], "__qualname__", repr(handlers_to_run[i])
+
+        logger.debug(
+            f"Dispatching event {event_type.__name__} in session {event.session_id} to {len(handlers)} handlers"
+        )
+        tasks = [asyncio.create_task(handler(event)) for handler in handlers]
+        results = await asyncio.gather(*tasks, return_exceptions=True)
+        for i, result in enumerate(results):
+            if isinstance(result, Exception):
+                self.event_handler_errors.append(result)
+                handler_name = getattr(handlers[i], "__qualname__", repr(handlers[i]))
+                logger.exception(
+                    f"Error in handler '{handler_name}' for {event_type.__name__}: {result}"
+                )
+                if not self._surpress_event_errors:
+                    raise result
+                else:
+                    self.publish(
+                        EventHandlerFailedEvent(
+                            event=event, handler=handler_name, exception=result
                         )
-                        logger.exception(
-                            f"Error in handler '{handler_name}' for {event_type.__name__}: {result}"
-                        )
-            else:
-                logger.debug(f"No handlers for event type {event_type.__name__}")
-        except Exception as e:
-            logger.exception(f"Error handling event {event_type.__name__}")
-        finally:
-            if session_token is not None:
-                current_session_id.reset(session_token)
+                    )
 
     def _wrap_handler_as_async(self, handler: Callable) -> Callable:
         """
@@ -414,6 +467,8 @@ class MessageBus:
 
         async def async_wrapper(*args, **kwargs):
             return handler(*args, **kwargs)
+
+        async_wrapper.function = handler
 
         return async_wrapper
 

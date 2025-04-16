@@ -13,6 +13,7 @@ import inspect
 
 from llmgine.messages.commands import Command, CommandResult
 
+
 @dataclass
 class Event:
     """Base class for all events in the system.
@@ -29,17 +30,26 @@ class Event:
     def __post_init__(self):
         # Set the session id to GLOBAL if it is not set
         if self.session_id is None:
-            self.session_id = "GLOBAL"
-        
+            self.session_id = "ROOT"
+
         # Add metadata about where this event was created
         frame = inspect.currentframe().f_back
         if frame:
-            module = frame.f_globals.get('__name__', 'unknown')
+            module = frame.f_globals.get("__name__", "unknown")
             function = frame.f_code.co_name
             line = frame.f_lineno
             self.metadata["emitted_from"] = f"{module}.{function}:{line}"
         else:
             self.metadata["emitted_from"] = "unknown"
+
+
+@dataclass
+class EventHandlerFailedEvent(Event):
+    """Event emitted when an event handler fails."""
+
+    event: Event = None
+    handler: str = None
+    exception: Exception = None
 
 
 @dataclass

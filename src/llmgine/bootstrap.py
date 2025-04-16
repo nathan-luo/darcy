@@ -14,7 +14,7 @@ from llmgine.bus.bus import MessageBus
 from llmgine.bus.session import BusSession
 from llmgine.messages.commands import Command
 from llmgine.messages.events import Event
-from llmgine.observability.events import LogLevel, ObservabilityBaseEvent
+from llmgine.observability.events import LogLevel
 from llmgine.observability.handlers import (
     ConsoleEventHandler,
     FileEventHandler,
@@ -45,17 +45,6 @@ def setup_basic_logging(level: LogLevel = LogLevel.INFO):
         # stream=sys.stdout # Optionally direct to stdout instead of stderr
     )
 
-    # Add a default filter that adds session_id if not present
-    class SessionFilter(logging.Filter):
-        def filter(self, record):
-            if not hasattr(record, "session_id"):
-                record.session_id = "global"
-            return True
-
-    # Add the filter to the root logger
-    root_logger = logging.getLogger()
-    root_logger.addFilter(SessionFilter())
-
     logger.info(f"Basic logging configured with level {logging_level}")
 
 
@@ -77,16 +66,6 @@ class ApplicationConfig:
     file_handler_log_dir: str = "logs"
     file_handler_log_filename: Optional[str] = None  # Default: timestamped events.jsonl
     # custom_handlers: List[ObservabilityEventHandler] = field(default_factory=list) # For adding other handlers
-
-    # --- Tracing Config ---
-    enable_tracing: bool = True  # Default to enabled
-
-    # --- Removed old MessageBus specific flags ---
-    # log_dir: str = "logs"
-    # log_filename: Optional[str] = None
-    # enable_console_metrics: bool = True
-    # metrics_interval: int = 60
-    # enable_console_traces: bool = True
 
 
 class ApplicationBootstrap(Generic[TConfig]):
@@ -112,14 +91,6 @@ class ApplicationBootstrap(Generic[TConfig]):
 
         # --- Initialize MessageBus (now takes no args) ---
         self.message_bus = MessageBus()
-
-        # --- Configure Tracing based on Config ---
-        if not getattr(self.config, "enable_tracing", True):
-            self.message_bus.disable_tracing()
-            logger.info("MessageBus tracing disabled via configuration.")
-
-        # --- Create a primary session for this bootstrap ---
-        self.primary_session = self.message_bus.create_session()
 
         # --- Instantiate and Register Handlers based on Config ---
         self._register_observability_handlers()
@@ -154,10 +125,6 @@ class ApplicationBootstrap(Generic[TConfig]):
 
         # Register File Handler for EventLogWrapper (to log wrapped events)
         if file_handler:
-            # Import EventLogWrapper here locally to avoid circular dependency if BaseEvent wasn't sufficient
-            from llmgine.observability.events import EventLogWrapper
-
-            logger.info("Registering FileEventHandler for EventLogWrapper.")
             # Use the global session for observability handlers
             self.message_bus.register_observability_handler(file_handler)
 

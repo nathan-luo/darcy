@@ -18,7 +18,7 @@ class Command:
     Commands represent actions to be performed by the system.
     Each command should be handled by exactly one handler.
     """
-        
+
     command_id: str = field(default_factory=lambda: str(uuid.uuid4()))
     timestamp: str = field(default_factory=lambda: datetime.now().isoformat())
     metadata: Dict[str, Any] = field(default_factory=dict)
@@ -26,7 +26,8 @@ class Command:
 
     def __post_init__(self):
         if self.session_id is None:
-            self.session_id = "GLOBAL"
+            self.session_id = "ROOT"
+
 
 @dataclass
 class CommandResult:
@@ -40,11 +41,10 @@ class CommandResult:
     metadata: Dict[str, Any] = field(default_factory=dict)
 
     def __post_init__(self):
-        
         # Add metadata about where this command was handled
         frame = inspect.currentframe().f_back
         if frame:
-            module = frame.f_globals.get('__name__', 'unknown')
+            module = frame.f_globals.get("__name__", "unknown")
             function = frame.f_code.co_name
             line = frame.f_lineno
             self.metadata["finished_in"] = f"{module}.{function}:{line}"
