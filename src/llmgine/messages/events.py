@@ -11,6 +11,7 @@ from typing import Any, Dict, List, Optional, ForwardRef, TYPE_CHECKING
 import uuid
 import inspect
 
+from llmgine.llm.tools.types import ToolCall
 from llmgine.messages.commands import Command, CommandResult
 
 
@@ -26,6 +27,7 @@ class Event:
     session_id: Optional[str] = None
     timestamp: str = field(default_factory=lambda: datetime.now().isoformat())
     metadata: Dict[str, Any] = field(default_factory=dict)
+    session_id: Optional[str] = None
 
     def __post_init__(self):
         # Set the session id to GLOBAL if it is not set

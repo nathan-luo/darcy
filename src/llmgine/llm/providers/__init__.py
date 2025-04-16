@@ -225,19 +225,15 @@ class DefaultLLMManager(LLMManager):
 # Helper function to create a tool call
 def create_tool_call(name: str, arguments: Dict[str, Any]) -> ToolCall:
     """Create a standardized tool call object.
-    
+
     Args:
         name: The name of the tool to call
         arguments: The arguments to pass to the tool
-        
+
     Returns:
         A ToolCall object
     """
-    return ToolCall(
-        id=str(uuid.uuid4()),
-        name=name,
-        arguments=str(arguments)
-    )
+    return ToolCall(id=str(uuid.uuid4()), name=name, arguments=str(arguments))
 
 
 # Import specific provider implementations

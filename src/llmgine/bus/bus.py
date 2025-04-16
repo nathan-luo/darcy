@@ -5,6 +5,7 @@ providing a way for components to communicate without direct dependencies.
 """
 
 import asyncio
+from datetime import datetime
 import logging
 import traceback
 import uuid
@@ -37,7 +38,7 @@ trace: contextvars.ContextVar[Optional[str]] = contextvars.ContextVar(
 span: contextvars.ContextVar[Optional[str]] = contextvars.ContextVar("span", default=None)
 
 TCommand = TypeVar("TCommand", bound=Command)
-TEvent = TypeVar("TEvent", bound=Event)
+TEvent = TypeVar("TEvent", bound=Event | ObservabilityBaseEvent)
 CommandHandler = Callable[[TCommand], CommandResult]
 AsyncCommandHandler = Callable[[TCommand], "asyncio.Future[CommandResult]"]
 EventHandler = Callable[[TEvent], None]
@@ -159,7 +160,6 @@ class MessageBus:
                 logger.exception(f"Error during MessageBus shutdown: {e}")
             finally:
                 self._processing_task = None
-
         else:
             logger.info("MessageBus already stopped or never started")
 

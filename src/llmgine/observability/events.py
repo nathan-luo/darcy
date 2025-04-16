@@ -35,6 +35,10 @@ class ObservabilityBaseEvent(Event):
     level: LogLevel = LogLevel.INFO
 
 
+class ToolManagerLogEvent(LogEvent):
+    """Event for tool manager logs."""
+
+
 @dataclass
 class EventLogWrapper(Event):
     """Wrapper event for structured event logging.

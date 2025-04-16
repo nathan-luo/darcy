@@ -1,3 +1,4 @@
+import asyncio
 import uuid
 import os
 import json
@@ -11,17 +12,40 @@ from llmgine.llm.tools.types import ToolCall
 from llmgine.messages.commands import Command, CommandResult
 from llmgine.messages.events import LLMResponse, Event
 from dataclasses import dataclass, field
+from llmgine.notion.notion import (
+    get_all_users,
+    get_active_tasks,
+    get_active_projects,
+    create_task,
+    update_task,
+)
+
+from src.llmgine.notion.data import NOTION_TO_DISCORD_USER_MAP, DISCORD_TO_NOTION_USER_MAP
 
 
 @dataclass
-class ToolEnginePromptCommand(Command):
+class NotionCRUDEnginePromptCommand(Command):
     """Command to process a user prompt with tool usage."""
 
     prompt: str = ""
 
 
 @dataclass
-class ToolEnginePromptResponseEvent(Event):
+class NotionCRUDEngineConfirmationCommand(Command):
+    """Command to confirm a user action."""
+
+    prompt: str = ""
+
+
+@dataclass
+class NotionCRUDEngineStatusEvent(Event):
+    """Event emitted when a status update is needed."""
+
+    status: str = ""
+
+
+@dataclass
+class NotionCRUDEnginePromptResponseEvent(Event):
     """Event emitted when a prompt is processed and a response is generated."""
 
     prompt: str = ""
@@ -29,7 +53,7 @@ class ToolEnginePromptResponseEvent(Event):
     tool_calls: Optional[List[ToolCall]] = None
 
 
-class ToolEngine:
+class NotionCRUDEngine:
     def __init__(
         self,
         session_id: str,
@@ -51,6 +75,8 @@ class ToolEngine:
         self.engine_id = str(uuid.uuid4())
         self.session_id = session_id
         self.model = model
+        self.temp_project_lookup = {}
+        self.temp_task_lookup = {}
 
         # Get API key from environment if not provided
         self.api_key = api_key or os.environ.get("OPENAI_API_KEY")
@@ -76,11 +102,11 @@ class ToolEngine:
 
         # Register command handlers for this specific engine's session
         self.message_bus.register_command_handler(
-            self.session_id, ToolEnginePromptCommand, self.handle_prompt_command
+            self.session_id, NotionCRUDEnginePromptCommand, self.handle_prompt_command
         )
 
     async def handle_prompt_command(
-        self, command: ToolEnginePromptCommand
+        self, command: NotionCRUDEnginePromptCommand
     ) -> CommandResult:
         """Handle a prompt command following OpenAI tool usage pattern.
 
@@ -90,6 +116,8 @@ class ToolEngine:
         Returns:
             CommandResult: The result of the command execution
         """
+        max_tool_calls = 7
+        tool_call_count = 0
         try:
             # 1. Add user message to history
             self.context_manager.store_string(command.prompt, "user")
@@ -103,6 +131,12 @@ class ToolEngine:
                 tools = await self.tool_manager.get_tools()
 
                 # 4. Call LLM
+                await self.message_bus.publish(
+                    NotionCRUDEngineStatusEvent(
+                        status="Calling LLM...",
+                        session_id=self.session_id,
+                    )
+                )
                 response = await self.llm_manager.generate(
                     context=current_context, tools=tools
                 )
@@ -120,7 +154,7 @@ class ToolEngine:
                     # No tool calls, break the loop and return the content
                     final_content = response_message.content or ""
                     await self.message_bus.publish(
-                        ToolEnginePromptResponseEvent(
+                        NotionCRUDEnginePromptResponseEvent(
                             prompt=command.prompt,
                             response=final_content,
                             tool_calls=None,  # No tool calls in the final response
@@ -131,35 +165,93 @@ class ToolEngine:
                         success=True, original_command=command, result=final_content
                     )
 
-                # 8. Process tool calls
-                for tool_call in response_message.tool_calls:
-                    tool_call_obj = ToolCall(
-                        id=tool_call.id,
-                        name=tool_call.function.name,
-                        arguments=tool_call.function.arguments,
+                # 8. Process tool call
+                tool_call = response_message.tool_calls[0]
+                tool_call_obj = ToolCall(
+                    id=tool_call.id,
+                    name=tool_call.function.name,
+                    arguments=tool_call.function.arguments,
+                )
+                tool_call_count += 1
+                if tool_call_count > max_tool_calls:
+                    self.context_manager.store_tool_call_result(
+                        tool_call_id=tool_call_obj.id,
+                        name=tool_call_obj.name,
+                        content="The max number of tool calls has been reached. Please close these set of tool calls and inform the user. THIS CURRENT TOOL CALL WAS NOT SUCCESSFUL",
                     )
-                    try:
-                        # Execute the tool
-                        result = await self.tool_manager.execute_tool_call(tool_call_obj)
-
-                        # Convert result to string if needed for history
-                        if isinstance(result, dict):
-                            result_str = json.dumps(result)
-                        else:
-                            result_str = str(result)
-
-                        # Store tool execution result in history
+                    continue
+                if tool_call_obj.name == "update_task":
+                    # patch task name and user name for confirmation request
+                    temp = json.loads(tool_call.function.arguments)
+                    if "notion_task_id" in temp:
+                        temp["notion_task_id"] = self.temp_task_lookup[
+                            temp["notion_task_id"]
+                        ]["name"]
+                    if "user_id" in temp:
+                        temp["task_in_charge"] = NOTION_TO_DISCORD_USER_MAP[
+                            temp["task_in_charge"]
+                        ]["name"]
+                    result = await self.message_bus.execute(
+                        NotionCRUDEngineConfirmationCommand(
+                            prompt=f"Updating task {temp}",
+                            session_id=self.session_id,
+                        )
+                    )
+                    if not result.result:
                         self.context_manager.store_tool_call_result(
                             tool_call_id=tool_call_obj.id,
                             name=tool_call_obj.name,
-                            content=result_str,
+                            content="User purposefully denied tool execution, use this informormation in final response.",
                         )
+                        continue
 
-                    except Exception as e:
-                        return CommandResult(
-                            success=False, original_command=command, error=str(e)
+                if tool_call_obj.name == "create_task":
+                    # patch project name and user name for confirmation request
+                    temp = json.loads(tool_call.function.arguments)
+                    if "notion_project_id" in temp and temp["notion_project_id"]:
+                        temp["notion_project_id"] = self.temp_project_lookup[
+                            temp["notion_project_id"]
+                        ]
+                    temp["user_id"] = NOTION_TO_DISCORD_USER_MAP[temp["user_id"]]["name"]
+
+                    result = await self.message_bus.execute(
+                        NotionCRUDEngineConfirmationCommand(
+                            prompt=f"Creating task {temp}",
+                            session_id=self.session_id,
                         )
+                    )
+                    if not result.result:
+                        self.context_manager.store_tool_call_result(
+                            tool_call_id=tool_call_obj.id,
+                            name=tool_call_obj.name,
+                            content="User purposefully denied tool execution, use this informormation in final response.",
+                        )
+                        continue
 
+                # Execute the tool
+                await self.message_bus.publish(
+                    NotionCRUDEngineStatusEvent(
+                        status=f"Executing tool {tool_call_obj.name}",
+                        session_id=self.session_id,
+                    )
+                )
+                result = await self.tool_manager.execute_tool_call(tool_call_obj)
+                # Convert result to string if needed for history
+                if isinstance(result, dict):
+                    result_str = json.dumps(result)
+                else:
+                    result_str = str(result)
+
+                # Store tool execution result in history
+                self.context_manager.store_tool_call_result(
+                    tool_call_id=tool_call_obj.id,
+                    name=tool_call_obj.name,
+                    content=result_str,
+                )
+                if tool_call_obj.name == "get_active_projects":
+                    self.temp_project_lookup = result
+                elif tool_call_obj.name == "get_active_tasks":
+                    self.temp_task_lookup = result
         except Exception as e:
             return CommandResult(success=False, original_command=command, error=str(e))
 
@@ -180,7 +272,9 @@ class ToolEngine:
         Returns:
             str: The assistant's response
         """
-        command = ToolEnginePromptCommand(prompt=message, session_id=self.session_id)
+        command = NotionCRUDEnginePromptCommand(
+            prompt=message, session_id=self.session_id
+        )
         result = await self.message_bus.execute(command)
 
         if not result.success:

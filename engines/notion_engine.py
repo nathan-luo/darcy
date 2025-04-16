@@ -10,6 +10,7 @@ from llmgine.llm.tools.tool_manager import ToolManager
 from llmgine.llm.tools.types import ToolCall
 from llmgine.messages.commands import Command, CommandResult
 from llmgine.messages.events import LLMResponse, Event
+from llmgine.notion.notion import get_tasks, get_projects, create_task, update_task
 from dataclasses import dataclass, field
 
 
@@ -29,13 +30,14 @@ class ToolEnginePromptResponseEvent(Event):
     tool_calls: Optional[List[ToolCall]] = None
 
 
-class ToolEngine:
+class NotionEngine:
     def __init__(
         self,
         session_id: str,
         api_key: Optional[str] = None,
         model: str = "gpt-4o-mini",
         system_prompt: Optional[str] = None,
+        confirmation: bool = False,
     ):
         """Initialize the LLM engine.
 
@@ -51,7 +53,7 @@ class ToolEngine:
         self.engine_id = str(uuid.uuid4())
         self.session_id = session_id
         self.model = model
-
+        self.confirmation = confirmation
         # Get API key from environment if not provided
         self.api_key = api_key or os.environ.get("OPENAI_API_KEY")
         if not self.api_key:

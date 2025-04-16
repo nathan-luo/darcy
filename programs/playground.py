@@ -1,11 +1,11 @@
 from dataclasses import dataclass, field
 from dataclasses import MISSING
 
+
 @dataclass
 class Sample:
     name: str = "hello"
 
-        
 
 @dataclass
 class Sample2(Sample):
@@ -13,5 +13,3 @@ class Sample2(Sample):
 
 
 print(Sample2())
-
-
