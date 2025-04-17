@@ -16,12 +16,13 @@ from llmgine.llm.tools.tool_parser import (
     ClaudeToolParser,
     DeepSeekToolParser,
 )
-from llmgine.messages.events import ToolCall
+from llmgine.llm.tools.types import Parameter, Tool, ToolCall, ToolFunction
 from llmgine.llm.tools.tool_events import (
     ToolRegisterEvent,
     ToolCompiledEvent,
     ToolExecuteResultEvent,
 )
+
 
 
 class ToolManager:

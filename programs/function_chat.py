@@ -21,13 +21,6 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 from engines.tool_chat_engine import ToolChatEngine
 from llmgine.bootstrap import ApplicationBootstrap, ApplicationConfig
 from llmgine.observability.events import LogLevel
-from llmgine.notion.notion import (
-    get_active_tasks,
-    get_active_projects,
-    create_task,
-    update_task,
-    get_all_users,
-)
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -88,11 +81,7 @@ class FunctionChatBootstrap(ApplicationBootstrap[FunctionChatConfig]):
         )
 
         # Register the tools
-        await self.engine.register_tool(get_active_tasks)
-        await self.engine.register_tool(get_active_projects)
-        await self.engine.register_tool(create_task)
-        await self.engine.register_tool(update_task)
-        await self.engine.register_tool(get_all_users)
+        await self.engine.register_tool(get_weather)
         return self.engine
 
     async def shutdown(self):

@@ -1,4 +1,4 @@
-"""File handler for logging observability events to JSONL."""
+"""File handler for logging events to JSONL."""
 
 import asyncio
 from datetime import datetime
@@ -7,15 +7,17 @@ import logging
 import os
 from pathlib import Path
 from typing import Any, Dict, Optional
+from enum import Enum
+from dataclasses import asdict
 
-from llmgine.observability.events import ObservabilityBaseEvent, EventLogWrapper
+from llmgine.messages.events import Event
 from llmgine.observability.handlers.base import ObservabilityEventHandler
 
 logger = logging.getLogger(__name__)
 
 
 class FileEventHandler(ObservabilityEventHandler):
-    """Logs all received observability events to a JSONL file."""
+    """Logs all received events to a JSONL file."""
 
     def __init__(
         self, log_dir: str = "logs", filename: Optional[str] = None, **kwargs: Any
@@ -39,26 +41,23 @@ class FileEventHandler(ObservabilityEventHandler):
         self._file_lock = asyncio.Lock()
         logger.info(f"FileEventHandler initialized. Logging events to: {self.log_file}")
 
-    async def handle(self, event: EventLogWrapper) -> None:
-        """Handle the wrapped event by writing its original data to the log file."""
-        if not isinstance(event, EventLogWrapper):
-            logger.warning(
-                f"FileEventHandler received non-wrapper event: {type(event)}. Skipping."
-            )
-            return
-
+    async def handle(self, event: Event) -> None:
+        """Handle the event by writing its data directly to the log file."""
         try:
-            log_data = event.original_event_data
+            # Convert the event to dictionary for serialization
+            log_data = self._event_to_dict(event)
 
-            log_data["wrapper_id"] = event.id
-            log_data["wrapper_timestamp"] = event.timestamp
-            log_data["original_event_type"] = event.original_event_type
+            # Add event metadata
+            log_data["event_type"] = type(event).__name__
+
+            # Make sure parent directory exists
+            os.makedirs(os.path.dirname(self.log_file), exist_ok=True)
 
             async with self._file_lock:
                 with open(self.log_file, "a") as f:
                     f.write(json.dumps(log_data, default=str, indent=4) + "\n")
         except Exception as e:
-            logger.error(f"Error writing wrapped event data to file: {e}", exc_info=True)
+            logger.error(f"Error writing event data to file: {e}", exc_info=True)
 
     def _event_to_dict(self, event: Any) -> Dict[str, Any]:
         """Convert an event (dataclass or object) to a dictionary for serialization.

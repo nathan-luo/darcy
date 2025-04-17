@@ -3,22 +3,24 @@
 from typing import Any, Dict, List, Optional
 
 from llmgine.llm.providers import LLMProvider
-from llmgine.messages.events import LLMResponse
+from llmgine.llm.providers.response import LLMResponse
 
 
 class DummyProvider(LLMProvider):
     """A dummy provider for testing purposes."""
 
-    async def generate(self,
-                      prompt: str,
-                      context: Optional[List[Dict[str, Any]]] = None,
-                      system_prompt: Optional[str] = None,
-                      temperature: Optional[float] = None,
-                      max_tokens: Optional[int] = None,
-                      model: Optional[str] = None,
-                      **kwargs) -> LLMResponse:
+    async def generate(
+        self,
+        prompt: str,
+        context: Optional[List[Dict[str, Any]]] = None,
+        system_prompt: Optional[str] = None,
+        temperature: Optional[float] = None,
+        max_tokens: Optional[int] = None,
+        model: Optional[str] = None,
+        **kwargs,
+    ) -> LLMResponse:
         """Generate a response from the dummy LLM.
-        
+
         Args:
             prompt: The user prompt to send to the LLM
             context: Optional conversation context/history
@@ -27,7 +29,7 @@ class DummyProvider(LLMProvider):
             max_tokens: Optional maximum tokens for the response
             model: Optional model name/identifier
             **kwargs: Additional provider-specific parameters
-            
+
         Returns:
             LLMResponse: The response from the LLM
         """
@@ -36,5 +38,5 @@ class DummyProvider(LLMProvider):
             role="assistant",
             model="dummy-model",
             finish_reason="stop",
-            usage={"prompt_tokens": 10, "completion_tokens": 10, "total_tokens": 20}
+            usage={"prompt_tokens": 10, "completion_tokens": 10, "total_tokens": 20},
         )

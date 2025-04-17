@@ -5,10 +5,11 @@ as well as concrete implementations.
 """
 
 from abc import ABC, abstractmethod
-from typing import Any, Dict, List, Optional, Protocol, Union
+from typing import Any, Dict, List, Optional, Protocol
 import uuid
 
-from llmgine.messages.events import LLMResponse, ToolCall
+from llmgine.llm.providers.response import LLMResponse
+from llmgine.llm.tools.types import ToolCall
 
 
 class LLMProvider(Protocol):
@@ -227,31 +228,24 @@ class DefaultLLMManager(LLMManager):
 # Helper function to create a tool call
 def create_tool_call(name: str, arguments: Dict[str, Any]) -> ToolCall:
     """Create a standardized tool call object.
-    
+
     Args:
         name: The name of the tool to call
         arguments: The arguments to pass to the tool
-        
+
     Returns:
         A ToolCall object
     """
-    return ToolCall(
-        id=str(uuid.uuid4()),
-        name=name,
-        arguments=str(arguments)
-    )
+    return ToolCall(id=str(uuid.uuid4()), name=name, arguments=str(arguments))
 
 
 # Import specific provider implementations
 from llmgine.llm.providers.dummy import DummyProvider
-from llmgine.llm.providers.openai import OpenAIProvider
-
+from llmgine.llm.providers.openai_provider import OpenAIProvider
+from llmgine.llm.providers.providers import Providers
 
 __all__ = [
-    "create_tool_call",
-    "DefaultLLMManager",
     "DummyProvider",
     "OpenAIProvider",
-    "LLMManager",
-    "LLMProvider",
+    "Providers",
 ]
