@@ -8,8 +8,9 @@ from llmgine.bus.bus import MessageBus
 from llmgine.llm.context.memory import SimpleChatHistory
 from llmgine.llm.providers.response import OpenAIManager
 from llmgine.llm.tools.tool_manager import ToolManager
+from llmgine.llm.tools.types import ToolCall
 from llmgine.messages.commands import Command, CommandResult
-from llmgine.messages.events import ToolCall, LLMResponse, Event
+from llmgine.messages.events import LLMResponse, Event
 from dataclasses import dataclass, field
 from llmgine.notion.notion import (
     get_all_users,
@@ -103,6 +104,9 @@ class NotionCRUDEngine:
         self.message_bus.register_command_handler(
             self.session_id, NotionCRUDEnginePromptCommand, self.handle_prompt_command
         )
+
+    async def register_tools(self):
+        await self.tool_manager.register_tools(["notion"])
 
     async def handle_prompt_command(
         self, command: NotionCRUDEnginePromptCommand
@@ -253,14 +257,6 @@ class NotionCRUDEngine:
                     self.temp_task_lookup = result
         except Exception as e:
             return CommandResult(success=False, original_command=command, error=str(e))
-
-    async def register_tool(self, function: Callable):
-        """Register a function as a tool.
-
-        Args:
-            function: The function to register as a tool
-        """
-        await self.tool_manager.register_tool(function)
 
     async def process_message(self, message: str) -> str:
         """Process a user message and return the response.

@@ -7,9 +7,9 @@ from llmgine.bus.bus import MessageBus
 from llmgine.llm.context.memory import SimpleChatHistory
 from llmgine.llm.providers.response import OpenAIManager
 from llmgine.llm.tools.tool_manager import ToolManager
+from llmgine.llm.tools.types import ToolCall
 from llmgine.messages.commands import Command, CommandResult
 from llmgine.messages.events import ToolCall, LLMResponse, Event
-from llmgine.notion.notion import get_tasks, get_projects, create_task, update_task
 from dataclasses import dataclass, field
 
 
@@ -164,13 +164,13 @@ class NotionEngine:
         except Exception as e:
             return CommandResult(success=False, original_command=command, error=str(e))
 
-    async def register_tool(self, function: Callable):
+    async def register_tools(self, platform_list: List[str]):
         """Register a function as a tool.
 
         Args:
             function: The function to register as a tool
         """
-        await self.tool_manager.register_tool(function)
+        await self.tool_manager.register_tools(platform_list)
 
     async def process_message(self, message: str) -> str:
         """Process a user message and return the response.
@@ -185,7 +185,7 @@ class NotionEngine:
         result = await self.message_bus.execute(command)
 
         if not result.success:
-            raise RuntimeError(f"Failed to process message: {result.error}")
+            return result.error
 
         return result.result
 

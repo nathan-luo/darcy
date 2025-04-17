@@ -1,14 +1,24 @@
+"""
+This file contains the session manager for the discord bot, including:
+- Session status types
+- Session manager class
+- Session expiration
+- Session data updates
+- Session input request
+- Session completion
+"""
+
 import asyncio
 from datetime import timedelta
 from enum import Enum
 import random
-from typing import Any, Awaitable, Callable, Dict, List, Optional
+from typing import Any, Dict, List, Optional
+import string
 
 import discord
-from discord.ext import commands
-from .components import YesNoView
+from components import YesNoView
 
-import string
+
 
 
 # Session status types
@@ -22,6 +32,16 @@ class SessionStatus(Enum):
     COMPLETED = "completed"
     ERROR = "error"
 
+STATUS_EMOJI = {
+    SessionStatus.STARTING: "🔄",
+    SessionStatus.PROCESSING: "🔄",
+    SessionStatus.WAITING_FOR_INPUT: "⏳",
+    SessionStatus.REQUESTING_INPUT: "❓",
+    SessionStatus.INPUT_RECEIVED: "✓",
+    SessionStatus.CONTINUING: "🔄",
+    SessionStatus.COMPLETED: "✅",
+    SessionStatus.ERROR: "❌",
+}
 
 class SessionManager:
     def __init__(self, bot):
@@ -121,18 +141,7 @@ class SessionManager:
         session["updated_at"] = discord.utils.utcnow()
 
         if message:
-            status_emoji = {
-                SessionStatus.STARTING: "🔄",
-                SessionStatus.PROCESSING: "🔄",
-                SessionStatus.WAITING_FOR_INPUT: "⏳",
-                SessionStatus.REQUESTING_INPUT: "❓",
-                SessionStatus.INPUT_RECEIVED: "✓",
-                SessionStatus.CONTINUING: "🔄",
-                SessionStatus.COMPLETED: "✅",
-                SessionStatus.ERROR: "❌",
-            }
-
-            emoji = status_emoji.get(status, "🔄")
+            emoji = STATUS_EMOJI.get(status, "🔄")
             await session["session_msg"].edit(
                 content=f"{emoji} **Session {session_id}**: {message}"
             )

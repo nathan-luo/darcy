@@ -5,8 +5,9 @@ This module defines the commands and events used by the LLM engine.
 
 from typing import Any, Dict, List, Optional
 
+from llmgine.llm.tools.types import ToolCall
 from llmgine.messages.commands import Command
-from llmgine.messages.events import Event, LLMResponse, ToolCall
+from llmgine.messages.events import Event, LLMResponse
 
 
 class PromptCommand(Command):

@@ -1,10 +1,12 @@
 """Tests for the tool manager."""
 
 import asyncio
+import json
 import uuid
 import pytest
 
 from llmgine.llm.tools import ToolManager
+from llmgine.messages.events import ToolCall
 
 class SampleEngine:
     """A sample engine for testing."""
@@ -12,11 +14,12 @@ class SampleEngine:
     def __init__(self):
         """Initialize the sample engine."""
         self.engine_id = str(uuid.uuid4())
+        self.session_id = str(uuid.uuid4())
 
 def create_tool_manager(llm_model_name: str = "openai"):
     """Create a tool manager with a message bus and an observability bus."""
     engine = SampleEngine()
-    return ToolManager(engine_reference=engine, llm_model_name=llm_model_name)
+    return ToolManager(engine_id=engine.engine_id, session_id=engine.session_id, llm_model_name=llm_model_name)
 
 @pytest.mark.asyncio
 async def test_tool_registration_with_no_description():
@@ -271,7 +274,10 @@ async def test_tool_execution():
     await manager.register_tool(add)
 
     # Execute the tool
-    result = await manager.execute_tool("add", {"a": 2, "b": 3})
+    result = await manager.execute_tool_call(
+        ToolCall(name="add", 
+                 arguments=json.dumps({"a": 2, "b": 3}), 
+                 id=str(uuid.uuid4())))
 
     # Check result
     assert result == 5
@@ -298,7 +304,10 @@ async def test_async_tool_execution():
     await manager.register_tool(async_echo)
 
     # Execute the tool
-    result = await manager.execute_tool("async_echo", {"message": "Hello, world!"})
+    result = await manager.execute_tool_call(
+        ToolCall(name="async_echo", 
+                 arguments=json.dumps({"message": "Hello, world!"}), 
+                 id=str(uuid.uuid4())))
 
     # Check result
     assert result == "Echo: Hello, world!"
@@ -325,7 +334,10 @@ async def test_tool_execution_error():
 
     # Execute the tool and expect an exception
     with pytest.raises(ValueError) as excinfo:
-        await manager.execute_tool("failing_tool", {})
+        await manager.execute_tool_call(
+            ToolCall(name="failing_tool", 
+                     arguments=json.dumps({}), 
+                     id=str(uuid.uuid4())))
 
     # Check exception message
     assert "This tool failed on purpose" in str(excinfo.value)
@@ -339,7 +351,10 @@ async def test_unknown_tool():
 
     # Try to execute an unknown tool
     with pytest.raises(ValueError) as excinfo:
-        await manager.execute_tool("unknown_tool", {})
+        await manager.execute_tool_call(
+            ToolCall(name="unknown_tool", 
+                     arguments=json.dumps({}), 
+                     id=str(uuid.uuid4())))
 
     # Check exception message
     assert "Tool not found" in str(excinfo.value)
