@@ -1,13 +1,13 @@
 """Tool parsing for LLMs.
 
-This module provides a way to parse tools into a format that can be used by 
+This module provides a way to parse tools into a format that can be used by
 any LLM.
 """
 
 from abc import ABC, abstractmethod
 from typing import Any, Dict, List, Optional, Type, Union
 
-from llmgine.llm.tools.tool import Tool
+from llmgine.llm.tools.types import Tool
 
 
 class ToolParser:
@@ -16,12 +16,13 @@ class ToolParser:
         """Parse a tool into a format that can be used by any LLM."""
         pass
 
+
 class OpenAIToolParser(ToolParser):
     """A parser for tools that can be used by OpenAI."""
 
     def parse_tool(self, tool: Tool) -> Dict[str, Any]:
         """Parse a tool into a format that can be used by OpenAI.
-        
+
         Args:
             tool: The tool to be parsed.
 
@@ -35,7 +36,7 @@ class OpenAIToolParser(ToolParser):
         for param in tool.parameters:
             properties[param.name] = {
                 "type": param.type,
-                "description": param.description
+                "description": param.description,
             }
             if param.required:
                 required.append(param.name)
@@ -48,9 +49,9 @@ class OpenAIToolParser(ToolParser):
                 "parameters": {
                     "type": "object",
                     "properties": properties,
-                    "required": required
-                }
-            }
+                    "required": required,
+                },
+            },
         }
 
 
@@ -59,7 +60,7 @@ class ClaudeToolParser(ToolParser):
 
     def parse_tool(self, tool: Tool) -> Dict[str, Any]:
         """Parse a tool into a format that can be used by Claude.
-        
+
         Args:
             tool: The tool to be parsed.
 
@@ -73,7 +74,7 @@ class ClaudeToolParser(ToolParser):
         for param in tool.parameters:
             properties[param.name] = {
                 "type": param.type,
-                "description": param.description
+                "description": param.description,
             }
             if param.required:
                 required.append(param.name)
@@ -86,17 +87,18 @@ class ClaudeToolParser(ToolParser):
                 "input_schema": {
                     "type": "object",
                     "properties": properties,
-                    "required": required
-                }
-            }
+                    "required": required,
+                },
+            },
         }
+
 
 class DeepSeekToolParser(ToolParser):
     """A parser for tools that can be used by DeepSeek."""
 
     def parse_tool(self, tool: Tool) -> Dict[str, Any]:
         """Parse a tool into a format that can be used by DeepSeek.
-        
+
         Args:
             tool: The tool to be parsed.
 
@@ -110,7 +112,7 @@ class DeepSeekToolParser(ToolParser):
         for param in tool.parameters:
             properties[param.name] = {
                 "type": param.type,
-                "description": param.description
+                "description": param.description,
             }
             if param.required:
                 required.append(param.name)
@@ -123,7 +125,7 @@ class DeepSeekToolParser(ToolParser):
                 "parameters": {
                     "type": "object",
                     "properties": properties,
-                    "required": required
-                }
-            }
+                    "required": required,
+                },
+            },
         }

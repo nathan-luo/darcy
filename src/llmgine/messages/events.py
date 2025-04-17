@@ -7,9 +7,11 @@ Events represent things that have happened in the system.
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, ForwardRef, TYPE_CHECKING
 import uuid
+import inspect
 
+from llmgine.llm.tools.types import ToolCall
 from llmgine.messages.commands import Command, CommandResult
 
 
@@ -21,98 +23,46 @@ class Event:
     Multiple handlers can process each event.
     """
 
-    id: str = field(default_factory=lambda: str(uuid.uuid4()))
+    event_id: str = field(default_factory=lambda: str(uuid.uuid4()))
+    session_id: Optional[str] = None
     timestamp: str = field(default_factory=lambda: datetime.now().isoformat())
     metadata: Dict[str, Any] = field(default_factory=dict)
     session_id: Optional[str] = None
 
+    def __post_init__(self):
+        # Set the session id to GLOBAL if it is not set
+        if self.session_id is None:
+            self.session_id = "ROOT"
 
-# @dataclass
-# class LogEvent(Event):
-#     """Event emitted when a log message is created."""
-
-#     message: str = ""
-#     level: str = "info"
-#     metadata: Dict[str, Any] = field(default_factory=dict)
-
-
-# @dataclass
-# class CommandResult(Event):
-#     """Result of a command execution."""
-#     original_command: Command = field(default_factory=Command)
-#     success: bool = False
-#     result: Any = None
-#     error: Optional[str] = None
-#     execution_time_ms: Optional[float] = None
+        # Add metadata about where this event was created
+        frame = inspect.currentframe().f_back
+        if frame:
+            module = frame.f_globals.get("__name__", "unknown")
+            function = frame.f_code.co_name
+            line = frame.f_lineno
+            self.metadata["emitted_from"] = f"{module}.{function}:{line}"
+        else:
+            self.metadata["emitted_from"] = "unknown"
 
 
 @dataclass
-class ToolCall:
-    """Represents a tool call from an LLM."""
+class EventHandlerFailedEvent(Event):
+    """Event emitted when an event handler fails."""
 
-    id: str
-    type: str = "function"
-    name: str = ""
-    arguments: str = "{}"
-
-    def to_dict(self) -> Dict[str, Any]:
-        """Convert tool call to dictionary format."""
-        return {
-            "id": self.id,
-            "type": self.type,
-            "function": {"name": self.name, "arguments": self.arguments},
-        }
+    event: Event = None
+    handler: str = None
+    exception: Exception = None
 
 
 @dataclass
-class LLMResponse:
-    """Response from an LLM, following OpenAI format for consistency."""
+class CommandStartedEvent(Event):
+    """Event emitted when a command is started."""
 
-    # Main content
-    content: Optional[str] = None
-    role: str = "assistant"
+    command: Command = None
 
-    # Model information
-    model: str = "unknown"
 
-    # Completion information
-    finish_reason: Optional[str] = None
+@dataclass
+class CommandResultEvent(Event):
+    """Event emitted when a command result is created."""
 
-    # Function/tool calling
-    tool_calls: Optional[List[ToolCall]] = None
-
-    # Usage statistics
-    usage: Optional[Dict[str, int]] = None
-
-    # Raw response for provider-specific data
-    raw_response: Optional[Dict[str, Any]] = None
-
-    def has_tool_calls(self) -> bool:
-        """Check if the response contains tool calls."""
-        return self.tool_calls is not None and len(self.tool_calls) > 0
-
-    def extract_text(self) -> str:
-        """Extract the text content from the response.
-
-        Returns:
-            The content string or an empty string if content is None
-        """
-        return self.content or ""
-
-    def to_dict(self) -> Dict[str, Any]:
-        """Convert the response to a dictionary."""
-        result = {"role": self.role, "model": self.model}
-
-        if self.content:
-            result["content"] = self.content
-
-        if self.tool_calls:
-            result["tool_calls"] = [tc.to_dict() for tc in self.tool_calls]
-
-        if self.finish_reason:
-            result["finish_reason"] = self.finish_reason
-
-        if self.usage:
-            result["usage"] = self.usage
-
-        return result
+    command_result: CommandResult = None
