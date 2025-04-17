@@ -5,15 +5,16 @@ providing a way for components to communicate without direct dependencies.
 """
 
 import asyncio
-from datetime import datetime
+import contextvars
 import logging
 import traceback
-import uuid
-from typing import Any, Callable, Dict, List, Optional, Type, TypeVar, cast
 from dataclasses import asdict
 from enum import Enum
-import contextvars
+from typing import Any, Callable, Dict, List, Optional, Type, TypeVar, cast
 
+# Import only what's needed at the module level and use local imports for the rest
+# to avoid circular dependencies
+from llmgine.bus.session import BusSession
 from llmgine.messages.commands import Command, CommandResult
 from llmgine.messages.events import (
     CommandResultEvent,
@@ -21,12 +22,7 @@ from llmgine.messages.events import (
     Event,
     EventHandlerFailedEvent,
 )
-
-# Import only what's needed at the module level and use local imports for the rest
-# to avoid circular dependencies
-from llmgine.bus.session import BusSession
 from llmgine.observability.handlers.base import ObservabilityEventHandler
-
 
 # Get the base logger and wrap it with the adapter
 logger = logging.getLogger(__name__)
@@ -38,7 +34,7 @@ trace: contextvars.ContextVar[Optional[str]] = contextvars.ContextVar(
 span: contextvars.ContextVar[Optional[str]] = contextvars.ContextVar("span", default=None)
 
 TCommand = TypeVar("TCommand", bound=Command)
-TEvent = TypeVar("TEvent", bound=Event | ObservabilityBaseEvent)
+TEvent = TypeVar("TEvent", bound=Event)
 CommandHandler = Callable[[TCommand], CommandResult]
 AsyncCommandHandler = Callable[[TCommand], "asyncio.Future[CommandResult]"]
 EventHandler = Callable[[TEvent], None]
@@ -96,13 +92,13 @@ class MessageBus:
         self.event_handler_errors: List[Exception] = []
         logger.info("MessageBus reset")
 
-    def surpress_event_errors(self) -> None:
+    def suppress_event_errors(self) -> None:
         """
         Surpress errors during event handling.
         """
         self._surpress_event_errors = True
 
-    def unsupress_event_errors(self) -> None:
+    def unsuppress_event_errors(self) -> None:
         """
         Unsupress errors during event handling.
         """
@@ -472,6 +468,7 @@ class MessageBus:
 
         return async_wrapper
 
+    # TODO: move to utils
     def _event_to_dict(self, event: Any) -> Dict[str, Any]:
         """
         Convert an event to a dictionary for serialization.
@@ -504,6 +501,7 @@ class MessageBus:
         logger.warning(f"Could not serialize {type(event)} to dict, using repr()")
         return {"event_repr": repr(event)}
 
+    # TODO: move to utils
     def _convert_value(self, value: Any) -> Any:
         """
         Convert values for serialization, handling enums, containers, and objects.

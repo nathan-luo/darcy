@@ -1,16 +1,14 @@
 """OpenAI provider implementation."""
 
 from typing import Any, Dict, List, Literal, Optional, Union
-import json
 
 from openai import AsyncOpenAI
 from openai.types.chat import ChatCompletion
 
-from llmgine.llm.providers import LLMProvider, create_tool_call
-from llmgine.llm.providers.response import ResponseTokens
-from llmgine.llm.tools.types import ToolCall
-from llmgine.messages.events import LLMResponse
 from llmgine.bus.bus import MessageBus
+from llmgine.llm.providers import LLMProvider
+from llmgine.llm.providers.response import LLMResponse, ResponseTokens
+from llmgine.llm.tools.types import ToolCall
 
 
 class OpenAIResponse(LLMResponse):
@@ -54,9 +52,12 @@ class OpenAIResponse(LLMResponse):
 
 
 class OpenAIProvider(LLMProvider):
-    def __init__(self, api_key: str, base_url: str, model: str) -> None:
+    def __init__(self, api_key: str, model: str, base_url: Optional[str] = None) -> None:
         self.model = model
-        self.client = AsyncOpenAI(api_key=api_key, base_url=base_url)
+        if base_url:
+            self.client = AsyncOpenAI(api_key=api_key, base_url=base_url)
+        else:
+            self.client = AsyncOpenAI(api_key=api_key)
         self.bus = MessageBus()
 
     async def generate(
@@ -76,9 +77,11 @@ class OpenAIProvider(LLMProvider):
         payload = {
             "model": self.model,
             "messages": context,
-            "temperature": temperature,
             "max_completion_tokens": max_completion_tokens,
         }
+
+        if temperature is not None:
+            payload["temperature"] = temperature
 
         if tools:
             payload["tools"] = tools
@@ -90,6 +93,7 @@ class OpenAIProvider(LLMProvider):
 
         if reasoning_effort:
             payload["reasoning_effort"] = reasoning_effort
+
         payload.update(**kwargs)
         # self.bus.emit(LLMCallEvent(id=id, provider=Providers.OPENAI, payload=payload))
         try:

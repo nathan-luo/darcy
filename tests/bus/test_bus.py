@@ -297,7 +297,7 @@ async def test_publish_event_session_failure_surpressed_exception(bus: MessageBu
 async def test_publish_event_session_failure_raises_exception(bus: MessageBus):
     tracker = EventTracker()
     bus.register_event_handler(TestEvent, tracker.event_function_failure)
-    bus.unsupress_event_errors()
+    bus.unsuppress_event_errors()
     event = TestEvent(test_data="test", session_id="SESSION_1")
     with pytest.raises(Exception) as e:
         await bus._handle_event(event)

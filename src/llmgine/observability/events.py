@@ -33,20 +33,3 @@ class ObservabilityBaseEvent(Event):
     """
 
     level: LogLevel = LogLevel.INFO
-
-
-class ToolManagerLogEvent(LogEvent):
-    """Event for tool manager logs."""
-
-
-@dataclass
-class EventLogWrapper(Event):
-    """Wrapper event for structured event logging.
-
-    This event wraps any other event and is used to log events to
-    the structured log file via the FileEventHandler.
-    """
-
-    original_event: Optional[Event] = None
-    original_event_type: Optional[str] = None
-    original_event_data: Dict[str, Any] = field(default_factory=dict)

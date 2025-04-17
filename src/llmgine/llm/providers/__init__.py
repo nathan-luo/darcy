@@ -5,8 +5,11 @@ as well as concrete implementations.
 """
 
 from abc import ABC, abstractmethod
-from typing import Any, Dict, List, Optional, Protocol, Union
+from typing import Any, Dict, List, Optional, Protocol
 import uuid
+
+from llmgine.llm.providers.response import LLMResponse
+from llmgine.llm.tools.types import ToolCall
 
 
 class LLMProvider(Protocol):
@@ -238,14 +241,11 @@ def create_tool_call(name: str, arguments: Dict[str, Any]) -> ToolCall:
 
 # Import specific provider implementations
 from llmgine.llm.providers.dummy import DummyProvider
-from llmgine.llm.providers.openai import OpenAIProvider
-
+from llmgine.llm.providers.openai_provider import OpenAIProvider
+from llmgine.llm.providers.providers import Providers
 
 __all__ = [
-    "create_tool_call",
-    "DefaultLLMManager",
     "DummyProvider",
     "OpenAIProvider",
-    "LLMManager",
-    "LLMProvider",
+    "Providers",
 ]
