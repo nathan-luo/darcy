@@ -57,7 +57,7 @@ class DarcyBot:
             processed_message, session_id = await self.message_processor.process_mention(message)
             
             # Create command and use engine
-            from engines.notion_crud_engine import NotionCRUDEnginePromptCommand
+            from engines.notion_crud_engine_v2 import NotionCRUDEnginePromptCommand
             command = NotionCRUDEnginePromptCommand(prompt=processed_message.content)
             result = await self.engine_manager.use_engine(command, session_id)
             

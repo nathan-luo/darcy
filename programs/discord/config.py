@@ -29,7 +29,7 @@ class DiscordBotConfig(ApplicationConfig):
     name: str = "Discord AI Bot"
     description: str = "A Discord bot with AI capabilities"
     enable_tracing: bool = False
-    enable_console_handler: bool = True
+    enable_console_handler: bool = False
 
     # OpenAI configuration
     model: str = "gpt-4o"
@@ -37,12 +37,12 @@ class DiscordBotConfig(ApplicationConfig):
     # Discord configuration
     max_response_length: int = 1900
     bot_key: str = ''
-    bot_id: int = 1344539668573716520
+    bot_id: int = 1358692586000355409
 
     @classmethod
     def load_from_env(cls) -> 'DiscordBotConfig':
         """Load configuration from environment variables."""
         dotenv.load_dotenv()
         config = cls()
-        config.bot_key = os.getenv("DARCY_KEY")
+        config.bot_key = os.getenv("DARYL_KEY")
         return config 

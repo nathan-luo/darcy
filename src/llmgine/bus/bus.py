@@ -183,12 +183,12 @@ class MessageBus:
 
         if command_type in self._command_handlers[session_id]:
             raise ValueError(
-                f"Command handler for {command_type.__name__} already registered in session {session_id}"
+                f"Command handler for {command_type} already registered in session {session_id}"
             )
 
         self._command_handlers[session_id][command_type] = async_handler
         logger.debug(
-            f"Registered command handler for {command_type.__name__} in session {session_id}"
+            f"Registered command handler for {command_type} in session {session_id}"
         )  # TODO test
 
     def register_event_handler(
@@ -212,7 +212,7 @@ class MessageBus:
         async_handler = self._wrap_handler_as_async(handler)
         self._event_handlers[session_id][event_type].append(async_handler)
         logger.debug(
-            f"Registered event handler for {event_type.__name__} in session {session_id}"
+            f"Registered event handler for {event_type} in session {session_id}"
         )
 
     def unregister_session_handlers(self, session_id: str) -> None:
@@ -254,7 +254,7 @@ class MessageBus:
             if command_type in self._command_handlers[session_id]:
                 del self._command_handlers[session_id][command_type]
                 logger.debug(
-                    f"Unregistered command handler for {command_type.__name__} in session {session_id}"
+                    f"Unregistered command handler for {command_type} in session {session_id}"
                 )
         else:
             raise ValueError(
@@ -274,7 +274,7 @@ class MessageBus:
             if event_type in self._event_handlers[session_id]:
                 del self._event_handlers[session_id][event_type]
                 logger.debug(
-                    f"Unregistered event handler for {event_type.__name__} in session {session_id}"
+                    f"Unregistered event handler for {event_type} in session {session_id}"
                 )
         else:
             raise ValueError(f"No event handlers to unregister for session {session_id}")
@@ -401,7 +401,7 @@ class MessageBus:
                 if event_type in self._event_handlers["ROOT"]:
                     handlers.extend(self._event_handlers["ROOT"][event_type])
                     logger.warning(
-                        f"Defaulting to ROOT event handler for {event_type.__name__} in session {event.session_id}"
+                        f"Defaulting to ROOT event handler for {event_type} in session {event.session_id}"
                     )
 
         # handle root handlers
@@ -414,23 +414,24 @@ class MessageBus:
             if event_type in self._event_handlers["GLOBAL"]:
                 handlers.extend(self._event_handlers["GLOBAL"][event_type])
             logger.info(
-                f"Using GLOBAL event handlers {self._event_handlers['GLOBAL']} for {event_type.__name__} in session{event.session_id}"
+                f"Using GLOBAL event handlers {self._event_handlers['GLOBAL']} for {event_type} in session{event.session_id}"
             )
 
         if not handlers:
-            logger.warning(f"No handler registered for event type {event_type.__name__}")
+            logger.warning(f"No handler registered for event type {event_type}")
             return
 
         for handler in self._observability_handlers:
             try:
                 await handler.handle(event)
             except Exception as e:
+                print(e)
                 logger.exception(
-                    f"Error in observability handler {handler.__name__}: {e} for event {event_type.__name__} in session {event.session_id}"
+                    f"Error in observability handler {handler.__name__}: {e} for event {event_type} in session {event.session_id}"
                 )
 
         logger.debug(
-            f"Dispatching event {event_type.__name__} in session {event.session_id} to {len(handlers)} handlers"
+            f"Dispatching event {event_type} in session {event.session_id} to {len(handlers)} handlers"
         )
         tasks = [asyncio.create_task(handler(event)) for handler in handlers]
         results = await asyncio.gather(*tasks, return_exceptions=True)
@@ -439,7 +440,7 @@ class MessageBus:
                 self.event_handler_errors.append(result)
                 handler_name = getattr(handlers[i], "__qualname__", repr(handlers[i]))
                 logger.exception(
-                    f"Error in handler '{handler_name}' for {event_type.__name__}: {result}"
+                    f"Error in handler '{handler_name}' for {event_type}: {result}"
                 )
                 if not self._surpress_event_errors:
                     raise result
