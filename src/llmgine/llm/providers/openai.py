@@ -53,46 +53,21 @@ class OpenAIResponse(LLMResponse):
 
 
 class OpenAIProvider(LLMProvider):
-    def __init__(self, api_key: str, base_url: str, model: str) -> None:
+    def __init__(self, api_key: str, model: str) -> None:
         self.model = model
-        self.client = AsyncOpenAI(api_key=api_key, base_url=base_url)
+        self.base_url = "https://api.openai.com/v1"
+        self.client = AsyncOpenAI(api_key=api_key, base_url=self.base_url)
         self.bus = MessageBus()
 
     async def generate(
         self,
-        context: List[Dict],
-        tools: Optional[List[Dict]] = None,
-        tool_choice: Union[Literal["auto", "none", "required"], Dict] = "auto",
-        parallel_tool_calls: bool = False,
-        temperature: float = 0.7,
-        max_completion_tokens: int = 5068,
-        response_format: Optional[Dict] = None,
-        reasoning_effort: Optional[Literal["low", "medium", "high"]] = None,
         test: bool = False,
         **kwargs: Any,
     ) -> LLMResponse:
-        # id = str(uuid.uuid4())
-        payload = {
-            "model": self.model,
-            "messages": context,
-            "temperature": temperature,
-            "max_completion_tokens": max_completion_tokens,
-        }
 
-        if tools:
-            payload["tools"] = tools
-            payload["tool_choice"] = tool_choice
-            payload["parallel_tool_calls"] = parallel_tool_calls
-
-        if response_format:
-            payload["response_format"] = response_format
-
-        if reasoning_effort:
-            payload["reasoning_effort"] = reasoning_effort
-        payload.update(**kwargs)
         # self.bus.emit(LLMCallEvent(id=id, provider=Providers.OPENAI, payload=payload))
         try:
-            response = await self.client.chat.completions.create(**payload)
+            response = await self.client.chat.completions.create(**kwargs)
         except Exception as e:
             # self.bus.emit(LLMResponseEvent(call_id=id, provider=Providers.OPENAI, response=e))
             raise e
