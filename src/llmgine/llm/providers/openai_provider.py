@@ -52,12 +52,9 @@ class OpenAIResponse(LLMResponse):
 
 
 class OpenAIProvider(LLMProvider):
-    def __init__(self, api_key: str, model: str, base_url: Optional[str] = None) -> None:
+    def __init__(self, api_key: str, model: str) -> None:
         self.model = model
-        if base_url:
-            self.client = AsyncOpenAI(api_key=api_key, base_url=base_url)
-        else:
-            self.client = AsyncOpenAI(api_key=api_key)
+        self.client = AsyncOpenAI(api_key=api_key)
         self.bus = MessageBus()
 
     async def generate(

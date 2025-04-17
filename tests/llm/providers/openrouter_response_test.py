@@ -20,13 +20,13 @@ if such file exists, the tests will not make real api call to the OpenAI API.
 import pytest
 import os
 import json
-from openai.types.chat import ChatCompletion
-from llmgine.llm.providers.openai_provider import OpenAIProvider
+import icecream as ic
+
+from llmgine.llm.providers.openrouter import OpenRouterProvider
 from tests.llm.providers.utils import (
     get_saved_response,
     save_response_chat_completion,
 )
-
 # =================== TEST TOOLS ===================
 
 TOOLS = [
@@ -70,53 +70,29 @@ TOOLS = [
 
 
 @pytest.fixture
-def openai_provider_4o_mini():
-    return OpenAIProvider(
-        api_key=os.environ.get("OPENAI_API_KEY"),
-        model="gpt-4o-mini",
+def openrouter_lambda_provider_deepseek_v3():
+    return OpenRouterProvider(
+        api_key=os.environ.get("OPENROUTER_API_KEY"),
+        model="openai/gpt-4.1",
     )
 
 
 @pytest.fixture
-def openai_provider_o3_mini():
-    return OpenAIProvider(
-        api_key=os.environ.get("OPENAI_API_KEY"),
-        model="o3-mini-2025-01-31",
+def openrouter_gemini_provider_20_flash():
+    return OpenRouterProvider(
+        api_key=os.environ.get("OPENROUTER_API_KEY"),
+        model="google/gemini-2.0-flash-001",
+        provider="Google",
     )
 
 
 @pytest.mark.asyncio
-async def test_normal_call_o3_mini(openai_provider_o3_mini):
-    parsed_response = get_saved_response("test_normal_call_o3_mini", "openai_responses")
+async def test_normal_call_deepseek_v3(openrouter_lambda_provider_deepseek_v3):
+    parsed_response = get_saved_response(
+        "test_normal_call_deepseek_v3", "openrouter_responses"
+    )
     if parsed_response is None:
-        response = await openai_provider_o3_mini.generate(
-            context=[
-                {"role": "developer", "content": "You are a helpful assistant."},
-                {"role": "user", "content": "Hello, how are you?"},
-            ],
-            reasoning_effort="low",
-            temperature=None,
-            test=True,
-        )
-
-        save_response_chat_completion(
-            "test_normal_call_o3_mini", response, "openai_responses"
-        )
-        parsed_response = get_saved_response(
-            "test_normal_call_o3_mini", "openai_responses"
-        )
-
-    # checks
-    assert parsed_response is not None
-    assert parsed_response["choices"][0]["message"]["content"] is not None
-    assert parsed_response["choices"][0]["finish_reason"] == "stop"
-
-
-@pytest.mark.asyncio
-async def test_normal_call_4o_mini(openai_provider_4o_mini):
-    parsed_response = get_saved_response("test_normal_call_4o_mini", "openai_responses")
-    if parsed_response is None:
-        response = await openai_provider_4o_mini.generate(
+        response = await openrouter_lambda_provider_deepseek_v3.generate(
             context=[
                 {"role": "developer", "content": "You are a helpful assistant."},
                 {"role": "user", "content": "Hello, how are you?"},
@@ -124,12 +100,11 @@ async def test_normal_call_4o_mini(openai_provider_4o_mini):
             temperature=0.5,
             test=True,
         )
-
         save_response_chat_completion(
-            "test_normal_call_4o_mini", response, "openai_responses"
+            "test_normal_call_deepseek_v3", response, "openrouter_responses"
         )
         parsed_response = get_saved_response(
-            "test_normal_call_4o_mini", "openai_responses"
+            "test_normal_call_deepseek_v3", "openrouter_responses"
         )
 
     # checks
@@ -139,9 +114,9 @@ async def test_normal_call_4o_mini(openai_provider_4o_mini):
 
 
 @pytest.mark.asyncio
-async def test_error_4o_mini(openai_provider_4o_mini):
+async def test_error_deepseek_v3(openrouter_lambda_provider_deepseek_v3):
     with pytest.raises(Exception) as e:
-        await openai_provider_4o_mini.generate(
+        await openrouter_lambda_provider_deepseek_v3.generate(
             context=[
                 {"role": "developer", "message": "You are a helpful assistant."},
                 {"role": "user", "message": "Hello, how are you?"},
@@ -149,29 +124,34 @@ async def test_error_4o_mini(openai_provider_4o_mini):
             test=True,
         )
 
-    assert "Error code: 400" in str(e.value)
+    assert "Error code" in str(e.value)
 
 
 @pytest.mark.asyncio
-async def test_default_tool_call_4o_mini(openai_provider_4o_mini):
-    parsed_response = get_saved_response(
-        "test_default_tool_call_4o_mini", "openai_responses"
-    )
+async def test_default_tool_call_deepseek_v3(openrouter_lambda_provider_deepseek_v3):
+    # parsed_response = get_saved_response(
+    #     "test_default_tool_call_deepseek_v3", "openrouter_responses"
+    # )
+    parsed_response = None
     if parsed_response is None:
-        response = await openai_provider_4o_mini.generate(
+        response = await openrouter_lambda_provider_deepseek_v3.generate(
             context=[
                 {"role": "developer", "content": "You are a helpful assistant."},
-                {"role": "user", "content": "Hello, what's the weather today in Tokyo?"},
+                {
+                    "role": "user",
+                    "content": "Hello, what's the weather today in Tokyo, use your tools.",
+                },
             ],
             tools=TOOLS,
+            tool_choice="required",
             test=True,
         )
-
+        print(response)
         save_response_chat_completion(
-            "test_default_tool_call_4o_mini", response, "openai_responses"
+            "test_default_tool_call_deepseek_v3", response, "openrouter_responses"
         )
         parsed_response = get_saved_response(
-            "test_default_tool_call_4o_mini", "openai_responses"
+            "test_default_tool_call_deepseek_v3", "openrouter_responses"
         )
 
     # checks
@@ -184,12 +164,48 @@ async def test_default_tool_call_4o_mini(openai_provider_4o_mini):
 
 
 @pytest.mark.asyncio
-async def test_parallel_tool_call_4o_mini(openai_provider_4o_mini):
+async def test_default_tool_call_gemini_20_flash(
+    openrouter_gemini_provider_20_flash,
+):
     parsed_response = get_saved_response(
-        "test_parallel_tool_call_4o_mini", "openai_responses"
+        "test_default_tool_call_gemini_20_flash", "openrouter_responses"
     )
     if parsed_response is None:
-        response = await openai_provider_4o_mini.generate(
+        response = await openrouter_gemini_provider_20_flash.generate(
+            context=[
+                {"role": "developer", "content": "You are a helpful assistant."},
+                {
+                    "role": "user",
+                    "content": "Hello, what's the weather today in Tokyo, use your tools.",
+                },
+            ],
+            tools=TOOLS,
+            test=True,
+        )
+        print(response)
+        save_response_chat_completion(
+            "test_default_tool_call_gemini_20_flash", response, "openrouter_responses"
+        )
+        parsed_response = get_saved_response(
+            "test_default_tool_call_gemini_20_flash", "openrouter_responses"
+        )
+
+    # checks
+    assert parsed_response is not None
+    assert parsed_response["choices"][0]["message"]["tool_calls"] is not None
+    assert (
+        parsed_response["choices"][0]["message"]["tool_calls"][0]["function"]["name"]
+        == "get_weather"
+    )
+
+
+@pytest.mark.asyncio
+async def test_parallel_tool_call_deepseek_v3(openrouter_lambda_provider_deepseek_v3):
+    parsed_response = get_saved_response(
+        "test_parallel_tool_call_deepseek_v3", "openrouter_responses"
+    )
+    if parsed_response is None:
+        response = await openrouter_lambda_provider_deepseek_v3.generate(
             context=[
                 {"role": "developer", "content": "You are a helpful assistant."},
                 {
@@ -203,10 +219,10 @@ async def test_parallel_tool_call_4o_mini(openai_provider_4o_mini):
         )
 
         save_response_chat_completion(
-            "test_parallel_tool_call_4o_mini", response, "openai_responses"
+            "test_parallel_tool_call_deepseek_v3", response, "openrouter_responses"
         )
         parsed_response = get_saved_response(
-            "test_parallel_tool_call_4o_mini", "openai_responses"
+            "test_parallel_tool_call_deepseek_v3", "openrouter_responses"
         )
 
     # checks
@@ -224,10 +240,12 @@ async def test_parallel_tool_call_4o_mini(openai_provider_4o_mini):
 
 
 @pytest.mark.asyncio
-async def test_max_tokens_4o_mini(openai_provider_4o_mini):
-    parsed_response = get_saved_response("test_max_tokens_4o_mini", "openai_responses")
+async def test_max_tokens_deepseek_v3(openrouter_lambda_provider_deepseek_v3):
+    parsed_response = get_saved_response(
+        "test_max_tokens_deepseek_v3", "openrouter_responses"
+    )
     if parsed_response is None:
-        response = await openai_provider_4o_mini.generate(
+        response = await openrouter_lambda_provider_deepseek_v3.generate(
             context=[
                 {"role": "developer", "content": "You are a helpful assistant."},
                 {"role": "user", "content": "Hello, what's the weather today in Tokyo?"},
@@ -237,10 +255,10 @@ async def test_max_tokens_4o_mini(openai_provider_4o_mini):
         )
 
         save_response_chat_completion(
-            "test_max_tokens_4o_mini", response, "openai_responses"
+            "test_max_tokens_deepseek_v3", response, "openrouter_responses"
         )
         parsed_response = get_saved_response(
-            "test_max_tokens_4o_mini", "openai_responses"
+            "test_max_tokens_deepseek_v3", "openrouter_responses"
         )
 
     # checks
@@ -251,12 +269,12 @@ async def test_max_tokens_4o_mini(openai_provider_4o_mini):
 
 
 @pytest.mark.asyncio
-async def test_tool_choice_auto_4o_mini(openai_provider_4o_mini):
+async def test_tool_choice_auto_deepseek_v3(openrouter_lambda_provider_deepseek_v3):
     parsed_response = get_saved_response(
-        "test_tool_choice_auto_4o_mini", "openai_responses"
+        "test_tool_choice_auto_deepseek_v3", "openrouter_responses"
     )
     if parsed_response is None:
-        response = await openai_provider_4o_mini.generate(
+        response = await openrouter_lambda_provider_deepseek_v3.generate(
             context=[
                 {"role": "developer", "content": "You are a helpful assistant."},
                 {"role": "user", "content": "Hello, what's the weather today in Tokyo?"},
@@ -267,10 +285,10 @@ async def test_tool_choice_auto_4o_mini(openai_provider_4o_mini):
         )
 
         save_response_chat_completion(
-            "test_tool_choice_auto_4o_mini", response, "openai_responses"
+            "test_tool_choice_auto_deepseek_v3", response, "openrouter_responses"
         )
         parsed_response = get_saved_response(
-            "test_tool_choice_auto_4o_mini", "openai_responses"
+            "test_tool_choice_auto_deepseek_v3", "openrouter_responses"
         )
 
     # checks
@@ -284,12 +302,12 @@ async def test_tool_choice_auto_4o_mini(openai_provider_4o_mini):
 
 
 @pytest.mark.asyncio
-async def test_tool_choice_none_4o_mini(openai_provider_4o_mini):
+async def test_tool_choice_none_deepseek_v3(openrouter_lambda_provider_deepseek_v3):
     parsed_response = get_saved_response(
-        "test_tool_choice_none_4o_mini", "openai_responses"
+        "test_tool_choice_none_deepseek_v3", "openrouter_responses"
     )
     if parsed_response is None:
-        response = await openai_provider_4o_mini.generate(
+        response = await openrouter_lambda_provider_deepseek_v3.generate(
             context=[
                 {"role": "developer", "content": "You are a helpful assistant."},
                 {"role": "user", "content": "Hello, what's the weather today in Tokyo?"},
@@ -299,10 +317,10 @@ async def test_tool_choice_none_4o_mini(openai_provider_4o_mini):
         )
 
         save_response_chat_completion(
-            "test_tool_choice_none_4o_mini", response, "openai_responses"
+            "test_tool_choice_none_deepseek_v3", response, "openrouter_responses"
         )
         parsed_response = get_saved_response(
-            "test_tool_choice_none_4o_mini", "openai_responses"
+            "test_tool_choice_none_deepseek_v3", "openrouter_responses"
         )
 
     # checks
@@ -312,12 +330,12 @@ async def test_tool_choice_none_4o_mini(openai_provider_4o_mini):
 
 
 @pytest.mark.asyncio
-async def test_tool_choice_required_4o_mini(openai_provider_4o_mini):
+async def test_tool_choice_required_deepseek_v3(openrouter_lambda_provider_deepseek_v3):
     parsed_response = get_saved_response(
-        "test_tool_choice_required_4o_mini", "openai_responses"
+        "test_tool_choice_required_deepseek_v3", "openrouter_responses"
     )
     if parsed_response is None:
-        response = await openai_provider_4o_mini.generate(
+        response = await openrouter_lambda_provider_deepseek_v3.generate(
             context=[
                 {"role": "developer", "content": "You are a helpful assistant."},
                 {"role": "user", "content": "Hello, how's your day going?"},
@@ -328,10 +346,10 @@ async def test_tool_choice_required_4o_mini(openai_provider_4o_mini):
         )
 
         save_response_chat_completion(
-            "test_tool_choice_required_4o_mini", response, "openai_responses"
+            "test_tool_choice_required_deepseek_v3", response, "openrouter_responses"
         )
         parsed_response = get_saved_response(
-            "test_tool_choice_required_4o_mini", "openai_responses"
+            "test_tool_choice_required_deepseek_v3", "openrouter_responses"
         )
 
     # checks
@@ -345,12 +363,12 @@ async def test_tool_choice_required_4o_mini(openai_provider_4o_mini):
 
 
 @pytest.mark.asyncio
-async def test_deterministic_response_4o_mini(openai_provider_4o_mini):
+async def test_deterministic_response_deepseek_v3(openrouter_lambda_provider_deepseek_v3):
     parsed_response = get_saved_response(
-        "test_deterministic_response_4o_mini", "openai_responses"
+        "test_deterministic_response_deepseek_v3", "openrouter_responses"
     )
     if parsed_response is None:
-        response = await openai_provider_4o_mini.generate(
+        response = await openrouter_lambda_provider_deepseek_v3.generate(
             context=[
                 {"role": "developer", "content": "You are a helpful assistant."},
                 {"role": "user", "content": "How's your day going?"},
@@ -360,14 +378,14 @@ async def test_deterministic_response_4o_mini(openai_provider_4o_mini):
         )
 
         save_response_chat_completion(
-            "test_deterministic_response_4o_mini", response, "openai_responses"
+            "test_deterministic_response_deepseek_v3", response, "openrouter_responses"
         )
         parsed_response = get_saved_response(
-            "test_deterministic_response_4o_mini", "openai_responses"
+            "test_deterministic_response_deepseek_v3", "openrouter_responses"
         )
 
     # Get another response with the same prompt
-    response = await openai_provider_4o_mini.generate(
+    response = await openrouter_lambda_provider_deepseek_v3.generate(
         context=[
             {"role": "developer", "content": "You are a helpful assistant."},
             {"role": "user", "content": "How's your day going?"},

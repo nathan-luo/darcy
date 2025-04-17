@@ -11,7 +11,6 @@ from typing import Any, Dict, List, Optional, ForwardRef, TYPE_CHECKING
 import uuid
 import inspect
 
-from llmgine.llm.tools.types import ToolCall
 from llmgine.messages.commands import Command, CommandResult
 
 
