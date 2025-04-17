@@ -93,7 +93,7 @@ async def test_normal_call_deepseek_v3(openrouter_lambda_provider_deepseek_v3):
     )
     if parsed_response is None:
         response = await openrouter_lambda_provider_deepseek_v3.generate(
-            context=[
+            messages=[
                 {"role": "developer", "content": "You are a helpful assistant."},
                 {"role": "user", "content": "Hello, how are you?"},
             ],
@@ -117,7 +117,7 @@ async def test_normal_call_deepseek_v3(openrouter_lambda_provider_deepseek_v3):
 async def test_error_deepseek_v3(openrouter_lambda_provider_deepseek_v3):
     with pytest.raises(Exception) as e:
         await openrouter_lambda_provider_deepseek_v3.generate(
-            context=[
+            messages=[
                 {"role": "developer", "message": "You are a helpful assistant."},
                 {"role": "user", "message": "Hello, how are you?"},
             ],
@@ -135,7 +135,7 @@ async def test_default_tool_call_deepseek_v3(openrouter_lambda_provider_deepseek
     parsed_response = None
     if parsed_response is None:
         response = await openrouter_lambda_provider_deepseek_v3.generate(
-            context=[
+            messages=[
                 {"role": "developer", "content": "You are a helpful assistant."},
                 {
                     "role": "user",
@@ -172,7 +172,7 @@ async def test_default_tool_call_gemini_20_flash(
     )
     if parsed_response is None:
         response = await openrouter_gemini_provider_20_flash.generate(
-            context=[
+            messages=[
                 {"role": "developer", "content": "You are a helpful assistant."},
                 {
                     "role": "user",
@@ -206,7 +206,7 @@ async def test_parallel_tool_call_deepseek_v3(openrouter_lambda_provider_deepsee
     )
     if parsed_response is None:
         response = await openrouter_lambda_provider_deepseek_v3.generate(
-            context=[
+            messages=[
                 {"role": "developer", "content": "You are a helpful assistant."},
                 {
                     "role": "user",
@@ -246,7 +246,7 @@ async def test_max_tokens_deepseek_v3(openrouter_lambda_provider_deepseek_v3):
     )
     if parsed_response is None:
         response = await openrouter_lambda_provider_deepseek_v3.generate(
-            context=[
+            messages=[
                 {"role": "developer", "content": "You are a helpful assistant."},
                 {"role": "user", "content": "Hello, what's the weather today in Tokyo?"},
             ],
@@ -275,7 +275,7 @@ async def test_tool_choice_auto_deepseek_v3(openrouter_lambda_provider_deepseek_
     )
     if parsed_response is None:
         response = await openrouter_lambda_provider_deepseek_v3.generate(
-            context=[
+            messages=[
                 {"role": "developer", "content": "You are a helpful assistant."},
                 {"role": "user", "content": "Hello, what's the weather today in Tokyo?"},
             ],
@@ -308,7 +308,7 @@ async def test_tool_choice_none_deepseek_v3(openrouter_lambda_provider_deepseek_
     )
     if parsed_response is None:
         response = await openrouter_lambda_provider_deepseek_v3.generate(
-            context=[
+            messages=[
                 {"role": "developer", "content": "You are a helpful assistant."},
                 {"role": "user", "content": "Hello, what's the weather today in Tokyo?"},
             ],
@@ -336,7 +336,7 @@ async def test_tool_choice_required_deepseek_v3(openrouter_lambda_provider_deeps
     )
     if parsed_response is None:
         response = await openrouter_lambda_provider_deepseek_v3.generate(
-            context=[
+            messages=[
                 {"role": "developer", "content": "You are a helpful assistant."},
                 {"role": "user", "content": "Hello, how's your day going?"},
             ],
@@ -369,7 +369,7 @@ async def test_deterministic_response_deepseek_v3(openrouter_lambda_provider_dee
     )
     if parsed_response is None:
         response = await openrouter_lambda_provider_deepseek_v3.generate(
-            context=[
+            messages=[
                 {"role": "developer", "content": "You are a helpful assistant."},
                 {"role": "user", "content": "How's your day going?"},
             ],
@@ -386,7 +386,7 @@ async def test_deterministic_response_deepseek_v3(openrouter_lambda_provider_dee
 
     # Get another response with the same prompt
     response = await openrouter_lambda_provider_deepseek_v3.generate(
-        context=[
+        messages=[
             {"role": "developer", "content": "You are a helpful assistant."},
             {"role": "user", "content": "How's your day going?"},
         ],
