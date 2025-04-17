@@ -122,14 +122,15 @@ class OpenRouterProvider(LLMProvider):
     ) -> None:
         self.model = model
         self.provider = provider
+        self.base_url = "https://openrouter.ai/api/v1"
         self.client = AsyncOpenAI(
-            api_key=api_key, base_url="https://openrouter.ai/api/v1"
+            api_key=api_key, base_url=self.base_url
         )
         self.bus = MessageBus()
 
     async def generate(
         self,
-        context: List[Dict],
+        messages: List[Dict],
         tools: Optional[List[Dict]] = None,
         tool_choice: Union[Literal["auto", "none", "required"], Dict] = "auto",
         temperature: float = 0.7,
@@ -145,7 +146,7 @@ class OpenRouterProvider(LLMProvider):
         # id = str(uuid.uuid4())
         payload = {
             "model": self.model,
-            "messages": context,
+            "messages": messages,
             "max_completion_tokens": max_completion_tokens,
         }
 
@@ -158,12 +159,14 @@ class OpenRouterProvider(LLMProvider):
                 }
             }
 
-        if temperature is not None:
+        if temperature:
             payload["temperature"] = temperature
 
         if tools:
             payload["tools"] = tools
-            payload["tool_choice"] = tool_choice
+
+            if tool_choice:
+                payload["tool_choice"] = tool_choice
 
         if response_format:
             payload["response_format"] = response_format

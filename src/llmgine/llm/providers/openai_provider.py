@@ -54,16 +54,17 @@ class OpenAIResponse(LLMResponse):
 class OpenAIProvider(LLMProvider):
     def __init__(self, api_key: str, model: str) -> None:
         self.model = model
-        self.client = AsyncOpenAI(api_key=api_key)
+        self.base_url = "https://api.openai.com/v1"
+        self.client = AsyncOpenAI(api_key=api_key, base_url=self.base_url)
         self.bus = MessageBus()
 
     async def generate(
         self,
-        context: List[Dict],
+        messages: List[Dict],
         tools: Optional[List[Dict]] = None,
         tool_choice: Union[Literal["auto", "none", "required"], Dict] = "auto",
-        parallel_tool_calls: bool = False,
-        temperature: float = 0.7,
+        parallel_tool_calls: Optional[bool] = None,
+        temperature: Optional[float] = None,
         max_completion_tokens: int = 5068,
         response_format: Optional[Dict] = None,
         reasoning_effort: Optional[Literal["low", "medium", "high"]] = None,
@@ -71,19 +72,25 @@ class OpenAIProvider(LLMProvider):
         **kwargs: Any,
     ) -> LLMResponse:
         # id = str(uuid.uuid4())
+
+        # construct the payload
         payload = {
             "model": self.model,
-            "messages": context,
+            "messages": messages,
             "max_completion_tokens": max_completion_tokens,
         }
 
-        if temperature is not None:
+        if temperature:
             payload["temperature"] = temperature
 
         if tools:
             payload["tools"] = tools
-            payload["tool_choice"] = tool_choice
-            payload["parallel_tool_calls"] = parallel_tool_calls
+
+            if tool_choice:
+                payload["tool_choice"] = tool_choice
+                
+            if parallel_tool_calls:
+                payload["parallel_tool_calls"] = parallel_tool_calls
 
         if response_format:
             payload["response_format"] = response_format
