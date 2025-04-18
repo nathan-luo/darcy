@@ -1,4 +1,5 @@
 import asyncio
+from types import NoneType
 import uuid
 import os
 import json
@@ -6,7 +7,8 @@ from typing import Any, Callable, Dict, List, Optional
 
 from llmgine.bus.bus import MessageBus
 from llmgine.llm.context.memory import SimpleChatHistory
-from llmgine.llm.models.openai_models import gpt_41_mini
+from llmgine.llm.models.gemini_models import Gemini25FlashPreview
+from llmgine.llm.models.openai_models import Gpt41Mini
 from llmgine.llm.providers.providers import Providers
 from llmgine.llm.tools.tool_manager import ToolManager
 from llmgine.llm.tools.types import ToolCall
@@ -90,7 +92,8 @@ class NotionCRUDEngineV2:
         self.context_manager = SimpleChatHistory(
             engine_id=self.engine_id, session_id=self.session_id
         )
-        self.llm_manager = gpt_41_mini(Providers.OPENAI)
+        # self.llm_manager = Gpt41Mini(Providers.OPENAI)
+        self.llm_manager = Gemini25FlashPreview(Providers.OPENROUTER)
         self.tool_manager = ToolManager(
             engine_id=self.engine_id, session_id=self.session_id, llm_model_name="openai"
         )
@@ -163,97 +166,97 @@ class NotionCRUDEngineV2:
                             session_id=self.session_id,
                         )
                     )
-                    return CommandResult(
-                        success=True, result=final_content
-                    )
+                    return CommandResult(success=True, result=final_content)
 
                 # 8. Process tool call
-                tool_call = response_message.tool_calls[0]
-                tool_call_obj = ToolCall(
-                    id=tool_call.id,
-                    name=tool_call.function.name,
-                    arguments=tool_call.function.arguments,
-                )
-                tool_call_count += 1
-                if tool_call_count > max_tool_calls:
+                for tool_call in response_message.tool_calls:
+                    tool_call_obj = ToolCall(
+                        id=tool_call.id,
+                        name=tool_call.function.name,
+                        arguments=tool_call.function.arguments,
+                    )
+                    tool_call_count += 1
+                    if tool_call_count > max_tool_calls:
+                        self.context_manager.store_tool_call_result(
+                            tool_call_id=tool_call_obj.id,
+                            name=tool_call_obj.name,
+                            content="The max number of tool calls has been reached. Please close these set of tool calls and inform the user. THIS CURRENT TOOL CALL WAS NOT SUCCESSFUL",
+                        )
+                        continue
+                    if tool_call_obj.name == "update_task":
+                        # patch task name and user name for confirmation request
+                        temp = json.loads(tool_call.function.arguments)
+                        if "notion_task_id" in temp:
+                            temp["notion_task_id"] = self.temp_task_lookup[
+                                temp["notion_task_id"]
+                            ]["name"]
+                        if "user_id" in temp:
+                            temp["task_in_charge"] = NOTION_TO_DISCORD_USER_MAP[
+                                temp["task_in_charge"]
+                            ]["name"]
+                        result = await self.message_bus.execute(
+                            NotionCRUDEngineConfirmationCommand(
+                                prompt=f"Updating task {temp}",
+                                session_id=self.session_id,
+                            )
+                        )
+                        if not result.result:
+                            self.context_manager.store_tool_call_result(
+                                tool_call_id=tool_call_obj.id,
+                                name=tool_call_obj.name,
+                                content="User purposefully denied tool execution, it was not successful, use this informormation in final response.",
+                            )
+                            continue
+
+                    if tool_call_obj.name == "create_task":
+                        # patch project name and user name for confirmation request
+                        temp = json.loads(tool_call.function.arguments)
+                        if "notion_project_id" in temp and temp["notion_project_id"]:
+                            temp["notion_project_id"] = self.temp_project_lookup[
+                                temp["notion_project_id"]
+                            ]
+                        temp["user_id"] = NOTION_TO_DISCORD_USER_MAP[temp["user_id"]][
+                            "name"
+                        ]
+
+                        result = await self.message_bus.execute(
+                            NotionCRUDEngineConfirmationCommand(
+                                prompt=f"Creating task {temp}",
+                                session_id=self.session_id,
+                            )
+                        )
+                        if not result.result:
+                            self.context_manager.store_tool_call_result(
+                                tool_call_id=tool_call_obj.id,
+                                name=tool_call_obj.name,
+                                content="User purposefully denied tool execution, it was not successful, use this informormation in final response.",
+                            )
+                            continue
+
+                    # Execute the tool
+                    await self.message_bus.publish(
+                        NotionCRUDEngineStatusEvent(
+                            status=f"Executing tool {tool_call_obj.name}",
+                            session_id=self.session_id,
+                        )
+                    )
+                    result = await self.tool_manager.execute_tool_call(tool_call_obj)
+                    # Convert result to string if needed for history
+                    if isinstance(result, dict):
+                        result_str = json.dumps(result)
+                    else:
+                        result_str = str(result)
+
+                    # Store tool execution result in history
                     self.context_manager.store_tool_call_result(
                         tool_call_id=tool_call_obj.id,
                         name=tool_call_obj.name,
-                        content="The max number of tool calls has been reached. Please close these set of tool calls and inform the user. THIS CURRENT TOOL CALL WAS NOT SUCCESSFUL",
+                        content=result_str,
                     )
-                    continue
-                if tool_call_obj.name == "update_task":
-                    # patch task name and user name for confirmation request
-                    temp = json.loads(tool_call.function.arguments)
-                    if "notion_task_id" in temp:
-                        temp["notion_task_id"] = self.temp_task_lookup[
-                            temp["notion_task_id"]
-                        ]["name"]
-                    if "user_id" in temp:
-                        temp["task_in_charge"] = NOTION_TO_DISCORD_USER_MAP[
-                            temp["task_in_charge"]
-                        ]["name"]
-                    result = await self.message_bus.execute(
-                        NotionCRUDEngineConfirmationCommand(
-                            prompt=f"Updating task {temp}",
-                            session_id=self.session_id,
-                        )
-                    )
-                    if not result.result:
-                        self.context_manager.store_tool_call_result(
-                            tool_call_id=tool_call_obj.id,
-                            name=tool_call_obj.name,
-                            content="User purposefully denied tool execution, use this informormation in final response.",
-                        )
-                        continue
-
-                if tool_call_obj.name == "create_task":
-                    # patch project name and user name for confirmation request
-                    temp = json.loads(tool_call.function.arguments)
-                    if "notion_project_id" in temp and temp["notion_project_id"]:
-                        temp["notion_project_id"] = self.temp_project_lookup[
-                            temp["notion_project_id"]
-                        ]
-                    temp["user_id"] = NOTION_TO_DISCORD_USER_MAP[temp["user_id"]]["name"]
-
-                    result = await self.message_bus.execute(
-                        NotionCRUDEngineConfirmationCommand(
-                            prompt=f"Creating task {temp}",
-                            session_id=self.session_id,
-                        )
-                    )
-                    if not result.result:
-                        self.context_manager.store_tool_call_result(
-                            tool_call_id=tool_call_obj.id,
-                            name=tool_call_obj.name,
-                            content="User purposefully denied tool execution, use this informormation in final response.",
-                        )
-                        continue
-
-                # Execute the tool
-                await self.message_bus.publish(
-                    NotionCRUDEngineStatusEvent(
-                        status=f"Executing tool {tool_call_obj.name}",
-                        session_id=self.session_id,
-                    )
-                )
-                result = await self.tool_manager.execute_tool_call(tool_call_obj)
-                # Convert result to string if needed for history
-                if isinstance(result, dict):
-                    result_str = json.dumps(result)
-                else:
-                    result_str = str(result)
-
-                # Store tool execution result in history
-                self.context_manager.store_tool_call_result(
-                    tool_call_id=tool_call_obj.id,
-                    name=tool_call_obj.name,
-                    content=result_str,
-                )
-                if tool_call_obj.name == "get_active_projects":
-                    self.temp_project_lookup = result
-                elif tool_call_obj.name == "get_active_tasks":
-                    self.temp_task_lookup = result
+                    if tool_call_obj.name == "get_active_projects":
+                        self.temp_project_lookup = result
+                    elif tool_call_obj.name == "get_active_tasks":
+                        self.temp_task_lookup = result
         except Exception as e:
             print(e)
             return CommandResult(success=False, error=str(e))
