@@ -42,7 +42,7 @@ class DiscordBotConfig(ApplicationConfig):
     @classmethod
     def load_from_env(cls) -> 'DiscordBotConfig':
         """Load configuration from environment variables."""
-        dotenv.load_dotenv()
+        dotenv.load_dotenv(override=True)
         config = cls()
         config.bot_key = os.getenv("DARYL_KEY")
         return config 

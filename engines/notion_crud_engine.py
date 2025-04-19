@@ -12,7 +12,7 @@ from llmgine.llm.tools.types import ToolCall
 from llmgine.messages.commands import Command, CommandResult
 from llmgine.messages.events import LLMResponse, Event
 from dataclasses import dataclass, field
-from llmgine.notion.notion import (
+from tools.notion.notion import (
     get_all_users,
     get_active_tasks,
     get_active_projects,
@@ -20,7 +20,7 @@ from llmgine.notion.notion import (
     update_task,
 )
 
-from src.llmgine.notion.data import NOTION_TO_DISCORD_USER_MAP, DISCORD_TO_NOTION_USER_MAP
+from tools.notion.data import NOTION_TO_DISCORD_USER_MAP, DISCORD_TO_NOTION_USER_MAP
 
 
 @dataclass
