@@ -15,7 +15,7 @@ from llmgine.llm.tools.types import ToolCall
 from llmgine.messages.commands import Command, CommandResult
 from llmgine.messages.events import Event
 from dataclasses import dataclass, field
-from llmgine.notion.notion import (
+from tools.notion.notion import (
     get_all_users,
     get_active_tasks,
     get_active_projects,
@@ -23,7 +23,7 @@ from llmgine.notion.notion import (
     update_task,
 )
 
-from src.llmgine.notion.data import NOTION_TO_DISCORD_USER_MAP, DISCORD_TO_NOTION_USER_MAP
+from tools.notion.data import NOTION_TO_DISCORD_USER_MAP, DISCORD_TO_NOTION_USER_MAP
 
 
 @dataclass
@@ -45,7 +45,6 @@ class NotionCRUDEngineStatusEvent(Event):
     """Event emitted when a status update is needed."""
 
     status: str = ""
-
 
 @dataclass
 class NotionCRUDEnginePromptResponseEvent(Event):
