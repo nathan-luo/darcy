@@ -261,3 +261,8 @@ my_llm_app/
 ## License
 
 *(Add license information here)*
+
+
+## Run with 
+
+uv run programs/discord/bot.py
