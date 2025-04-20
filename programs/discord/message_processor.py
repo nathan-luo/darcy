@@ -17,7 +17,11 @@ from session_manager import SessionManager
 # Add the parent directory to the path so we can import from sibling directories
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../.."))
 
-from tools.notion.data import DISCORD_TO_NOTION_USER_MAP
+from tools.notion.data import (
+    get_user_from_discord_id,
+    discord_user_id_type,
+    UserData,
+)
 
 class MessageProcessor:
     def __init__(self, config: DiscordBotConfig, session_manager: SessionManager):
@@ -49,15 +53,24 @@ class MessageProcessor:
         for user_mention in user_mentions:
             if user_mention == self.config.bot_id:
                 continue
-            mentions_payload.append({
-                user_mention: DISCORD_TO_NOTION_USER_MAP[str(user_mention)]
-            })
+            discord_id = discord_user_id_type(str(user_mention))
+            user_data: UserData | None = get_user_from_discord_id(discord_id)
+            if user_data:
+                mentions_payload.append({discord_id: user_data.notion_id})
+            else:
+                mentions_payload.append({discord_id: "Unknown Notion ID"})
         return str(mentions_payload)
 
     def _create_author_payload(self, message: discord.Message) -> str:
         """Create payload for the message author."""
+        author_discord_id = discord_user_id_type(str(message.author.id))
+        author_data: UserData | None = get_user_from_discord_id(author_discord_id)
+        author_notion_id = "Unknown Notion ID"
+        if author_data:
+            author_notion_id = author_data.notion_id
+
         return "The Author of this message is:" + str({
-            message.author.id: DISCORD_TO_NOTION_USER_MAP[str(message.author.id)]
+            author_discord_id: author_notion_id
         })
 
     async def _get_chat_history(self, message: discord.Message) -> str:

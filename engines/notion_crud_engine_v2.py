@@ -23,7 +23,11 @@ from tools.notion.notion import (
     update_task,
 )
 
-from tools.notion.data import NOTION_TO_DISCORD_USER_MAP, DISCORD_TO_NOTION_USER_MAP
+from tools.notion.data import (
+    get_user_from_notion_id,
+    notion_user_id_type,
+    UserData,
+)
 
 
 @dataclass
@@ -190,9 +194,11 @@ class NotionCRUDEngineV2:
                                 temp["notion_task_id"]
                             ]["name"]
                         if "user_id" in temp:
-                            temp["task_in_charge"] = NOTION_TO_DISCORD_USER_MAP[
-                                temp["task_in_charge"]
-                            ]["name"]
+                            # AI : Get user data using the new function
+                            notion_id = notion_user_id_type(temp["task_in_charge"]) # AI : Type cast
+                            user_data: UserData | None = get_user_from_notion_id(notion_id)
+                            # AI : Use user name if found, otherwise keep original or indicate unknown
+                            temp["task_in_charge"] = user_data.name if user_data else "Unknown User"
                         result = await self.message_bus.execute(
                             NotionCRUDEngineConfirmationCommand(
                                 prompt=f"Updating task {temp}",
@@ -214,9 +220,11 @@ class NotionCRUDEngineV2:
                             temp["notion_project_id"] = self.temp_project_lookup[
                                 temp["notion_project_id"]
                             ]
-                        temp["user_id"] = NOTION_TO_DISCORD_USER_MAP[temp["user_id"]][
-                            "name"
-                        ]
+                        # AI : Get user data using the new function
+                        notion_id = notion_user_id_type(temp["user_id"]) # AI : Type cast
+                        user_data: UserData | None = get_user_from_notion_id(notion_id)
+                        # AI : Use user name if found, otherwise keep original or indicate unknown
+                        temp["user_id"] = user_data.name if user_data else "Unknown User"
 
                         result = await self.message_bus.execute(
                             NotionCRUDEngineConfirmationCommand(
