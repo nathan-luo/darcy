@@ -1,17 +1,14 @@
 [project]
-name = "llmgine"
+name = "darcy"
 version = "0.0.1"
-description = "A llm engine to build anything you can imagine."
+description = "DSCubed's General AI Agent"
 authors = [{ name = "Nathan Luo", email = "nathanluo13@gmail.com" }]
 readme = "README.md"
+requires-python = ">=3.13"
 keywords = ['python']
-requires-python = ">=3.11,<4.0"
 classifiers = [
     "Intended Audience :: Developers",
     "Programming Language :: Python",
-    "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.11",
-    "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
     "Topic :: Software Development :: Libraries :: Python Modules",
 ]
@@ -28,6 +25,7 @@ dependencies = [
     "pytest-asyncio>=0.25.3",
     "rich>=13.9.4",
     "textual>=2.1.2",
+    "llmgine @ {root:parent:uri}/llmgine",
 ]
 
 [project.urls]
@@ -54,9 +52,14 @@ dev = [
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
+[tool.hatch.build]
+packages = ["src"]
+# This tells Hatch to look for packages in the right location
+
+[tool.hatch.metadata]
+allow-direct-references = true
 
 [tool.mypy]
-files = ["src"]
 disallow_untyped_defs = true
 disallow_any_unimported = true
 no_implicit_optional = true
