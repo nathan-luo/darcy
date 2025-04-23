@@ -38,16 +38,17 @@ def validate_env_keys() :
 
   # TODO move this somewhere else
   required_keys = [
-    "OPENAI_API_KEY", 
-    "OPENROUTER_API_KEY", 
-    "NOTION_TOKEN", 
     "NOTION_API_KEY", 
     "NOTION_TESTING_DATABASE_ID", 
-    "NOTION_PRODUCTION_DATABASE_ID_TASKS", 
-    "NOTION_PRODUCTION_DATABASE_ID_PROJECTS", 
-    "TEST_SERVER_ID", 
+    "NOTION_PRODUCTION_DATABASE_ID_TASKS",
+    "NOTION_PRODUCTION_DATABASE_ID_PROJECTS",
     "DARCY_KEY", 
+    "DARCY_ID",
     "DARYL_KEY",
+    "DARYL_ID",
+    "TEST_SERVER_ID",
+    "OPENAI_API_KEY",
+    "OPENROUTER_API_KEY"
   ]
 
 
