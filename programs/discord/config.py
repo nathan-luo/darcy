@@ -16,7 +16,6 @@ from dataclasses import dataclass
 import os
 import dotenv
 import sys
-from programs.env_validate import validate_env_keys
 
 # Add the parent directory to the path so we can import from sibling directories
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../.."))
@@ -44,7 +43,6 @@ class DiscordBotConfig(ApplicationConfig):
     def load_from_env(cls) -> 'DiscordBotConfig':
         """Load configuration from environment variables."""
         dotenv.load_dotenv(override=True)
-        validate_env_keys()
         config = cls()
         config.bot_key = os.getenv("BOT_KEY")
         return config 
