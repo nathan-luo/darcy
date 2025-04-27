@@ -110,8 +110,11 @@ class NotionCRUDEngineV2:
             self.session_id, NotionCRUDEnginePromptCommand, self.handle_prompt_command
         )
 
-    async def register_tools(self):
-        await self.tool_manager.register_tools(["notion"])
+    async def register_tools(self, function_list: List[Callable]):
+        """Register tools for the engine.
+        """
+        for function in function_list:
+            await self.tool_manager.register_tool(function)
 
     async def handle_prompt_command(
         self, command: NotionCRUDEnginePromptCommand
