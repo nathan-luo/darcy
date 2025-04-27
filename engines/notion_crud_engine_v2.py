@@ -58,14 +58,18 @@ class NotionCRUDEnginePromptResponseEvent(Event):
     response: str = ""
     tool_calls: Optional[List[ToolCall]] = None
 
+@dataclass
+class NotionCRUDEngineToolResultEvent(Event):
+    """Event emitted when a tool result is generated."""
+
+    tool_name: str = ""
+    result: str = ""
 
 class NotionCRUDEngineV2:
     def __init__(
         self,
         session_id: str,
-        api_key: Optional[str] = None,
-        model: str = "gpt-4o-mini",
-        system_prompt: Optional[str] = None,
+        system_prompt: str = None,
     ):
         """Initialize the LLM engine.
 
@@ -80,16 +84,10 @@ class NotionCRUDEngineV2:
         self.message_bus = MessageBus()
         self.engine_id = str(uuid.uuid4())
         self.session_id = session_id
-        self.model = model
         self.temp_project_lookup = {}
         self.temp_task_lookup = {}
 
         # Get API key from environment if not provided
-        self.api_key = api_key or os.environ.get("OPENAI_API_KEY")
-        if not self.api_key:
-            raise ValueError(
-                "OpenAI API key must be provided or set as OPENAI_API_KEY environment variable"
-            )
 
         # Create tightly coupled components - pass the simple engine
         self.context_manager = SimpleChatHistory(
@@ -105,15 +103,10 @@ class NotionCRUDEngineV2:
         if system_prompt:
             self.context_manager.set_system_prompt(system_prompt)
 
-        # Register command handlers for this specific engine's session
-        self.message_bus.register_command_handler(
-            self.session_id, NotionCRUDEnginePromptCommand, self.handle_prompt_command
-        )
-
     async def register_tools(self):
         await self.tool_manager.register_tools(["notion"])
 
-    async def handle_prompt_command(
+    async def handle_command(
         self, command: NotionCRUDEnginePromptCommand
     ) -> CommandResult:
         """Handle a prompt command following OpenAI tool usage pattern.
@@ -133,7 +126,7 @@ class NotionCRUDEngineV2:
             # Loop for potential tool execution cycles
             while True:
                 # 2. Get current context (including latest user message or tool results)
-                current_context = self.context_manager.retrieve()
+                current_context = await self.context_manager.retrieve()
 
                 # 3. Get available tools
                 tools = await self.tool_manager.get_tools()
@@ -155,12 +148,18 @@ class NotionCRUDEngineV2:
 
                 # 6. Add the *entire* assistant message object to history.
                 # This is crucial for context if it contains tool_calls.
-                self.context_manager.store_assistant_message(response_message)
+                await self.context_manager.store_assistant_message(response_message)
 
                 # 7. Check for tool calls
                 if not response_message.tool_calls:
                     # No tool calls, break the loop and return the content
                     final_content = response_message.content or ""
+                    await self.message_bus.publish(
+                        NotionCRUDEngineStatusEvent(
+                            status="finished",
+                            session_id=self.session_id,
+                        )
+                    )
                     await self.message_bus.publish(
                         NotionCRUDEnginePromptResponseEvent(
                             prompt=command.prompt,
@@ -260,12 +259,25 @@ class NotionCRUDEngineV2:
                         name=tool_call_obj.name,
                         content=result_str,
                     )
+                    await self.message_bus.publish(
+                        NotionCRUDEngineToolResultEvent(
+                            tool_name=tool_call_obj.name,
+                            result=result,
+                            session_id=self.session_id,
+                        )
+                    )
                     if tool_call_obj.name == "get_active_projects":
                         self.temp_project_lookup = result
                     elif tool_call_obj.name == "get_active_tasks":
                         self.temp_task_lookup = result
         except Exception as e:
             print(e)
+            await self.message_bus.publish(
+                NotionCRUDEngineStatusEvent(
+                    status="finished",
+                    session_id=self.session_id,
+                )
+            )
             return CommandResult(success=False, error=str(e))
 
     async def process_message(self, message: str) -> str:
@@ -298,3 +310,30 @@ class NotionCRUDEngineV2:
             prompt: The system prompt to set
         """
         self.context_manager.set_system_prompt(prompt)
+    
+    async def register_tool(self, tool: Callable):
+        await self.tool_manager.register_tool(tool)
+
+
+
+async def main():
+    from llmgine.ui.cli.cli import EngineCLI
+    from llmgine.ui.cli.components import EngineResultComponent, ToolComponent
+    from llmgine.ui.cli.components import YesNoPrompt
+    await MessageBus().start()
+    cli = EngineCLI("test")
+    engine = NotionCRUDEngineV2(session_id="test")
+    await engine.register_tool(get_active_projects)
+    await engine.register_tool(get_active_tasks)
+    await engine.register_tool(create_task)
+    await engine.register_tool(update_task)
+    cli.register_engine(engine)
+    cli.register_engine_command(NotionCRUDEnginePromptCommand)
+    cli.register_engine_result_component(EngineResultComponent)
+    cli.register_loading_event(NotionCRUDEngineStatusEvent)
+    cli.register_component_event(NotionCRUDEngineToolResultEvent, ToolComponent)
+    cli.register_prompt_command(NotionCRUDEngineConfirmationCommand, YesNoPrompt)
+    await cli.main()
+
+if __name__ == "__main__":
+    asyncio.run(main())
