@@ -26,7 +26,8 @@ from engines.notion_crud_engine_v2 import (
     NotionCRUDEnginePromptCommand,
     NotionCRUDEngineStatusEvent,
 )
-
+from tools.notion.notion import get_active_tasks, get_active_projects, create_task, update_task, get_all_users
+from tools.gmail.gmail_client import send_email, read_emails, reply_to_email
 
 class EngineManager:
     def __init__(self, config: DiscordBotConfig, session_manager: SessionManager):
@@ -56,7 +57,16 @@ class EngineManager:
                 system_prompt=self._get_system_prompt(),
                 api_key=os.getenv("OPENAI_API_KEY"),
             )
-            await engine.register_tools()
+            await engine.register_tools(function_list=[
+                get_active_tasks,
+                get_active_projects,
+                create_task,
+                update_task,
+                get_all_users,
+                send_email,
+                read_emails,
+                reply_to_email,
+            ])
 
             # Register handlers
             self.bus.register_command_handler(
