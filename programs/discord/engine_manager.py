@@ -27,7 +27,7 @@ from engines.notion_crud_engine_v2 import (
     NotionCRUDEngineStatusEvent,
 )
 from tools.notion.notion import get_active_tasks, get_active_projects, create_task, update_task, get_all_users
-from tools.gmail.gmail_client import send_email, read_emails
+from tools.gmail.gmail_client import send_email, read_emails, reply_to_email
 
 class EngineManager:
     def __init__(self, config: DiscordBotConfig, session_manager: SessionManager):
@@ -65,6 +65,7 @@ class EngineManager:
                 get_all_users,
                 send_email,
                 read_emails,
+                reply_to_email,
             ])
 
             # Register handlers

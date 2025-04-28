@@ -1,5 +1,4 @@
-from gmail_client import GmailClient
-import json
-gmail_client = GmailClient()
+from gmail_client import read_emails
 
-emails = gmail_client.read_emails(max_results=1)
+emails = read_emails(max_results=1)
+print(emails)

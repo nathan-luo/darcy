@@ -261,6 +261,24 @@ class NotionCRUDEngineV2:
                             )
                             continue
 
+                    if tool_call_obj.name == "reply_to_email":
+                        # patch project name and user name for confirmation request
+                        temp = json.loads(tool_call.function.arguments)
+
+                        result = await self.message_bus.execute(
+                            NotionCRUDEngineConfirmationCommand(
+                                prompt=f"Replying to email {temp}",
+                                session_id=self.session_id,
+                            )
+                        )
+                        if not result.result:
+                            self.context_manager.store_tool_call_result(
+                                tool_call_id=tool_call_obj.id,
+                                name=tool_call_obj.name,
+                                content="User decided to stop replying to the email, use this informormation in final response.",
+                            )
+                            continue
+
                     # Execute the tool
                     await self.message_bus.publish(
                         NotionCRUDEngineStatusEvent(

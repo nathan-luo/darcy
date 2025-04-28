@@ -44,6 +44,15 @@ for email in emails:
     print(f"Subject: {email['subject']}")
     print(f"Body: {email['body']}")
     print("---")
+
+# Reply to email
+client.send_email(
+    to=["recipient1@example.com","recipient2@example.com"],
+    subject="Re: Test Email",
+    body="This is a test email",
+    references="<MessageID1> <MessageID2> ..."
+    in-reply-to="<MessageID1>"
+)
 ```
 
 ## Authentication
@@ -54,5 +63,6 @@ The program uses OAuth 2.0 for authentication. On first run, it will open a brow
 
 - Send emails (plain text or HTML)
 - Read recent emails from inbox
+- Reply emails
 - Automatic OAuth2 authentication
 - Credential persistence 

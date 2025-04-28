@@ -1,3 +1,4 @@
+import json
 import os
 from typing import Optional
 from google.oauth2.credentials import Credentials
@@ -42,7 +43,7 @@ def __authenticate():
     service = build('gmail', 'v1', credentials=creds)
     return service
 
-def send_email(to: str, subject: str, body: Optional[str] = None, is_html: bool = False) -> bool:
+def send_email(to: str, subject: str, body: str, is_html: bool = False) -> bool:
     """
     Send an email using Gmail API.
 
@@ -58,27 +59,13 @@ def send_email(to: str, subject: str, body: Optional[str] = None, is_html: bool 
 
     service = __authenticate()
     try:
-        message = MIMEMultipart()
-        message['to'] = to
-        message['subject'] = subject
+        # Create the email message
+        message = __create_message(to, subject, body, is_html)
 
-        if not body:
-            body = ""
-
-        # Attach body
-        if is_html:
-            msg = MIMEText(body, 'html')
-        else:
-            msg = MIMEText(body)
-        message.attach(msg)
-
-        # Encode message
-        raw_message = base64.urlsafe_b64encode(message.as_bytes()).decode('utf-8')
-        
         # Send message
         service.users().messages().send(
             userId='me',
-            body={'raw': raw_message}
+            body=message
         ).execute()
         
         return True
@@ -115,7 +102,7 @@ def read_emails(max_results: int = 10) -> list[dict]:
 
             processed_email = __process_email(msg)
             emails.append(processed_email)
-        
+
         return emails
     except Exception as e:
         print(f"Error reading emails: {str(e)}")
@@ -154,4 +141,101 @@ def __process_email(email: dict):
 
     processed_email['body'] = body
     return processed_email
+
+def reply_to_email(email_id: str, body: str, is_html: bool = False) -> bool:
+    """
+    Reply to an email using Gmail API.
+
+    Args:
+        email_id: ID of the email to reply to
+        body: Body of the email
+        is_html: Whether the body is HTML content
+        
+    Returns:
+        bool: True if email was sent successfully, False otherwise
+    """
+
+    service = __authenticate()
+    try:
+        # Get the email to reply to
+        email = service.users().messages().get(userId='me', id=email_id).execute()
+        headers = email['payload']['headers']
+        
+        # Get the original message ID
+        original_message_id = next((header['value'] for header in headers if header['name'].lower() == 'message-id'), None)
+        
+        # Get the references chain
+        references = next((header['value'] for header in headers if header['name'].lower() == 'references'), '')
+        if references:
+            references = f"{references} {original_message_id}"
+        else:
+            references = original_message_id
+
+        # Get the reply-to address (if exists) or from address
+        reply_to = next((header['value'] for header in headers if header['name'].lower() == 'reply-to'), None)
+        to = reply_to if reply_to else next(header['value'] for header in headers if header['name'].lower() == 'from')
+        
+        # Get the subject and add Re: prefix if not already present
+        subject = next(header['value'] for header in headers if header['name'].lower() == 'subject')
+        if not subject.lower().startswith('re:'):
+            subject = f"Re: {subject}"
+
+        # Create the email message with threading information
+        message = __create_message(
+            to=to,
+            subject=subject,
+            body=body,
+            is_html=is_html,
+            original_message_id=original_message_id,
+            references=references
+        )
+
+        # Send the email
+        service.users().messages().send(userId='me', body=message).execute()
+        
+        return True
+    except Exception as e:
+        print(f"An error occurred: {e}")
+        return False
+
+def __create_message(to: str, subject: str, body: str, is_html: bool = False, original_message_id: Optional[str] = None, reply_to: Optional[str] = None, references: str = '') -> dict:
+    """
+    Create an email message for sending or replying.
+
+    Args:
+        to: Recipient email address
+        subject: Email subject
+        body: Email body content
+        is_html: Whether the body is HTML content
+        original_message_id: ID of the original message being replied to (for threading)
+        reply_to: Reply-to email address
+        references: References chain for threading
+        
+    Returns:
+        dict: A dictionary containing the raw email message
+    """
+    message = MIMEMultipart()
+    message['To'] = to
+    message['Subject'] = subject
+
+    # Add threading headers if replying to an email
+    if original_message_id:
+        message['References'] = references
+        message['In-Reply-To'] = original_message_id
+
+    if reply_to:
+        message['Reply-To'] = reply_to
+
+    # Attach body
+    if is_html:
+        msg = MIMEText(body, 'html')
+    else:
+        msg = MIMEText(body)
+    message.attach(msg)
+
+    # Encode message
+    raw_message = base64.urlsafe_b64encode(message.as_bytes()).decode('utf-8')
+    return {'raw': raw_message}
+
+
 
