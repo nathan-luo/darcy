@@ -184,7 +184,7 @@ class SessionManager:
             session_id, SessionStatus.REQUESTING_INPUT, "User input requested..."
         )
 
-        result : Optional[bool] = None
+        result: Optional[bool] = None
 
         if input_type == "yes_no":
             # Create the view for Yes/No input

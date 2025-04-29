@@ -12,6 +12,7 @@ from llmgine.llm.tools.tool_manager import ToolManager
 from llmgine.llm.tools.types import ToolCall
 from llmgine.messages.commands import Command, CommandResult
 from llmgine.messages.events import Event
+
 from tools.notion.data import (
     UserData,
     get_user_from_notion_id,
@@ -330,6 +331,7 @@ async def main():
         ToolComponentShort,
         YesNoPrompt,
     )
+
     from tools.general.functions import store_fact
     from tools.gmail.gmail_client import read_emails, reply_to_email, send_email
 

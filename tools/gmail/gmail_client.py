@@ -208,7 +208,7 @@ def reply_to_email(email_id: str, body: str, is_html: bool = False) -> bool:
             subject = f"Re: {subject}"
 
         # Create the email message with threading information
-        message : dict[str, str] = __create_message(
+        message: dict[str, str] = __create_message(
             to=to,
             subject=subject,
             body=body,
@@ -270,5 +270,5 @@ def __create_message(
     message.attach(msg)
 
     # Encode message
-    raw_message : str = base64.urlsafe_b64encode(message.as_bytes()).decode("utf-8")
-    return {"raw": raw_message} # TODO why is this a dict?
+    raw_message: str = base64.urlsafe_b64encode(message.as_bytes()).decode("utf-8")
+    return {"raw": raw_message}  # TODO why is this a dict?

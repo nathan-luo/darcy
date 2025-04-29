@@ -12,6 +12,7 @@ from llmgine.llm.tools.tool_manager import ToolManager
 from llmgine.llm.tools.types import ToolCall
 from llmgine.messages.commands import Command, CommandResult
 from llmgine.messages.events import Event
+
 from tools.notion.data import (
     UserData,
     get_user_from_notion_id,

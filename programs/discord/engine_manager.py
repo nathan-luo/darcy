@@ -22,13 +22,14 @@ from tools.general.functions import store_fact
 # TODO maybe remove this
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../.."))
 
+from llmgine.bus.bus import MessageBus
+from llmgine.messages.commands import CommandResult
+
 from engines.notion_crud_engine_v3 import (
     NotionCRUDEngineConfirmationCommand,
     NotionCRUDEnginePromptCommand,
     NotionCRUDEngineStatusEvent,
 )
-from llmgine.bus.bus import MessageBus
-from llmgine.messages.commands import CommandResult
 from tools.gmail.gmail_client import read_emails, reply_to_email, send_email
 from tools.notion.notion import (
     create_task,
