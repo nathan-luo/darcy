@@ -17,6 +17,7 @@ from session_manager import SessionManager
 # Add the parent directory to the path so we can import from sibling directories
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../.."))
 
+from tools.general.functions import get_all_facts, get_user_info
 from tools.notion.data import (
     get_user_from_discord_id,
     discord_user_id_type,
@@ -68,10 +69,11 @@ class MessageProcessor:
         author_notion_id = "Unknown Notion ID"
         if author_data:
             author_notion_id = author_data.notion_id
-
+        author_info = get_user_info(author_discord_id)
+        author_facts = get_all_facts(author_discord_id)
         return "The Author of this message is:" + str({
             author_discord_id: author_notion_id
-        })
+        }) + "Some info about the author are: " + author_info + "Some facts about the author are: " + author_facts
 
     async def _get_chat_history(self, message: discord.Message) -> str:
         """Get recent chat history from the channel."""

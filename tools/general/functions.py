@@ -1,4 +1,4 @@
-
+from tools.database.database import Database
 
 def store_fact(discord_id: str, fact: str):
     """
@@ -18,4 +18,17 @@ def store_fact(discord_id: str, fact: str):
         discord_id: The Discord ID of the user to store the fact for.
         fact: The fact to store.
     """
-    print(f"Storing fact for {discord_id}: {fact}")
+    db = Database()
+    db.set_user_fact(discord_id, fact)
+    print(f"Stored fact for {discord_id}: {fact}")
+    return f"Stored fact for {discord_id}: {fact}"
+
+def get_all_facts(discord_id: str):
+    db = Database()
+    facts = db.get_user_fact(discord_id)
+    return str(facts)
+
+def get_user_info(discord_id: str):
+    db = Database()
+    user_info = db.get_user(discord_id)
+    return str(user_info)

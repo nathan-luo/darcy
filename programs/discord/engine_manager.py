@@ -15,6 +15,7 @@ import sys
 from engines.notion_crud_engine_v3 import NotionCRUDEngineV3
 from session_manager import SessionManager, SessionStatus
 from config import DiscordBotConfig
+from tools.general.functions import store_fact
 
 # Add the parent directory to the path so we can import from sibling directories
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../.."))
@@ -77,6 +78,7 @@ class EngineManager:
                     send_email,
                     read_emails,
                     reply_to_email,
+                    store_fact,
                 ]
             )
 
