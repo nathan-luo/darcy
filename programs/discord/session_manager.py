@@ -17,7 +17,7 @@ import string
 
 import discord
 from components import YesNoView
-
+from discord.ext import commands
 
 
 
@@ -44,7 +44,7 @@ STATUS_EMOJI = {
 }
 
 class SessionManager:
-    def __init__(self, bot):
+    def __init__(self, bot : commands.Bot):
         self.bot = bot
         self.active_sessions: Dict[str, Dict[str, Any]] = {}
         self.id_length : int = 5

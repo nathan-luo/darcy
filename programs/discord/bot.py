@@ -34,7 +34,7 @@ class DarcyBot:
         intents = discord.Intents.default()
         intents.message_content = True
         intents.messages = True
-        self.bot = commands.Bot(command_prefix="!", intents=intents)
+        self.bot : commands.Bot = commands.Bot(command_prefix="!", intents=intents)
 
         # Initialize managers
         self.session_manager = SessionManager(self.bot)
