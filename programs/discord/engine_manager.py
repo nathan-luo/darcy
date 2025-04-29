@@ -9,13 +9,6 @@ Responsibilities include:
 - System prompt
 """
 
-from .config import DiscordBotConfig
-from .session_manager import SessionManager, SessionStatus
-
-from engines.notion_crud_engine_v3 import NotionCRUDEngineV3
-from tools.general.functions import store_fact
-
-
 from llmgine.bus.bus import MessageBus
 from llmgine.messages.commands import CommandResult
 
@@ -23,7 +16,9 @@ from engines.notion_crud_engine_v3 import (
     NotionCRUDEngineConfirmationCommand,
     NotionCRUDEnginePromptCommand,
     NotionCRUDEngineStatusEvent,
+    NotionCRUDEngineV3,
 )
+from tools.general.functions import store_fact
 from tools.gmail.gmail_client import read_emails, reply_to_email, send_email
 from tools.notion.notion import (
     create_task,
@@ -32,6 +27,9 @@ from tools.notion.notion import (
     get_all_users,
     update_task,
 )
+
+from .config import DiscordBotConfig
+from .session_manager import SessionManager, SessionStatus
 
 
 class EngineManager:
@@ -46,7 +44,9 @@ class EngineManager:
         """Handle confirmation commands from the engine."""
         if command.session_id is None:
             print("Error: Session ID missing in confirmation command.")
-            return CommandResult(success=False, result="Internal error: Missing session ID")
+            return CommandResult(
+                success=False, result="Internal error: Missing session ID"
+            )
 
         response = await self.session_manager.request_user_input(
             command.session_id, command.prompt, timeout=30

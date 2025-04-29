@@ -13,11 +13,9 @@ It also loads Darcy's key from the environment variables.
 """
 
 import os
-import sys
 from dataclasses import dataclass
 
 import dotenv
-
 from llmgine.bootstrap import ApplicationConfig
 
 

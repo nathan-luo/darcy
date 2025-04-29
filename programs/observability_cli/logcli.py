@@ -2,7 +2,6 @@
 import argparse
 import os
 import sys
-from pathlib import Path
 
 # Import the individual tools
 import log_search

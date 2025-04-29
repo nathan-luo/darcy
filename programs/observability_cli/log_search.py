@@ -1,15 +1,12 @@
 #!/usr/bin/env python3
 import argparse
 import re
-import sys
-from pathlib import Path
 
+import log_parser
 from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
 from rich.text import Text
-
-import log_parser
 
 console = Console()
 
