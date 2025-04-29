@@ -1,16 +1,16 @@
 """
 This module processes messages from the discord server.
-It processes: 
+It processes:
 - mentions
 - author payload
 - chat history
 - reply payload
 """
 
-import discord
-import sys
 import os
+import sys
 
+import discord
 from config import DiscordBotConfig
 from session_manager import SessionManager
 
@@ -19,10 +19,11 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../.."))
 
 from tools.general.functions import get_all_facts, get_user_info
 from tools.notion.data import (
-    get_user_from_discord_id,
-    discord_user_id_type,
     UserData,
+    discord_user_id_type,
+    get_user_from_discord_id,
 )
+
 
 class MessageProcessor:
     def __init__(self, config: DiscordBotConfig, session_manager: SessionManager):
@@ -33,8 +34,10 @@ class MessageProcessor:
         """Process a message where the bot is mentioned."""
 
         # TODO need a session id type
-        session_id : str = await self.session_manager.create_session(message, expire_after_minutes=1)
-        
+        session_id: str = await self.session_manager.create_session(
+            message, expire_after_minutes=1
+        )
+
         # Process user mentions
         user_mentions = self._process_mentions(message)
         author_payload = self._create_author_payload(message)
@@ -42,7 +45,7 @@ class MessageProcessor:
         reply_payload = await self._process_reply(message)
 
         # Combine all payloads
-        message.content : str = (
+        message.content: str = (
             message.content
             + f"\n\n{reply_payload}\n\n{author_payload}\n\n{user_mentions}\n\n{chat_history}"
         )
@@ -73,9 +76,14 @@ class MessageProcessor:
             author_notion_id = author_data.notion_id
         author_info = get_user_info(author_discord_id)
         author_facts = get_all_facts(author_discord_id)
-        return "The Author of this message is:" + str({
-            author_discord_id: author_notion_id
-        }) + "Some info about the author are: " + author_info + "Some facts about the author are: " + author_facts
+        return (
+            "The Author of this message is:"
+            + str({author_discord_id: author_notion_id})
+            + "Some info about the author are: "
+            + author_info
+            + "Some facts about the author are: "
+            + author_facts
+        )
 
     async def _get_chat_history(self, message: discord.Message) -> str:
         """Get recent chat history from the channel."""
@@ -97,4 +105,4 @@ class MessageProcessor:
         replied_message = await message.channel.fetch_message(
             message.reference.message_id
         )
-        return f"The current request is responding to a message, and that message is: {replied_message.author.display_name}: {replied_message.content}" 
+        return f"The current request is responding to a message, and that message is: {replied_message.author.display_name}: {replied_message.content}"

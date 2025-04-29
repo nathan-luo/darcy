@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
 import argparse
 import sys
-from pathlib import Path
 from datetime import datetime
+from pathlib import Path
+
 from rich.console import Console
+from rich.panel import Panel
 from rich.table import Table
 from rich.text import Text
-from rich.panel import Panel
 
 # Make sure we can import log_parser.py from the same directory
 sys.path.insert(0, str(Path(__file__).parent))

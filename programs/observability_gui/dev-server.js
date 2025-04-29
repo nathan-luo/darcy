@@ -28,17 +28,17 @@ function getLocalIP() {
 
 async function createServer() {
   const app = express();
-  
+
   // Enable CORS
   app.use(cors());
-  
+
   // Parse JSON
   app.use(express.json());
 
   // Get the absolute path to the logs directory
   // You can override with environment variable
   let logsDir = process.env.LOGS_PATH || path.resolve(__dirname, '../../logs');
-  
+
   // Make sure we have a local logs directory for fallback
   const localLogsDir = path.resolve(__dirname, 'logs');
   if (!fs.existsSync(localLogsDir)) {
@@ -48,11 +48,11 @@ async function createServer() {
       console.error('Error creating local logs directory:', err);
     }
   }
-  
+
   // Verify the logs directory exists
   if (!fs.existsSync(logsDir)) {
     console.warn('WARNING: Logs directory not found:', logsDir);
-    
+
     // Try alternative paths
     const alternatives = [
       path.resolve(process.cwd(), '../..', 'logs'),
@@ -60,7 +60,7 @@ async function createServer() {
       localLogsDir,
       '/home/natha/dev/llmgine/logs'
     ];
-    
+
     for (const altPath of alternatives) {
       if (fs.existsSync(altPath)) {
         logsDir = altPath;
@@ -69,7 +69,7 @@ async function createServer() {
       }
     }
   }
-  
+
   // If we still don't have a valid logs directory, use the local one
   if (!fs.existsSync(logsDir)) {
     logsDir = localLogsDir;
@@ -77,7 +77,7 @@ async function createServer() {
   }
 
   console.log('Logs directory:', logsDir);
-  
+
   // Make the logs directory if it doesn't exist
   if (!fs.existsSync(logsDir)) {
     console.log('Creating logs directory...');
@@ -94,18 +94,18 @@ async function createServer() {
     try {
       const dirPath = req.query.path || logsDir;
       console.log('Getting files from:', dirPath);
-      
+
       if (!fs.existsSync(dirPath)) {
         console.log('Directory does not exist:', dirPath);
         return res.status(404).json({ error: 'Directory not found' });
       }
-      
+
       const files = fs.readdirSync(dirPath, { withFileTypes: true }).map(dirent => ({
         name: dirent.name,
         isDirectory: dirent.isDirectory(),
         path: path.join(dirPath, dirent.name)
       }));
-      
+
       res.json({ path: dirPath, files });
     } catch (error) {
       console.error('Error reading directory:', error);
@@ -118,15 +118,15 @@ async function createServer() {
     try {
       const filePath = req.query.path;
       console.log('Reading file:', filePath);
-      
+
       if (!filePath) {
         return res.status(400).json({ error: 'File path is required' });
       }
-      
+
       if (!fs.existsSync(filePath)) {
         return res.status(404).json({ error: 'File not found' });
       }
-      
+
       const content = fs.readFileSync(filePath, 'utf-8');
       res.setHeader('Content-Type', 'application/json');
       res.json({ path: filePath, content });
@@ -141,7 +141,7 @@ async function createServer() {
     server: { middlewareMode: true },
     appType: 'spa',
   });
-  
+
   // Use vite's connect instance as middleware (after API routes)
   app.use(vite.middlewares);
 
@@ -149,20 +149,20 @@ async function createServer() {
   app.use('*', async (req, res, next) => {
     // Only handle GET requests
     if (req.method !== 'GET') return next();
-    
+
     try {
       // 404 for API requests that weren't handled
       if (req.path.startsWith('/api/')) {
         return res.status(404).json({ error: 'API endpoint not found' });
       }
-      
+
       // Let vite transform the index.html
       let template = fs.readFileSync(
         path.resolve(__dirname, 'index.html'),
         'utf-8'
       );
       template = await vite.transformIndexHtml(req.originalUrl, template);
-      
+
       res.status(200).set({ 'Content-Type': 'text/html' }).end(template);
     } catch (e) {
       vite.ssrFixStacktrace(e);
@@ -172,7 +172,7 @@ async function createServer() {
   });
 
   const PORT = parseInt(process.env.PORT || '5173');
-  
+
   app.listen(PORT, '0.0.0.0', () => {
     const ip = getLocalIP();
     console.log();

@@ -8,7 +8,7 @@ const LogVisualizer = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [activeTab, setActiveTab] = useState('timeline');
-  
+
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -22,7 +22,7 @@ const LogVisualizer = () => {
         setLoading(false);
       }
     };
-    
+
     fetchData();
   }, []);
 
@@ -40,7 +40,7 @@ const LogVisualizer = () => {
       </div>
     );
   }
-  
+
   // Group logs by event type
   const eventTypes = {};
   logs.forEach(log => {
@@ -49,7 +49,7 @@ const LogVisualizer = () => {
     }
     eventTypes[log.event_type].push(log);
   });
-  
+
   // Extract command types for filtering
   const commandTypes = new Set();
   logs.forEach(log => {
@@ -57,7 +57,7 @@ const LogVisualizer = () => {
       commandTypes.add(log.name.split(':')[1]);
     }
   });
-  
+
   // Extract users for filtering
   const users = new Set();
   logs.forEach(log => {
@@ -65,24 +65,24 @@ const LogVisualizer = () => {
       users.add(log.context.user_id);
     }
   });
-  
+
   // Calculate duration stats for spans
   const traceEvents = logs.filter(log => log.event_type === 'TraceEvent');
   const spanDurations = {};
-  
+
   traceEvents.forEach(trace => {
     if (trace.end_time && trace.start_time) {
       const startTime = new Date(trace.start_time).getTime();
       const endTime = new Date(trace.end_time).getTime();
       const duration = endTime - startTime;
-      
+
       if (!spanDurations[trace.name]) {
         spanDurations[trace.name] = [];
       }
       spanDurations[trace.name].push(duration);
     }
   });
-  
+
   // Calculate avg durations
   const avgDurations = {};
   Object.keys(spanDurations).forEach(spanName => {
@@ -90,7 +90,7 @@ const LogVisualizer = () => {
     const sum = durations.reduce((a, b) => a + b, 0);
     avgDurations[spanName] = sum / durations.length;
   });
-  
+
   return (
     <div className="container mx-auto p-4">
       <Card className="mb-6">
@@ -101,7 +101,7 @@ const LogVisualizer = () => {
           <div className="text-sm text-gray-600 mb-2">
             Total logs: {logs.length} | Time range: {new Date(logs[0].timestamp).toLocaleTimeString()} - {new Date(logs[logs.length-1].timestamp).toLocaleTimeString()}
           </div>
-          
+
           <div className="grid grid-cols-4 gap-4 mb-6">
             <div className="bg-blue-50 p-4 rounded shadow">
               <div className="text-sm text-gray-600">Log Events</div>
@@ -122,7 +122,7 @@ const LogVisualizer = () => {
           </div>
         </CardContent>
       </Card>
-      
+
       <Tabs defaultValue="timeline" className="w-full" value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="grid grid-cols-4 mb-4">
           <TabsTrigger value="timeline" className="flex items-center">
@@ -142,15 +142,15 @@ const LogVisualizer = () => {
             Errors
           </TabsTrigger>
         </TabsList>
-        
+
         <TabsContent value="timeline" className="border rounded-md p-4">
           <h3 className="text-lg font-medium mb-4">Event Timeline</h3>
           <div className="space-y-2">
             {logs.slice(0, 20).map((log, index) => (
               <div key={index} className={`p-2 rounded text-sm ${
-                log.level === 'ERROR' ? 'bg-red-50 border-l-4 border-red-500' : 
-                log.level === 'DEBUG' ? 'bg-gray-50' : 
-                log.level === 'INFO' ? 'bg-blue-50' : 
+                log.level === 'ERROR' ? 'bg-red-50 border-l-4 border-red-500' :
+                log.level === 'DEBUG' ? 'bg-gray-50' :
+                log.level === 'INFO' ? 'bg-blue-50' :
                 log.event_type === 'TraceEvent' ? 'bg-green-50' :
                 log.event_type === 'MetricEvent' ? 'bg-yellow-50' : 'bg-white border'
               }`}>
@@ -173,7 +173,7 @@ const LogVisualizer = () => {
             )}
           </div>
         </TabsContent>
-        
+
         <TabsContent value="traces" className="border rounded-md p-4">
           <h3 className="text-lg font-medium mb-4">Trace Analysis</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -187,8 +187,8 @@ const LogVisualizer = () => {
                     <div key={idx} className="flex items-center">
                       <div className="w-48 truncate">{spanName}</div>
                       <div className="w-full bg-gray-200 rounded-full h-4">
-                        <div 
-                          className="bg-blue-600 h-4 rounded-full" 
+                        <div
+                          className="bg-blue-600 h-4 rounded-full"
                           style={{ width: `${Math.min(100, (avgDurations[spanName] / 10) * 100)}%` }}
                         ></div>
                       </div>
@@ -198,7 +198,7 @@ const LogVisualizer = () => {
                 </div>
               </CardContent>
             </Card>
-            
+
             <Card>
               <CardHeader className="pb-2">
                 <CardTitle className="text-md">Trace Status</CardTitle>
@@ -215,11 +215,11 @@ const LogVisualizer = () => {
                           <span>{count} ({percentage}%)</span>
                         </div>
                         <div className="w-full bg-gray-200 rounded-full h-4">
-                          <div 
+                          <div
                             className={`h-4 rounded-full ${
-                              status === 'success' ? 'bg-green-500' : 
+                              status === 'success' ? 'bg-green-500' :
                               status === 'error' ? 'bg-red-500' : 'bg-blue-500'
-                            }`} 
+                            }`}
                             style={{ width: `${percentage}%` }}
                           ></div>
                         </div>
@@ -231,29 +231,29 @@ const LogVisualizer = () => {
             </Card>
           </div>
         </TabsContent>
-        
+
         <TabsContent value="users" className="border rounded-md p-4">
           <h3 className="text-lg font-medium mb-4">User Activity</h3>
-          
+
           <div className="grid grid-cols-1 gap-4">
             {Array.from(users).map(userId => {
-              const userLogs = logs.filter(log => 
+              const userLogs = logs.filter(log =>
                 log.context && log.context.user_id === userId
               );
-              
-              const userRegistration = userLogs.find(log => 
+
+              const userRegistration = userLogs.find(log =>
                 log.message && log.message.includes('registered')
               );
-              
-              const userGreeting = userLogs.find(log => 
+
+              const userGreeting = userLogs.find(log =>
                 log.message && log.message.includes('greeted')
               );
-              
-              const emailSuccess = userLogs.some(log => 
-                log.attributes && log.attributes.operation === 'send_email' && 
+
+              const emailSuccess = userLogs.some(log =>
+                log.attributes && log.attributes.operation === 'send_email' &&
                 log.status === 'success'
               );
-              
+
               return (
                 <Card key={userId} className="mb-4">
                   <CardHeader className="pb-2 bg-gray-50">
@@ -291,10 +291,10 @@ const LogVisualizer = () => {
             })}
           </div>
         </TabsContent>
-        
+
         <TabsContent value="errors" className="border rounded-md p-4">
           <h3 className="text-lg font-medium mb-4">Errors & Warnings</h3>
-          
+
           <div className="space-y-3">
             {logs.filter(log => log.level === 'ERROR' || log.status === 'error').map((log, idx) => (
               <div key={idx} className="bg-red-50 border-l-4 border-red-500 p-3 rounded">
@@ -314,7 +314,7 @@ const LogVisualizer = () => {
                 )}
               </div>
             ))}
-            
+
             {logs.filter(log => log.level === 'ERROR' || log.status === 'error').length === 0 && (
               <div className="text-center text-gray-500 py-8">
                 No errors found in the log data

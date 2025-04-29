@@ -12,15 +12,17 @@ import argparse
 import os
 import shutil
 
+
 def setup_environment(mode: str):
     """Set up the environment file based on the specified mode."""
     env_file = f".env.{mode}"
     if not os.path.exists(env_file):
         raise FileNotFoundError(f"Environment file {env_file} not found")
-    
+
     # Copy the appropriate .env file to .env
     shutil.copy2(env_file, ".env")
     print(f"Using {mode} environment configuration")
+
 
 def main():
     parser = argparse.ArgumentParser(description="Run the Discord bot")
@@ -28,25 +30,26 @@ def main():
         "--mode",
         choices=["production", "development"],
         default="development",
-        help="Specify the environment mode (default: development)"
+        help="Specify the environment mode (default: development)",
     )
-    
+
     args = parser.parse_args()
-    
+
     try:
         setup_environment(args.mode)
-        
+
         # Run the bot using uv
         os.system("uv run programs/discord/bot.py")
-        
+
     except FileNotFoundError as e:
         print(f"Error: {e}")
         return 1
     except Exception as e:
         print(f"An error occurred: {e}")
         return 1
-    
+
     return 0
 
+
 if __name__ == "__main__":
-    exit(main()) 
+    exit(main())

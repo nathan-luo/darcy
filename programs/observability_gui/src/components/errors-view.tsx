@@ -9,24 +9,24 @@ interface ErrorsViewProps {
 
 export const ErrorsView: React.FC<ErrorsViewProps> = ({ events }) => {
   // Get all error events (LogEvents with ERROR level or TraceEvents with error status)
-  const errorEvents = events.filter(event => 
+  const errorEvents = events.filter(event =>
     (event.event_type === 'LogEvent' && (event as LogEvent).level === 'ERROR') ||
     (event.event_type === 'TraceEvent' && (event as TraceEvent).status?.toLowerCase() === 'error')
   );
-  
+
   // Sort by timestamp (newest first)
-  const sortedErrors = [...errorEvents].sort((a, b) => 
+  const sortedErrors = [...errorEvents].sort((a, b) =>
     new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
   );
-  
+
   const getSourceFile = (source: string | undefined) => {
     if (!source) return 'Unknown source';
-    
+
     // Extract the file name from a path like "/home/user/project/src/file.py:123"
     const parts = source.split('/');
     return parts[parts.length - 1];
   };
-  
+
   const formatErrorTime = (timestamp: string) => {
     try {
       return format(new Date(timestamp), 'HH:mm:ss.SSS');
@@ -34,7 +34,7 @@ export const ErrorsView: React.FC<ErrorsViewProps> = ({ events }) => {
       return 'Invalid date';
     }
   };
-  
+
   return (
     <div className="space-y-4">
       {sortedErrors.length === 0 ? (
@@ -46,7 +46,7 @@ export const ErrorsView: React.FC<ErrorsViewProps> = ({ events }) => {
           <div className="text-sm font-medium mb-4">
             Found {sortedErrors.length} errors in the log data
           </div>
-          
+
           <div className="space-y-3">
             {sortedErrors.map((error, index) => (
               <div
@@ -71,12 +71,12 @@ export const ErrorsView: React.FC<ErrorsViewProps> = ({ events }) => {
                     {formatErrorTime(error.timestamp)}
                   </div>
                 </div>
-                
+
                 <div className="mt-2 text-xs">
                   <div className="text-gray-600">
                     Source: {getSourceFile(error.source)}
                   </div>
-                  
+
                   {error.event_type === 'LogEvent' && (error as LogEvent).context && (
                     <div className="mt-1 text-gray-600">
                       <span className="font-medium">Context:</span>
@@ -89,7 +89,7 @@ export const ErrorsView: React.FC<ErrorsViewProps> = ({ events }) => {
                       </div>
                     </div>
                   )}
-                  
+
                   {error.event_type === 'TraceEvent' && (error as TraceEvent).attributes && (
                     <div className="mt-1 text-gray-600">
                       <span className="font-medium">Attributes:</span>

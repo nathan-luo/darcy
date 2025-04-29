@@ -32,13 +32,13 @@ export const FilePicker: React.FC<FilePickerProps> = ({ onFileSelect }) => {
     try {
       console.log('Fetching logs directory from API...');
       const response = await fetch(`${API_URL}/files`);
-      
+
       // Check for non-OK responses
       if (!response.ok) {
         console.error('API returned error:', response.status, response.statusText);
         throw new Error(`Failed to fetch logs directory: ${response.statusText}`);
       }
-      
+
       // Try to parse the response as JSON
       let data;
       try {
@@ -49,7 +49,7 @@ export const FilePicker: React.FC<FilePickerProps> = ({ onFileSelect }) => {
         console.error('Failed to parse JSON response:', parseError);
         throw new Error('Invalid response from server. Not a valid JSON.');
       }
-      
+
       if (data.error) {
         throw new Error(data.error);
       }
@@ -72,13 +72,13 @@ export const FilePicker: React.FC<FilePickerProps> = ({ onFileSelect }) => {
     try {
       console.log('Loading files from directory:', dirPath);
       const response = await fetch(`${API_URL}/files?path=${encodeURIComponent(dirPath)}`);
-      
+
       // Check for non-OK responses
       if (!response.ok) {
         console.error('API returned error:', response.status, response.statusText);
         throw new Error(`Failed to load files: ${response.statusText}`);
       }
-      
+
       // Try to parse the response as JSON
       let data;
       try {
@@ -89,21 +89,21 @@ export const FilePicker: React.FC<FilePickerProps> = ({ onFileSelect }) => {
         console.error('Failed to parse JSON response:', parseError);
         throw new Error('Invalid response from server. Not a valid JSON.');
       }
-      
+
       if (data.error) {
         throw new Error(data.error);
       }
-      
+
       // Sort: directories first, then files alphabetically
       const sortedFiles = (data.files || []).sort((a: FileInfo, b: FileInfo) => {
         if (a.isDirectory && !b.isDirectory) return -1;
         if (!a.isDirectory && b.isDirectory) return 1;
         return a.name.localeCompare(b.name);
       });
-      
+
       setFiles(sortedFiles);
       setCurrentDir(dirPath);
-      
+
       // If we have no files but we're in the logs directory, show a helpful message
       if (sortedFiles.length === 0 && dirPath === logDir) {
         setError("No log files found in the logs directory. Please check if logs have been generated.");
@@ -124,13 +124,13 @@ export const FilePicker: React.FC<FilePickerProps> = ({ onFileSelect }) => {
         setIsLoading(true);
         console.log('Reading file:', file.path);
         const response = await fetch(`${API_URL}/file?path=${encodeURIComponent(file.path)}`);
-        
+
         // Check for non-OK responses
         if (!response.ok) {
           console.error('API returned error:', response.status, response.statusText);
           throw new Error(`Failed to read file: ${response.statusText}`);
         }
-        
+
         // Try to parse the response as JSON
         let data;
         try {
@@ -141,11 +141,11 @@ export const FilePicker: React.FC<FilePickerProps> = ({ onFileSelect }) => {
           console.error('Failed to parse JSON response:', parseError);
           throw new Error('Invalid response from server. Not a valid JSON.');
         }
-        
+
         if (data.error) {
           throw new Error(data.error);
         }
-        
+
         if (data.content) {
           console.log('File loaded successfully, length:', data.content.length);
           onFileSelect(file.path, data.content);
@@ -195,30 +195,30 @@ export const FilePicker: React.FC<FilePickerProps> = ({ onFileSelect }) => {
           </Button>
         </div>
       </div>
-      
+
       {currentDir && (
         <div className="mb-3 text-sm text-gray-500 truncate" title={currentDir}>
           Current directory: {currentDir}
         </div>
       )}
-      
+
       {currentDir && currentDir !== logDir && (
-        <Button 
-          variant="ghost" 
-          size="sm" 
-          className="mb-2 text-xs" 
+        <Button
+          variant="ghost"
+          size="sm"
+          className="mb-2 text-xs"
           onClick={navigateUp}
         >
           ⬆️ Up
         </Button>
       )}
-      
+
       {error && (
         <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-3">
           <p className="text-sm">{error}</p>
         </div>
       )}
-      
+
       <div className="max-h-96 overflow-y-auto border rounded bg-gray-50">
         {isLoading ? (
           <div className="flex justify-center items-center h-20">
@@ -232,7 +232,7 @@ export const FilePicker: React.FC<FilePickerProps> = ({ onFileSelect }) => {
         ) : (
           <ul className="divide-y">
             {files.map((file) => (
-              <li 
+              <li
                 key={file.path}
                 onClick={() => handleFileClick(file)}
                 className="flex items-center p-2 hover:bg-gray-100 cursor-pointer"

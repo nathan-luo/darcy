@@ -11,30 +11,30 @@ interface TracesViewProps {
 export const TracesView: React.FC<TracesViewProps> = ({ events }) => {
   const [expandedTraces, setExpandedTraces] = useState<Set<string>>(new Set());
   const [expandedSpans, setExpandedSpans] = useState<Set<string>>(new Set());
-  
+
   // Get all unique trace IDs
-  const traceEvents = events.filter((event): event is TraceEvent => 
+  const traceEvents = events.filter((event): event is TraceEvent =>
     event.event_type === 'TraceEvent'
   );
-  
+
   const traceIds = new Set<string>();
   traceEvents.forEach(event => {
     traceIds.add(event.span_context.trace_id);
   });
-  
+
   // Convert to array and sort by timestamp of first span
   const sortedTraceIds = Array.from(traceIds).sort((a, b) => {
     const aSpans = getTraceSpans(events, a);
     const bSpans = getTraceSpans(events, b);
-    
+
     if (aSpans.length === 0 || bSpans.length === 0) return 0;
-    
+
     const aTime = new Date(aSpans[0].timestamp).getTime();
     const bTime = new Date(bSpans[0].timestamp).getTime();
-    
+
     return bTime - aTime; // Newest first
   });
-  
+
   const toggleTrace = (traceId: string) => {
     const newExpanded = new Set(expandedTraces);
     if (newExpanded.has(traceId)) {
@@ -44,7 +44,7 @@ export const TracesView: React.FC<TracesViewProps> = ({ events }) => {
     }
     setExpandedTraces(newExpanded);
   };
-  
+
   const toggleSpan = (spanId: string) => {
     const newExpanded = new Set(expandedSpans);
     if (newExpanded.has(spanId)) {
@@ -54,14 +54,14 @@ export const TracesView: React.FC<TracesViewProps> = ({ events }) => {
     }
     setExpandedSpans(newExpanded);
   };
-  
+
   const getSpanDuration = (span: TraceEvent) => {
     if (span.start_time && span.end_time) {
       return new Date(span.end_time).getTime() - new Date(span.start_time).getTime();
     }
     return null;
   };
-  
+
   const getStatusColor = (status: string) => {
     switch (status.toLowerCase()) {
       case 'ok':
@@ -73,13 +73,13 @@ export const TracesView: React.FC<TracesViewProps> = ({ events }) => {
         return 'text-gray-500';
     }
   };
-  
+
   const renderSpanTree = (spans: any[], level = 0) => {
     return spans.map((span) => {
       const hasChildren = span.children && span.children.length > 0;
       const isExpanded = expandedSpans.has(span.span_context.span_id);
       const duration = getSpanDuration(span);
-      
+
       return (
         <div key={span.span_context.span_id} className="mb-1">
           <div
@@ -95,19 +95,19 @@ export const TracesView: React.FC<TracesViewProps> = ({ events }) => {
             ) : (
               <Circle className="h-2 w-2 mr-2 flex-shrink-0" />
             )}
-            
+
             <div className="flex-1 flex items-center justify-between">
               <div className="text-sm font-medium truncate max-w-md" title={span.name}>
                 {span.name}
               </div>
-              
+
               <div className="flex items-center space-x-2">
                 {span.status && (
                   <span className={`text-xs ${getStatusColor(span.status)}`}>
                     {span.status}
                   </span>
                 )}
-                
+
                 {duration !== null && (
                   <span className="text-xs text-gray-500">
                     {duration}ms
@@ -116,13 +116,13 @@ export const TracesView: React.FC<TracesViewProps> = ({ events }) => {
               </div>
             </div>
           </div>
-          
+
           {hasChildren && isExpanded && (
             <div className="border-l border-gray-200 ml-1 pl-2">
               {renderSpanTree(span.children, level + 1)}
             </div>
           )}
-          
+
           {isExpanded && (
             <div className="ml-6 mb-2 text-xs text-gray-600">
               {Object.entries(span.attributes).length > 0 && (
@@ -140,7 +140,7 @@ export const TracesView: React.FC<TracesViewProps> = ({ events }) => {
       );
     });
   };
-  
+
   return (
     <div className="space-y-4">
       {sortedTraceIds.length === 0 ? (
@@ -151,13 +151,13 @@ export const TracesView: React.FC<TracesViewProps> = ({ events }) => {
         sortedTraceIds.map(traceId => {
           const spans = getTraceSpans(events, traceId);
           const isExpanded = expandedTraces.has(traceId);
-          
+
           if (spans.length === 0) return null;
-          
+
           const rootSpan = spans[0];
           const duration = getSpanDuration(rootSpan);
           const traceTree = buildTraceTree(spans);
-          
+
           return (
             <Card key={traceId} className="overflow-hidden">
               <CardHeader
@@ -175,7 +175,7 @@ export const TracesView: React.FC<TracesViewProps> = ({ events }) => {
                       {rootSpan.name}
                     </CardTitle>
                   </div>
-                  
+
                   <div className="flex items-center space-x-4 text-xs text-gray-500">
                     <span>
                       Spans: {spans.length}
@@ -193,7 +193,7 @@ export const TracesView: React.FC<TracesViewProps> = ({ events }) => {
                   </div>
                 </div>
               </CardHeader>
-              
+
               {isExpanded && (
                 <CardContent className="py-2">
                   {renderSpanTree(traceTree)}

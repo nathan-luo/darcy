@@ -10,14 +10,15 @@ The bot is started here.
 """
 
 import asyncio
-import discord
-from discord.ext import commands
 import logging
 
+import discord
 from config import DiscordBotConfig
-from session_manager import SessionManager
-from message_processor import MessageProcessor
+from discord.ext import commands
 from engine_manager import EngineManager
+from message_processor import MessageProcessor
+from session_manager import SessionManager
+
 from llmgine.bootstrap import ApplicationBootstrap
 from llmgine.bus.bus import MessageBus
 
@@ -34,7 +35,7 @@ class DarcyBot:
         intents = discord.Intents.default()
         intents.message_content = True
         intents.messages = True
-        self.bot : commands.Bot = commands.Bot(command_prefix="!", intents=intents)
+        self.bot: commands.Bot = commands.Bot(command_prefix="!", intents=intents)
 
         # Initialize managers
         self.session_manager = SessionManager(self.bot)
@@ -53,7 +54,7 @@ class DarcyBot:
         """Handle incoming messages."""
         if message.author == self.bot.user:
             return
-        
+
         if message.mention_everyone:
             return
 
@@ -71,12 +72,10 @@ class DarcyBot:
 
             # Send response
             if result.result:
-                await message.reply(
-                    f"{result.result[: self.config.max_response_length]}"
-                )
+                await message.reply(f"{result.result[: self.config.max_response_length]}")
             else:
                 await message.reply(
-                    f"❌ An error occurred. Sorry about that, please forgive me!!"
+                    "❌ An error occurred. Sorry about that, please forgive me!!"
                 )
 
             # Complete the session

@@ -129,11 +129,11 @@ Example:
 ```python
 async def my_custom_tool(param1: str, param2: int) -> Dict[str, Any]:
     """Description of what the tool does.
-    
+
     Args:
         param1: Description of parameter 1
         param2: Description of parameter 2
-        
+
     Returns:
         Dictionary with results
     """
@@ -263,6 +263,6 @@ my_llm_app/
 *(Add license information here)*
 
 
-## Run with 
+## Run with
 
 uv run programs/discord/bot.py

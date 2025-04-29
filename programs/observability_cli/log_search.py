@@ -3,10 +3,10 @@ import argparse
 import re
 import sys
 from pathlib import Path
-from datetime import datetime
+
 from rich.console import Console
-from rich.table import Table
 from rich.panel import Panel
+from rich.table import Table
 from rich.text import Text
 
 # Make sure we can import log_parser.py from the same directory

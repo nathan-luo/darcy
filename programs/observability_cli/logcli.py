@@ -1,16 +1,16 @@
 #!/usr/bin/env python3
-import sys
-import os
 import argparse
+import os
+import sys
 from pathlib import Path
 
 # Make sure we can import modules from the same directory
 sys.path.insert(0, str(Path(__file__).parent))
 
 # Import the individual tools
-import log_viewer
 import log_search
 import log_stats
+import log_viewer
 import traceviz
 
 
@@ -38,7 +38,9 @@ Examples:
     view_parser.add_argument(
         "--event-type", "-e", help="Filter by event type (LogEvent, TraceEvent)"
     )
-    view_parser.add_argument("--after", help="Show logs after this time (YYYY-MM-DDTHH:MM:SS)")
+    view_parser.add_argument(
+        "--after", help="Show logs after this time (YYYY-MM-DDTHH:MM:SS)"
+    )
     view_parser.add_argument(
         "--before", help="Show logs before this time (YYYY-MM-DDTHH:MM:SS)"
     )

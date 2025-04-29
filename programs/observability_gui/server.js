@@ -24,18 +24,18 @@ const logsDir = path.resolve(__dirname, '../../logs');
 app.get('/api/files', (req, res) => {
   try {
     const dirPath = req.query.path || logsDir;
-    
+
     // Ensure the path is within our project (security check)
     if (!dirPath.startsWith(path.resolve(__dirname, '../..'))) {
       return res.status(403).json({ error: 'Access denied' });
     }
-    
+
     const files = fs.readdirSync(dirPath, { withFileTypes: true }).map(dirent => ({
       name: dirent.name,
       isDirectory: dirent.isDirectory(),
       path: path.join(dirPath, dirent.name)
     }));
-    
+
     res.json({ path: dirPath, files });
   } catch (error) {
     console.error('Error reading directory:', error);
@@ -47,16 +47,16 @@ app.get('/api/files', (req, res) => {
 app.get('/api/file', (req, res) => {
   try {
     const filePath = req.query.path;
-    
+
     if (!filePath) {
       return res.status(400).json({ error: 'File path is required' });
     }
-    
+
     // Ensure the path is within our project (security check)
     if (!filePath.startsWith(path.resolve(__dirname, '../..'))) {
       return res.status(403).json({ error: 'Access denied' });
     }
-    
+
     const content = fs.readFileSync(filePath, 'utf-8');
     res.json({ path: filePath, content });
   } catch (error) {

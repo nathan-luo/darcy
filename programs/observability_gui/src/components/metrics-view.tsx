@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { LLMgineEvent, MetricEvent } from '@/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { 
-  BarChart, 
-  Bar, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
   ResponsiveContainer,
   LineChart,
   Line
@@ -31,19 +31,19 @@ interface MetricData {
 
 export const MetricsView: React.FC<MetricsViewProps> = ({ events }) => {
   const [metrics, setMetrics] = useState<Record<string, MetricData>>({});
-  
+
   useEffect(() => {
     // Extract and organize metrics
-    const metricEvents = events.filter((event): event is MetricEvent => 
+    const metricEvents = events.filter((event): event is MetricEvent =>
       event.event_type === 'MetricEvent'
     );
-    
+
     const metricsMap: Record<string, MetricData> = {};
-    
+
     metricEvents.forEach(event => {
       event.metrics.forEach(metric => {
         const metricName = metric.name;
-        
+
         if (!metricsMap[metricName]) {
           metricsMap[metricName] = {
             name: metricName,
@@ -54,13 +54,13 @@ export const MetricsView: React.FC<MetricsViewProps> = ({ events }) => {
             avg: 0
           };
         }
-        
+
         const timestamp = new Date(event.timestamp).getTime();
         metricsMap[metricName].values.push({
           timestamp,
           value: metric.value
         });
-        
+
         // Update min/max
         if (metric.value < metricsMap[metricName].min) {
           metricsMap[metricName].min = metric.value;
@@ -70,20 +70,20 @@ export const MetricsView: React.FC<MetricsViewProps> = ({ events }) => {
         }
       });
     });
-    
+
     // Calculate averages and sort values by timestamp
     Object.values(metricsMap).forEach(metric => {
       // Sort by timestamp
       metric.values.sort((a, b) => a.timestamp - b.timestamp);
-      
+
       // Calculate average
       const sum = metric.values.reduce((acc, curr) => acc + curr.value, 0);
       metric.avg = sum / metric.values.length;
     });
-    
+
     setMetrics(metricsMap);
   }, [events]);
-  
+
   if (Object.keys(metrics).length === 0) {
     return (
       <div className="text-center text-gray-500 py-8">
@@ -91,7 +91,7 @@ export const MetricsView: React.FC<MetricsViewProps> = ({ events }) => {
       </div>
     );
   }
-  
+
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -118,7 +118,7 @@ export const MetricsView: React.FC<MetricsViewProps> = ({ events }) => {
                   {metric.unit && <span className="ml-1 text-gray-500">{metric.unit}</span>}
                 </div>
               </div>
-              
+
               <div className="h-40">
                 <ResponsiveContainer width="100%" height="100%">
                   {metric.values.length > 1 ? (
@@ -130,26 +130,26 @@ export const MetricsView: React.FC<MetricsViewProps> = ({ events }) => {
                       margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
                     >
                       <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                      <XAxis 
-                        dataKey="timestamp" 
+                      <XAxis
+                        dataKey="timestamp"
                         type="number"
                         scale="time"
                         domain={['dataMin', 'dataMax']}
                         tickFormatter={(timestamp) => new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
                         tick={{ fontSize: 10 }}
                       />
-                      <YAxis 
+                      <YAxis
                         domain={['auto', 'auto']}
                         tick={{ fontSize: 10 }}
                       />
-                      <Tooltip 
+                      <Tooltip
                         labelFormatter={(label) => new Date(label).toLocaleString()}
                         formatter={(value: number) => [`${value}${metric.unit ? ` ${metric.unit}` : ''}`, metric.name]}
                       />
-                      <Line 
-                        type="monotone" 
-                        dataKey="value" 
-                        stroke="#3b82f6" 
+                      <Line
+                        type="monotone"
+                        dataKey="value"
+                        stroke="#3b82f6"
                         strokeWidth={2}
                         dot={{ r: 3 }}
                         activeDot={{ r: 5 }}
@@ -170,7 +170,7 @@ export const MetricsView: React.FC<MetricsViewProps> = ({ events }) => {
                   )}
                 </ResponsiveContainer>
               </div>
-              
+
               <div className="text-xs text-gray-500 mt-2">
                 Data points: {metric.values.length}
               </div>

@@ -1,8 +1,8 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { 
-  Gauge, 
-  FileText, 
+import {
+  Gauge,
+  FileText,
   Activity,
   Clock,
   AlertTriangle
@@ -29,7 +29,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ stats }) => {
           </p>
         </CardContent>
       </Card>
-      
+
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-sm font-medium">Log Events</CardTitle>
@@ -39,13 +39,13 @@ export const Dashboard: React.FC<DashboardProps> = ({ stats }) => {
           <div className="text-2xl font-bold">{stats.eventTypeCounts['LogEvent'] || 0}</div>
           <div className="mt-1 flex space-x-2">
             {Object.entries(stats.logLevelCounts || {}).map(([level, count]) => (
-              <span 
-                key={level} 
+              <span
+                key={level}
                 className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
-                  ${level === 'DEBUG' ? 'bg-gray-100 text-gray-800' : 
-                    level === 'INFO' ? 'bg-blue-100 text-blue-800' : 
-                    level === 'WARNING' ? 'bg-yellow-100 text-yellow-800' : 
-                    level === 'ERROR' ? 'bg-red-100 text-red-800' : 
+                  ${level === 'DEBUG' ? 'bg-gray-100 text-gray-800' :
+                    level === 'INFO' ? 'bg-blue-100 text-blue-800' :
+                    level === 'WARNING' ? 'bg-yellow-100 text-yellow-800' :
+                    level === 'ERROR' ? 'bg-red-100 text-red-800' :
                     'bg-purple-100 text-purple-800'}`}
               >
                 {level}: {count}
@@ -54,7 +54,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ stats }) => {
           </div>
         </CardContent>
       </Card>
-      
+
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-sm font-medium">Trace Events</CardTitle>
@@ -64,11 +64,11 @@ export const Dashboard: React.FC<DashboardProps> = ({ stats }) => {
           <div className="text-2xl font-bold">{stats.eventTypeCounts['TraceEvent'] || 0}</div>
           <div className="mt-1 flex space-x-2">
             {Object.entries(stats.traceStatuses || {}).map(([status, count]) => (
-              <span 
-                key={status} 
+              <span
+                key={status}
                 className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
-                  ${status === 'success' || status === 'OK' ? 'bg-green-100 text-green-800' : 
-                    status === 'error' ? 'bg-red-100 text-red-800' : 
+                  ${status === 'success' || status === 'OK' ? 'bg-green-100 text-green-800' :
+                    status === 'error' ? 'bg-red-100 text-red-800' :
                     'bg-gray-100 text-gray-800'}`}
               >
                 {status}: {count}
@@ -77,7 +77,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ stats }) => {
           </div>
         </CardContent>
       </Card>
-      
+
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-sm font-medium">Metric Events</CardTitle>
@@ -86,14 +86,14 @@ export const Dashboard: React.FC<DashboardProps> = ({ stats }) => {
         <CardContent>
           <div className="text-2xl font-bold">{stats.eventTypeCounts['MetricEvent'] || 0}</div>
           <p className="text-xs text-muted-foreground">
-            {stats.eventTypeCounts['MetricEvent'] 
+            {stats.eventTypeCounts['MetricEvent']
               ? `${((stats.eventTypeCounts['MetricEvent'] / stats.totalEvents) * 100).toFixed(1)}% of total events`
               : 'No metric events found'
             }
           </p>
         </CardContent>
       </Card>
-      
+
       {/* Component Distribution */}
       <Card className="md:col-span-2">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -103,8 +103,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ stats }) => {
         <CardContent>
           <div className="flex flex-wrap gap-2">
             {stats.components.map(component => (
-              <div 
-                key={component} 
+              <div
+                key={component}
                 className="px-2 py-1 bg-blue-50 rounded-lg text-xs font-medium text-blue-700"
               >
                 {component}
@@ -113,7 +113,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ stats }) => {
           </div>
         </CardContent>
       </Card>
-      
+
       {/* Top Trace Durations */}
       <Card className="md:col-span-2">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -129,8 +129,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ stats }) => {
                 <div key={name} className="flex items-center text-sm">
                   <div className="w-48 truncate" title={name}>{name}</div>
                   <div className="w-full bg-gray-100 rounded-full h-2">
-                    <div 
-                      className="bg-blue-600 h-2 rounded-full" 
+                    <div
+                      className="bg-blue-600 h-2 rounded-full"
                       style={{ width: `${Math.min(100, (duration / 1000) * 100)}%` }}
                     ></div>
                   </div>

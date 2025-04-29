@@ -1,22 +1,19 @@
-from sqlalchemy import create_engine, text
-from sqlalchemy.orm import sessionmaker
 import os
-from dotenv import load_dotenv
 from datetime import datetime, timedelta
 from typing import Any, Optional
 
-
-
-
+from dotenv import load_dotenv
+from sqlalchemy import create_engine, text
+from sqlalchemy.orm import sessionmaker
 
 
 class Database:
     def __init__(self, database_url: Optional[str] = None) -> None:
         load_dotenv()
-        self.database_url : Optional[str] = database_url or os.getenv("DATABASE_URL")
+        self.database_url: Optional[str] = database_url or os.getenv("DATABASE_URL")
         if not self.database_url:
             raise ValueError("DATABASE_URL is not set.")
-        
+
         self.engine = create_engine(self.database_url)
         self.Session = sessionmaker(bind=self.engine)
 
@@ -34,7 +31,7 @@ class Database:
 
     def get_user_fact(self, discord_id: str, days_back: int = 30) -> list[dict[str, Any]]:
         days_ago = datetime.now() - timedelta(days=days_back)
-        
+
         query = text("""
             SELECT f.*
             FROM gold.all_facts f
@@ -69,4 +66,3 @@ class Database:
             """)
             conn.execute(insert_query, {"user_id": user_id, "fact_text": fact_text})
             print(f"✅ Inserted fact for user {discord_id}")
-

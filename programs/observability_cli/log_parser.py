@@ -1,6 +1,6 @@
 import json
 from datetime import datetime
-from typing import Dict, List, Optional, Set, Any, Union
+from typing import Any, Dict, List, Optional, Set
 
 
 def load_logs(file_path: str) -> List[Dict]:

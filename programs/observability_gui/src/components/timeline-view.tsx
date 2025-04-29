@@ -12,7 +12,7 @@ interface TimelineViewProps {
 export const TimelineView: React.FC<TimelineViewProps> = ({ events, maxEvents = 100 }) => {
   // Get the latest events up to maxEvents
   const displayEvents = events.slice(0, maxEvents);
-  
+
   const getEventIcon = (event: LLMgineEvent) => {
     switch (event.event_type) {
       case 'LogEvent':
@@ -25,7 +25,7 @@ export const TimelineView: React.FC<TimelineViewProps> = ({ events, maxEvents = 
         return null;
     }
   };
-  
+
   const getEventTitle = (event: LLMgineEvent) => {
     switch (event.event_type) {
       case 'LogEvent':
@@ -40,7 +40,7 @@ export const TimelineView: React.FC<TimelineViewProps> = ({ events, maxEvents = 
         return 'Unknown Event';
     }
   };
-  
+
   const getBadgeClass = (event: LLMgineEvent) => {
     if (event.event_type === 'LogEvent') {
       return getLogLevelColor(event.level);
@@ -48,7 +48,7 @@ export const TimelineView: React.FC<TimelineViewProps> = ({ events, maxEvents = 
       return getEventTypeColor(event.event_type);
     }
   };
-  
+
   const formatTimestamp = (timestamp: string) => {
     try {
       return format(new Date(timestamp), 'HH:mm:ss.SSS');
@@ -56,15 +56,15 @@ export const TimelineView: React.FC<TimelineViewProps> = ({ events, maxEvents = 
       return 'Invalid date';
     }
   };
-  
+
   return (
     <div className="space-y-1">
       {displayEvents.map((event, index) => (
-        <div 
+        <div
           key={event.id || index}
           className={`p-2 rounded-md text-sm ${
-            event.event_type === 'LogEvent' && event.level === 'ERROR' 
-              ? 'border-l-4 border-red-500 bg-red-50' 
+            event.event_type === 'LogEvent' && event.level === 'ERROR'
+              ? 'border-l-4 border-red-500 bg-red-50'
               : getEventTypeColor(event.event_type)
           }`}
         >
@@ -82,11 +82,11 @@ export const TimelineView: React.FC<TimelineViewProps> = ({ events, maxEvents = 
               {event.source?.split('/').slice(-2).join('/')}
             </span>
           </div>
-          
+
           <div className="font-medium">
             {getEventTitle(event)}
           </div>
-          
+
           {event.event_type === 'LogEvent' && event.context && Object.keys(event.context).length > 0 && (
             <div className="mt-1 text-xs text-gray-600">
               Context: {Object.entries(event.context).map(([key, value]) => (
@@ -96,7 +96,7 @@ export const TimelineView: React.FC<TimelineViewProps> = ({ events, maxEvents = 
               ))}
             </div>
           )}
-          
+
           {event.event_type === 'TraceEvent' && event.attributes && Object.keys(event.attributes).length > 0 && (
             <div className="mt-1 text-xs text-gray-600">
               Attributes: {Object.entries(event.attributes).map(([key, value]) => (
@@ -106,13 +106,13 @@ export const TimelineView: React.FC<TimelineViewProps> = ({ events, maxEvents = 
               ))}
             </div>
           )}
-          
+
           {event.event_type === 'TraceEvent' && event.start_time && event.end_time && (
             <div className="mt-1 text-xs text-gray-600">
               Duration: {new Date(event.end_time).getTime() - new Date(event.start_time).getTime()}ms
             </div>
           )}
-          
+
           {event.event_type === 'MetricEvent' && event.metrics && event.metrics.length > 0 && (
             <div className="mt-1 text-xs">
               {event.metrics.map((metric, idx) => (
@@ -127,7 +127,7 @@ export const TimelineView: React.FC<TimelineViewProps> = ({ events, maxEvents = 
           )}
         </div>
       ))}
-      
+
       {events.length > maxEvents && (
         <div className="text-center text-xs text-gray-500 mt-2">
           Showing {maxEvents} of {events.length} events. Use filters to narrow results.

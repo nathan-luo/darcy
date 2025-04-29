@@ -12,24 +12,24 @@ export const Filters: React.FC<FiltersProps> = ({ events, onFilterChange }) => {
   const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
   const [selectedComponents, setSelectedComponents] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
-  
+
   // Extract available filters from events
   const availableLevels = new Set<LogLevel>();
   const availableComponents = new Set<string>();
   const availableTypes = new Set<string>();
-  
+
   events.forEach(event => {
     availableTypes.add(event.event_type);
-    
+
     if (event.event_type === 'LogEvent') {
       availableLevels.add(event.level);
-      
+
       if (event.context && event.context.component) {
         availableComponents.add(event.context.component);
       }
     }
   });
-  
+
   const handleLevelChange = (level: LogLevel) => {
     if (selectedLevels.includes(level)) {
       setSelectedLevels(selectedLevels.filter(l => l !== level));
@@ -37,7 +37,7 @@ export const Filters: React.FC<FiltersProps> = ({ events, onFilterChange }) => {
       setSelectedLevels([...selectedLevels, level]);
     }
   };
-  
+
   const handleTypeChange = (type: string) => {
     if (selectedTypes.includes(type)) {
       setSelectedTypes(selectedTypes.filter(t => t !== type));
@@ -45,7 +45,7 @@ export const Filters: React.FC<FiltersProps> = ({ events, onFilterChange }) => {
       setSelectedTypes([...selectedTypes, type]);
     }
   };
-  
+
   const handleComponentChange = (component: string) => {
     if (selectedComponents.includes(component)) {
       setSelectedComponents(selectedComponents.filter(c => c !== component));
@@ -53,7 +53,7 @@ export const Filters: React.FC<FiltersProps> = ({ events, onFilterChange }) => {
       setSelectedComponents([...selectedComponents, component]);
     }
   };
-  
+
   const applyFilters = () => {
     onFilterChange({
       level: selectedLevels.length > 0 ? selectedLevels : undefined,
@@ -62,16 +62,16 @@ export const Filters: React.FC<FiltersProps> = ({ events, onFilterChange }) => {
       query: searchQuery.trim() || undefined,
     });
   };
-  
+
   const clearFilters = () => {
     setSelectedLevels([]);
     setSelectedTypes([]);
     setSelectedComponents([]);
     setSearchQuery('');
-    
+
     onFilterChange({});
   };
-  
+
   const getLogLevelColor = (level: LogLevel): string => {
     switch (level) {
       case 'DEBUG': return 'bg-gray-100 text-gray-800';
@@ -82,7 +82,7 @@ export const Filters: React.FC<FiltersProps> = ({ events, onFilterChange }) => {
       default: return 'bg-gray-100 text-gray-800';
     }
   };
-  
+
   const getEventTypeColor = (type: string): string => {
     switch (type) {
       case 'LogEvent': return 'bg-blue-50 text-blue-800';
@@ -91,11 +91,11 @@ export const Filters: React.FC<FiltersProps> = ({ events, onFilterChange }) => {
       default: return 'bg-gray-50 text-gray-800';
     }
   };
-  
+
   return (
     <div className="p-4 border rounded-lg bg-white mb-4">
       <h3 className="text-lg font-medium mb-4">Filters</h3>
-      
+
       <div className="space-y-4">
         {/* Search */}
         <div>
@@ -110,7 +110,7 @@ export const Filters: React.FC<FiltersProps> = ({ events, onFilterChange }) => {
             placeholder="Search in logs..."
           />
         </div>
-        
+
         {/* Log Levels */}
         {Array.from(availableLevels).length > 0 && (
           <div>
@@ -134,7 +134,7 @@ export const Filters: React.FC<FiltersProps> = ({ events, onFilterChange }) => {
             </div>
           </div>
         )}
-        
+
         {/* Event Types */}
         <div>
           <label className="block text-sm font-medium mb-1">
@@ -156,7 +156,7 @@ export const Filters: React.FC<FiltersProps> = ({ events, onFilterChange }) => {
             ))}
           </div>
         </div>
-        
+
         {/* Components */}
         {Array.from(availableComponents).length > 0 && (
           <div>
@@ -180,7 +180,7 @@ export const Filters: React.FC<FiltersProps> = ({ events, onFilterChange }) => {
             </div>
           </div>
         )}
-        
+
         {/* Action Buttons */}
         <div className="flex space-x-2 pt-2">
           <Button

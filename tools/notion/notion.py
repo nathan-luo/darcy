@@ -1,9 +1,10 @@
-from datetime import date, datetime
-from enum import Enum
-from notion_client import Client
 import os
-from dotenv import load_dotenv
+from datetime import datetime
+from enum import Enum
 from typing import Literal, Optional
+
+from dotenv import load_dotenv
+from notion_client import Client
 
 load_dotenv()
 
@@ -292,8 +293,8 @@ def update_task(
 
 
 if __name__ == "__main__":
-    from pprint import pprint
     import time
+    from pprint import pprint
 
     start_time = time.time()
     tasks = get_active_tasks()

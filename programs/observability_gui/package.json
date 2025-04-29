@@ -1,17 +1,4 @@
 {
-  "name": "llmgine-log-visualizer",
-  "version": "0.1.0",
-  "private": true,
-  "type": "module",
-  "scripts": {
-    "dev": "vite",
-    "dev:server": "node dev-server.js",
-    "build": "tsc && vite build",
-    "lint": "eslint src --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
-    "preview": "vite preview",
-    "server": "node server.js",
-    "start": "npm run build && npm run server"
-  },
   "dependencies": {
     "@radix-ui/react-dialog": "^1.0.5",
     "@radix-ui/react-dropdown-menu": "^2.0.6",
@@ -49,5 +36,18 @@
     "tailwindcss": "^3.4.1",
     "typescript": "^5.2.2",
     "vite": "^5.1.0"
-  }
+  },
+  "name": "llmgine-log-visualizer",
+  "private": true,
+  "scripts": {
+    "build": "tsc && vite build",
+    "dev": "vite",
+    "dev:server": "node dev-server.js",
+    "lint": "eslint src --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
+    "preview": "vite preview",
+    "server": "node server.js",
+    "start": "npm run build && npm run server"
+  },
+  "type": "module",
+  "version": "0.1.0"
 }
