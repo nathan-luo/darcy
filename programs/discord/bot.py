@@ -53,6 +53,9 @@ class DarcyBot:
         """Handle incoming messages."""
         if message.author == self.bot.user:
             return
+        
+        if message.mention_everyone:
+            return
 
         if self.bot.user.mentioned_in(message):
             # Process the message
@@ -68,12 +71,12 @@ class DarcyBot:
 
             # Send response
             if result.result:
-                await message.channel.send(
-                    f"🎁 **Session {session_id} Result**: \n\n{result.result[: self.config.max_response_length]}"
+                await message.reply(
+                    f"{result.result[: self.config.max_response_length]}"
                 )
             else:
-                await message.channel.send(
-                    f"❌ **Session {session_id} Error**: An error occurred, please be more specific. Or I just messed up Lol."
+                await message.reply(
+                    f"❌ An error occurred. Sorry about that, please forgive me!!"
                 )
 
             # Complete the session
