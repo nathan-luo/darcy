@@ -50,6 +50,7 @@ class NotionCRUDEngineStatusEvent(Event):
 
     status: str = ""
 
+
 @dataclass
 class NotionCRUDEnginePromptResponseEvent(Event):
     """Event emitted when a prompt is processed and a response is generated."""
@@ -58,6 +59,7 @@ class NotionCRUDEnginePromptResponseEvent(Event):
     response: str = ""
     tool_calls: Optional[List[ToolCall]] = None
 
+
 @dataclass
 class NotionCRUDEngineToolResultEvent(Event):
     """Event emitted when a tool result is generated."""
@@ -65,11 +67,12 @@ class NotionCRUDEngineToolResultEvent(Event):
     tool_name: str = ""
     result: str = ""
 
-class NotionCRUDEngineV2:
+
+class NotionCRUDEngineV3:
     def __init__(
         self,
         session_id: str,
-        system_prompt: str = None,
+        system_prompt: Optional[str] = None,
     ):
         """Initialize the LLM engine.
 
@@ -93,8 +96,8 @@ class NotionCRUDEngineV2:
         self.context_manager = SimpleChatHistory(
             engine_id=self.engine_id, session_id=self.session_id
         )
-        # self.llm_manager = Gpt41Mini(Providers.OPENAI)
-        self.llm_manager = Gemini25FlashPreview(Providers.OPENROUTER)
+        self.llm_manager = Gpt41Mini(Providers.OPENAI)
+        # self.llm_manager = Gemini25FlashPreview(Providers.OPENROUTER)
         self.tool_manager = ToolManager(
             engine_id=self.engine_id, session_id=self.session_id, llm_model_name="openai"
         )
@@ -117,7 +120,7 @@ class NotionCRUDEngineV2:
         Returns:
             CommandResult: The result of the command execution
         """
-        max_tool_calls = 7
+        max_tool_calls = 10
         tool_call_count = 0
         try:
             # 1. Add user message to history
@@ -194,10 +197,16 @@ class NotionCRUDEngineV2:
                             ]["name"]
                         if "user_id" in temp:
                             # AI : Get user data using the new function
-                            notion_id = notion_user_id_type(temp["task_in_charge"]) # AI : Type cast
-                            user_data: UserData | None = get_user_from_notion_id(notion_id)
+                            notion_id = notion_user_id_type(
+                                temp["task_in_charge"]
+                            )  # AI : Type cast
+                            user_data: UserData | None = get_user_from_notion_id(
+                                notion_id
+                            )
                             # AI : Use user name if found, otherwise keep original or indicate unknown
-                            temp["task_in_charge"] = user_data.name if user_data else "Unknown User"
+                            temp["task_in_charge"] = (
+                                user_data.name if user_data else "Unknown User"
+                            )
                         result = await self.message_bus.execute(
                             NotionCRUDEngineConfirmationCommand(
                                 prompt=f"Updating task {temp}",
@@ -220,7 +229,7 @@ class NotionCRUDEngineV2:
                                 temp["notion_project_id"]
                             ]
                         # AI : Get user data using the new function
-                        notion_id = notion_user_id_type(temp["user_id"]) # AI : Type cast
+                        notion_id = notion_user_id_type(temp["user_id"])  # AI : Type cast
                         user_data: UserData | None = get_user_from_notion_id(notion_id)
                         # AI : Use user name if found, otherwise keep original or indicate unknown
                         temp["user_id"] = user_data.name if user_data else "Unknown User"
@@ -262,7 +271,7 @@ class NotionCRUDEngineV2:
                     await self.message_bus.publish(
                         NotionCRUDEngineToolResultEvent(
                             tool_name=tool_call_obj.name,
-                            result=result,
+                            result=result_str,
                             session_id=self.session_id,
                         )
                     )
@@ -310,30 +319,34 @@ class NotionCRUDEngineV2:
             prompt: The system prompt to set
         """
         self.context_manager.set_system_prompt(prompt)
-    
+
     async def register_tool(self, tool: Callable):
         await self.tool_manager.register_tool(tool)
-
 
 
 async def main():
     from llmgine.ui.cli.cli import EngineCLI
     from llmgine.ui.cli.components import EngineResultComponent, ToolComponent
-    from llmgine.ui.cli.components import YesNoPrompt
-    await MessageBus().start()
+    from llmgine.ui.cli.components import YesNoPrompt, ToolComponentShort
+    from llmgine.bootstrap import ApplicationBootstrap, ApplicationConfig
+
+    app = ApplicationBootstrap(ApplicationConfig(enable_console_handler=False))
+    await app.bootstrap()
     cli = EngineCLI("test")
-    engine = NotionCRUDEngineV2(session_id="test")
+    engine = NotionCRUDEngineV3(session_id="test")
     await engine.register_tool(get_active_projects)
     await engine.register_tool(get_active_tasks)
     await engine.register_tool(create_task)
     await engine.register_tool(update_task)
+    await engine.register_tool(get_all_users)
     cli.register_engine(engine)
-    cli.register_engine_command(NotionCRUDEnginePromptCommand)
+    cli.register_engine_command(NotionCRUDEnginePromptCommand, engine.handle_command)
     cli.register_engine_result_component(EngineResultComponent)
     cli.register_loading_event(NotionCRUDEngineStatusEvent)
-    cli.register_component_event(NotionCRUDEngineToolResultEvent, ToolComponent)
+    cli.register_component_event(NotionCRUDEngineToolResultEvent, ToolComponentShort)
     cli.register_prompt_command(NotionCRUDEngineConfirmationCommand, YesNoPrompt)
     await cli.main()
+
 
 if __name__ == "__main__":
     asyncio.run(main())
