@@ -30,7 +30,9 @@ class MessageProcessor:
         self.config = config
         self.session_manager = session_manager
 
-    async def process_mention(self, message: discord.Message) -> tuple[discord.Message, str]:
+    async def process_mention(
+        self, message: discord.Message
+    ) -> tuple[discord.Message, str]:
         """Process a message where the bot is mentioned."""
 
         # TODO need a session id type
