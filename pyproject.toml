@@ -26,6 +26,9 @@ dependencies = [
     "rich>=13.9.4",
     "textual>=2.1.2",
     "llmgine @ {root:parent:uri}/llmgine",
+    "google-auth-oauthlib>=1.0.0",
+    "google-auth-httplib2>=0.1.0",
+    "google-api-python-client>=2.86.0",
 ]
 
 [project.urls]

@@ -106,8 +106,10 @@ class NotionCRUDEngineV3:
         if system_prompt:
             self.context_manager.set_system_prompt(system_prompt)
 
-    async def register_tools(self):
-        await self.tool_manager.register_tools(["notion"])
+    async def register_tools(self, function_list: List[Callable]):
+        """Register tools for the engine."""
+        for function in function_list:
+            await self.tool_manager.register_tool(function)
 
     async def handle_command(
         self, command: NotionCRUDEnginePromptCommand
@@ -329,6 +331,7 @@ async def main():
     from llmgine.ui.cli.components import EngineResultComponent, ToolComponent
     from llmgine.ui.cli.components import YesNoPrompt, ToolComponentShort
     from llmgine.bootstrap import ApplicationBootstrap, ApplicationConfig
+    from tools.gmail.gmail_client import send_email, read_emails, reply_to_email
 
     app = ApplicationBootstrap(ApplicationConfig(enable_console_handler=False))
     await app.bootstrap()
@@ -339,6 +342,9 @@ async def main():
     await engine.register_tool(create_task)
     await engine.register_tool(update_task)
     await engine.register_tool(get_all_users)
+    await engine.register_tool(send_email)
+    await engine.register_tool(read_emails)
+    await engine.register_tool(reply_to_email)
     cli.register_engine(engine)
     cli.register_engine_command(NotionCRUDEnginePromptCommand, engine.handle_command)
     cli.register_engine_result_component(EngineResultComponent)
