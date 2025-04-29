@@ -321,7 +321,7 @@ class NotionCRUDEngineV2:
 
         return result.result
 
-    async def clear_context(self):
+    async def clear_context(self) -> None:
         """Clear the conversation context."""
         self.context_manager.clear()
 
