@@ -332,7 +332,7 @@ async def main():
     from llmgine.ui.cli.components import YesNoPrompt, ToolComponentShort
     from llmgine.bootstrap import ApplicationBootstrap, ApplicationConfig
     from tools.gmail.gmail_client import send_email, read_emails, reply_to_email
-
+    from tools.general.functions import store_fact
     app = ApplicationBootstrap(ApplicationConfig(enable_console_handler=False))
     await app.bootstrap()
     cli = EngineCLI("test")
@@ -342,6 +342,7 @@ async def main():
     await engine.register_tool(create_task)
     await engine.register_tool(update_task)
     await engine.register_tool(get_all_users)
+    await engine.register_tool(store_fact)
     await engine.register_tool(send_email)
     await engine.register_tool(read_emails)
     await engine.register_tool(reply_to_email)
@@ -351,6 +352,7 @@ async def main():
     cli.register_loading_event(NotionCRUDEngineStatusEvent)
     cli.register_component_event(NotionCRUDEngineToolResultEvent, ToolComponentShort)
     cli.register_prompt_command(NotionCRUDEngineConfirmationCommand, YesNoPrompt)
+    engine.context_manager.store_string("I am Nathan Luo, AI Director, notion id: f746733c-66cc-4cbc-b553-c5d3f03ed240, discord id: 241085495398891521.", "user")
     await cli.main()
 
 
