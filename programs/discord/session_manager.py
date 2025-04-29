@@ -131,7 +131,7 @@ class SessionManager:
 
     async def update_session_status(
         self, session_id: str, status: SessionStatus, message: Optional[str] = None
-    ) -> bool:
+    ) -> Optional[bool]:
         """Update a session's status and optionally its message"""
         if session_id not in self.active_sessions:
             return False
@@ -142,7 +142,7 @@ class SessionManager:
 
         # TODO temp solution
         if message == "finished":
-            return
+            return None
 
         if message:
             emoji = STATUS_EMOJI.get(status, "🔄")
@@ -184,7 +184,7 @@ class SessionManager:
             session_id, SessionStatus.REQUESTING_INPUT, "User input requested..."
         )
 
-        result = None
+        result : Optional[bool] = None
 
         if input_type == "yes_no":
             # Create the view for Yes/No input
@@ -214,6 +214,7 @@ class SessionManager:
         await self.update_session_status(session_id, SessionStatus.INPUT_RECEIVED)
         await self.update_session_data(session_id, {"last_input": result})
 
+        assert result is not None
         return result
 
     async def complete_session(

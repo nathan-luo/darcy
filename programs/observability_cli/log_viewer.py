@@ -146,7 +146,7 @@ def view_logs(args):
         )
 
 
-def main():
+def main() -> None:
     args = parse_args()
     view_logs(args)
 

@@ -1,10 +1,11 @@
 import os
 from datetime import datetime
 from enum import Enum
-from typing import Literal, Optional
+from typing import Any, Literal, Optional
 
 from dotenv import load_dotenv
 from notion_client import Client
+
 
 load_dotenv()
 
@@ -41,7 +42,7 @@ class TASK_STATUS(Enum):
 
 
 class NotionClient:
-    _instance = None
+    _instance : Optional[Client] = None
 
     def __new__(cls):
         """
@@ -220,7 +221,7 @@ def create_task(
     Returns:
         str: Success or failure of the creation
     """
-    properties = {
+    properties: dict[str, Any] = {
         "Name": {"title": [{"text": {"content": task_name}}]},
         "In Charge": {"people": [{"object": "user", "id": user_id}]},
     }
@@ -240,9 +241,9 @@ def create_task(
 def update_task(
     notion_task_id: str,
     task_name: Optional[str] = None,
-    task_status: Literal[
+    task_status: Optional[Literal[
         "Not Started", "In Progress", "Blocked", "To Review", "Done", "Archive"
-    ] = None,  # TODO should maybe make a property?
+    ]] = None,  # TODO should maybe make a property?
     task_due_date: Optional[str] = None,
     task_in_charge: Optional[list[str]] = None,
     task_event_project: Optional[str] = None,
@@ -283,7 +284,7 @@ def update_task(
     if task_event_project:
         properties["Event/Project"] = {"relation": {"contains": task_event_project}}
 
-    notion_client = NotionClient()
+    notion_client : Client = NotionClient()
     response = notion_client.pages.update(
         page_id=notion_task_id,
         properties=properties,

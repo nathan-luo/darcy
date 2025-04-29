@@ -240,7 +240,7 @@ def search_logs(args):
         console.print(fields_panel)
 
 
-def main():
+def main() -> None:
     args = parse_args()
     search_logs(args)
 

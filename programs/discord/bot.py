@@ -27,7 +27,7 @@ logging.basicConfig(level=logging.INFO)
 
 
 class DarcyBot:
-    def __init__(self):
+    def __init__(self) -> None:
         # Load configuration
         self.config = DiscordBotConfig.load_from_env()
 
@@ -46,11 +46,11 @@ class DarcyBot:
         self.bot.event(self.on_ready)
         self.bot.event(self.on_message)
 
-    async def on_ready(self):
+    async def on_ready(self) -> None:
         """Called when the bot is ready to start."""
         print(f"Logged in as {self.bot.user}")
 
-    async def on_message(self, message: discord.Message):
+    async def on_message(self, message: discord.Message) -> None:
         """Handle incoming messages."""
         if message.author == self.bot.user:
             return
