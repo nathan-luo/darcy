@@ -13,6 +13,7 @@ import sys
 import discord
 from config import DiscordBotConfig
 from session_manager import SessionManager
+from typing import Optional
 
 # Add the parent directory to the path so we can import from sibling directories
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../.."))
@@ -57,7 +58,7 @@ class MessageProcessor:
     def _process_mentions(self, message: discord.Message) -> str:
         """Process user mentions in the message."""
         user_mentions = [user.id for user in message.mentions]
-        mentions_payload = []
+        mentions_payload: list[dict[discord_user_id_type, str]] = []
         for user_mention in user_mentions:
             if user_mention == self.config.bot_id:
                 continue
@@ -89,7 +90,7 @@ class MessageProcessor:
 
     async def _get_chat_history(self, message: discord.Message) -> str:
         """Get recent chat history from the channel."""
-        chat_history = []
+        chat_history: list[str] = []
         async for msg in message.channel.history(limit=20):
             if msg.author.id == self.config.bot_id:
                 if "Result" not in msg.content:
@@ -104,7 +105,8 @@ class MessageProcessor:
         if message.reference is None:
             return ""
 
-        replied_message = await message.channel.fetch_message(
-            message.reference.message_id
-        )
+        msg_id: Optional[int] = message.reference.message_id
+        if msg_id is None:
+            return "No message id was found"
+        replied_message = await message.channel.fetch_message(msg_id)
         return f"The current request is responding to a message, and that message is: {replied_message.author.display_name}: {replied_message.content}"
