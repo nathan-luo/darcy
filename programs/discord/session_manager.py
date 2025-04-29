@@ -70,7 +70,7 @@ class SessionManager:
         session_id = self.generate_session_id()
 
         # Create initial session message
-        session_msg = await message.channel.send(
+        session_msg = await message.reply(
             f"🔄 **Session {session_id} starting...**"
         )
 
@@ -78,7 +78,8 @@ class SessionManager:
         self.active_sessions[session_id] = {
             "id": session_id,
             "message": message,
-            "session_msg": session_msg,
+            "session_status_msg": session_msg,
+            "session_msgs": [],
             "author": message.author,
             "channel": message.channel,
             "status": SessionStatus.STARTING,
@@ -140,11 +141,18 @@ class SessionManager:
         session["status"] = status
         session["updated_at"] = discord.utils.utcnow()
 
+        # TODO temp solution
+        if message == "finished":
+            return
+
         if message:
             emoji = STATUS_EMOJI.get(status, "🔄")
-            await session["session_msg"].edit(
+            await session["session_status_msg"].edit(
                 content=f"{emoji} **Session {session_id}**: {message}"
             )
+        
+        if status == SessionStatus.COMPLETED:
+            await session["session_status_msg"].delete()
 
         return True
 
@@ -186,7 +194,7 @@ class SessionManager:
                 content=f"⚠️ **Session {session_id}**: {session['author'].mention}, {prompt_text}",
                 view=view,
             )
-
+            session["session_msgs"].append(prompt_msg)
             # Wait for the user to respond
             await view.wait()
 
@@ -217,6 +225,9 @@ class SessionManager:
             session_id, SessionStatus.COMPLETED, final_message or "Session completed"
         ):
             return False
+
+        for msg in self.active_sessions[session_id]["session_msgs"]:
+            await msg.delete()
 
         # You can choose to keep completed sessions in memory for reference
         # or remove them to free up memory
