@@ -64,7 +64,6 @@ def get_all_users() -> list[dict[str, Any]]:
     """
     notion_client = NotionClient()
     response = notion_client.users.list()
-    user_list = []
 
     user_list: list[Any] = response.get("results", [])
     for user in user_list:
