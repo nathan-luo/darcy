@@ -18,6 +18,7 @@ from config import DiscordBotConfig
 from tools.general.functions import store_fact
 
 # Add the parent directory to the path so we can import from sibling directories
+# TODO maybe remove this
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../.."))
 
 from llmgine.bus.bus import MessageBus
@@ -39,9 +40,9 @@ from tools.gmail.gmail_client import send_email, read_emails, reply_to_email
 
 class EngineManager:
     def __init__(self, config: DiscordBotConfig, session_manager: SessionManager):
-        self.config = config
-        self.session_manager = session_manager
-        self.bus = MessageBus()
+        self.config : DiscordBotConfig = config
+        self.session_manager : SessionManager = session_manager
+        self.bus : MessageBus = MessageBus()
 
     async def handle_confirmation_command(
         self, command: NotionCRUDEngineConfirmationCommand

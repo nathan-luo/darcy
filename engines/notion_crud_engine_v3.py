@@ -93,12 +93,12 @@ class NotionCRUDEngineV3:
         # Get API key from environment if not provided
 
         # Create tightly coupled components - pass the simple engine
-        self.context_manager = SimpleChatHistory(
+        self.context_manager : SimpleChatHistory = SimpleChatHistory(
             engine_id=self.engine_id, session_id=self.session_id
         )
         self.llm_manager = Gpt41Mini(Providers.OPENAI)
         # self.llm_manager = Gemini25FlashPreview(Providers.OPENROUTER)
-        self.tool_manager = ToolManager(
+        self.tool_manager : ToolManager = ToolManager(
             engine_id=self.engine_id, session_id=self.session_id, llm_model_name="openai"
         )
 
@@ -106,7 +106,7 @@ class NotionCRUDEngineV3:
         if system_prompt:
             self.context_manager.set_system_prompt(system_prompt)
 
-    async def register_tools(self, function_list: List[Callable]):
+    async def register_tools(self, function_list: List[Callable[..., Any]]):
         """Register tools for the engine."""
         for function in function_list:
             await self.tool_manager.register_tool(function)

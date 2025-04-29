@@ -31,7 +31,9 @@ class MessageProcessor:
 
     async def process_mention(self, message: discord.Message) -> None:
         """Process a message where the bot is mentioned."""
-        session_id = await self.session_manager.create_session(message, expire_after_minutes=1)
+
+        # TODO need a session id type
+        session_id : str = await self.session_manager.create_session(message, expire_after_minutes=1)
         
         # Process user mentions
         user_mentions = self._process_mentions(message)
@@ -40,7 +42,7 @@ class MessageProcessor:
         reply_payload = await self._process_reply(message)
 
         # Combine all payloads
-        message.content = (
+        message.content : str = (
             message.content
             + f"\n\n{reply_payload}\n\n{author_payload}\n\n{user_mentions}\n\n{chat_history}"
         )
