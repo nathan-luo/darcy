@@ -10,8 +10,6 @@ from rich.table import Table
 from rich.text import Text
 from rich.tree import Tree
 
-# Make sure we can import log_parser.py from the same directory
-sys.path.insert(0, str(Path(__file__).parent))
 import log_parser
 
 console = Console()

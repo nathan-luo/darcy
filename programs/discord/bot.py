@@ -13,13 +13,13 @@ import asyncio
 import logging
 
 import discord
-from config import DiscordBotConfig
+from .config import DiscordBotConfig
 from discord.ext import commands
-from engine_manager import EngineManager
+from .engine_manager import EngineManager
 from llmgine.bootstrap import ApplicationBootstrap
 from llmgine.bus.bus import MessageBus
-from message_processor import MessageProcessor
-from session_manager import SessionManager
+from .message_processor import MessageProcessor
+from .session_manager import SessionManager
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)

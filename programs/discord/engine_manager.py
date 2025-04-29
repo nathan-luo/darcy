@@ -9,18 +9,12 @@ Responsibilities include:
 - System prompt
 """
 
-import os
-import sys
-
-from config import DiscordBotConfig
-from session_manager import SessionManager, SessionStatus
+from .config import DiscordBotConfig
+from .session_manager import SessionManager, SessionStatus
 
 from engines.notion_crud_engine_v3 import NotionCRUDEngineV3
 from tools.general.functions import store_fact
 
-# Add the parent directory to the path so we can import from sibling directories
-# TODO maybe remove this
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../.."))
 
 from llmgine.bus.bus import MessageBus
 from llmgine.messages.commands import CommandResult
@@ -50,6 +44,10 @@ class EngineManager:
         self, command: NotionCRUDEngineConfirmationCommand
     ) -> CommandResult:
         """Handle confirmation commands from the engine."""
+        if command.session_id is None:
+            print("Error: Session ID missing in confirmation command.")
+            return CommandResult(success=False, result="Internal error: Missing session ID")
+
         response = await self.session_manager.request_user_input(
             command.session_id, command.prompt, timeout=30
         )
@@ -57,6 +55,10 @@ class EngineManager:
 
     async def handle_status_event(self, event: NotionCRUDEngineStatusEvent) -> None:
         """Handle status events from the engine."""
+        if event.session_id is None:
+            print("Error: Session ID missing in status event.")
+            return
+
         await self.session_manager.update_session_status(
             event.session_id, SessionStatus.PROCESSING, event.status
         )
@@ -65,7 +67,7 @@ class EngineManager:
         self, command: NotionCRUDEnginePromptCommand, session_id: str
     ) -> CommandResult:
         """Create and configure a new engine for this command."""
-        async with self.bus.create_session(id_input=session_id) as session:
+        async with self.bus.create_session(id_input=session_id) as _:
             # Create a new engine for this command
             engine = NotionCRUDEngineV3(
                 session_id=session_id,

@@ -9,8 +9,6 @@ from rich.panel import Panel
 from rich.table import Table
 from rich.text import Text
 
-# Make sure we can import log_parser.py from the same directory
-sys.path.insert(0, str(Path(__file__).parent))
 import log_parser
 
 console = Console()

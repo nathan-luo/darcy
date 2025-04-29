@@ -265,4 +265,4 @@ my_llm_app/
 
 ## Run with
 
-uv run programs/discord/bot.py
+uv run python -m programs.discord.bot

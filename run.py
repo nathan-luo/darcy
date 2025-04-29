@@ -39,7 +39,7 @@ def main():
         setup_environment(args.mode)
 
         # Run the bot using uv
-        os.system("uv run programs/discord/bot.py")
+        os.system("uv run -m programs/discord/bot.py")
 
     except FileNotFoundError as e:
         print(f"Error: {e}")

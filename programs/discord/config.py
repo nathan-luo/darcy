@@ -18,9 +18,6 @@ from dataclasses import dataclass
 
 import dotenv
 
-# Add the parent directory to the path so we can import from sibling directories
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../.."))
-
 from llmgine.bootstrap import ApplicationConfig
 
 

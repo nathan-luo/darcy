@@ -4,9 +4,6 @@ import os
 import sys
 from pathlib import Path
 
-# Make sure we can import modules from the same directory
-sys.path.insert(0, str(Path(__file__).parent))
-
 # Import the individual tools
 import log_search
 import log_stats

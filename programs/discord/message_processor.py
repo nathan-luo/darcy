@@ -7,16 +7,12 @@ It processes:
 - reply payload
 """
 
-import os
-import sys
 from typing import Optional
+import logging
 
 import discord
-from config import DiscordBotConfig
-from session_manager import SessionManager
-
-# Add the parent directory to the path so we can import from sibling directories
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../.."))
+from .config import DiscordBotConfig
+from .session_manager import SessionManager
 
 from tools.general.functions import get_all_facts, get_user_info
 from tools.notion.data import (
@@ -25,6 +21,7 @@ from tools.notion.data import (
     get_user_from_discord_id,
 )
 
+logger = logging.getLogger(__name__)
 
 class MessageProcessor:
     def __init__(self, config: DiscordBotConfig, session_manager: SessionManager):

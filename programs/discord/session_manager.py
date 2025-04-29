@@ -16,7 +16,7 @@ from enum import Enum
 from typing import Any, Dict, List, Optional
 
 import discord
-from components import YesNoView
+from .components import YesNoView
 from discord.ext import commands
 
 
