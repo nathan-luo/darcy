@@ -50,7 +50,7 @@ class DarcyBot:
         """Called when the bot is ready to start."""
         print(f"Logged in as {self.bot.user}")
 
-    async def on_message(self, message):
+    async def on_message(self, message: discord.Message):
         """Handle incoming messages."""
         if message.author == self.bot.user:
             return
@@ -58,6 +58,8 @@ class DarcyBot:
         if message.mention_everyone:
             return
 
+
+        assert self.bot.user is not None
         if self.bot.user.mentioned_in(message):
             # Process the message
             processed_message, session_id = await self.message_processor.process_mention(
