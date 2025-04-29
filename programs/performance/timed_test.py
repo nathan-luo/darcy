@@ -5,7 +5,7 @@ from typing import Callable, List, Any, Optional
 import functools
 
 
-def time_execution(func: Callable, *args, **kwargs) -> float:
+def time_execution(func: Callable[..., Any], *args: Any, **kwargs: Any) -> float:
     """
     Measure the execution time of a function.
     
@@ -17,13 +17,13 @@ def time_execution(func: Callable, *args, **kwargs) -> float:
     Returns:
         float: Execution time in seconds
     """
-    start_time = time.time()
-    result = func(*args, **kwargs)
-    end_time = time.time()
+    start_time : float = time.time()
+    result : Any = func(*args, **kwargs)
+    end_time : float = time.time()
     return end_time - start_time
 
 
-def benchmark(iterations: int = 10) -> Callable:
+def benchmark(iterations: int = 10) -> Callable[[Callable[..., Any]], Dict[str, Any]]:
     """
     Decorator to benchmark a function over multiple iterations.
     
@@ -33,23 +33,25 @@ def benchmark(iterations: int = 10) -> Callable:
     Returns:
         Callable: Decorated function
     """
-    def decorator(func: Callable) -> Callable:
+    def decorator(func: Callable[..., Any]) -> Callable[[Callable[..., Any]], Dict[str, Any]]:
+        
+
         @functools.wraps(func)
-        def wrapper(*args, **kwargs) -> dict:
+        def wrapper(*args: Any, **kwargs: Any) -> Dict[str, Any]: 
             times: List[float] = []
-            results = None
+            results : Optional[Any] = None
             
             for _ in range(iterations):
-                start_time = time.time()
-                result = func(*args, **kwargs)
-                end_time = time.time()
+                start_time : float = time.time()
+                result : Any = func(*args, **kwargs)
+                end_time : float = time.time()
                 
                 if results is None:
                     results = result
                 
                 times.append(end_time - start_time)
             
-            stats = {
+            stats : Dict[str, Any] = {
                 "min": min(times),
                 "max": max(times),
                 "mean": statistics.mean(times),
@@ -119,8 +121,8 @@ class MemoryTracker:
         from types import ModuleType, FunctionType
         
         self.obj = obj
-        self._size = 0
-        self._detailed = {}
+        self._size : float = 0
+        self._detailed : Dict[str, Any] = {}
         
         # Get the size of the object itself
         self._size = sys.getsizeof(obj)
