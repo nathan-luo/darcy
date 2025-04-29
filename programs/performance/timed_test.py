@@ -1,7 +1,7 @@
 from typing import Dict
 import time
 import statistics
-from typing import Callable, List, Any, Optional
+from typing import Callable, List, Any, Optional, Self
 import functools
 
 
@@ -18,12 +18,12 @@ def time_execution(func: Callable[..., Any], *args: Any, **kwargs: Any) -> float
         float: Execution time in seconds
     """
     start_time : float = time.time()
-    result : Any = func(*args, **kwargs)
+    func(*args, **kwargs)
     end_time : float = time.time()
     return end_time - start_time
 
 
-def benchmark(iterations: int = 10) -> Callable[[Callable[..., Any]], Dict[str, Any]]:
+def benchmark(iterations: int = 10) -> Callable[[Callable[..., Any]], Callable[..., Dict[str, Any]]]:
     """
     Decorator to benchmark a function over multiple iterations.
     
@@ -33,7 +33,7 @@ def benchmark(iterations: int = 10) -> Callable[[Callable[..., Any]], Dict[str, 
     Returns:
         Callable: Decorated function
     """
-    def decorator(func: Callable[..., Any]) -> Callable[[Callable[..., Any]], Dict[str, Any]]:
+    def decorator(func: Callable[..., Any]) -> Callable[..., Dict[str, Any]]:
         
 
         @functools.wraps(func)
@@ -88,10 +88,10 @@ class CodeTimer:
             name: Optional name for this timer
         """
         self.name = name
-        self.execution_time = 0
+        self.execution_time: float = 0.0
         
-    def __enter__(self):
-        self.start_time = time.time()
+    def __enter__(self) -> Self:
+        self.start_time : float = time.time()
         return self
         
     def __exit__(self, exc_type, exc_val, exc_tb):

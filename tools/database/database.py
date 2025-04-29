@@ -3,18 +3,24 @@ from sqlalchemy.orm import sessionmaker
 import os
 from dotenv import load_dotenv
 from datetime import datetime, timedelta
+from typing import Any, Optional
+
+
+
+
+
 
 class Database:
-    def __init__(self, database_url=None):
+    def __init__(self, database_url: Optional[str] = None) -> None:
         load_dotenv()
-        self.database_url = database_url or os.getenv("DATABASE_URL")
+        self.database_url : Optional[str] = database_url or os.getenv("DATABASE_URL")
         if not self.database_url:
             raise ValueError("DATABASE_URL is not set.")
         
         self.engine = create_engine(self.database_url)
         self.Session = sessionmaker(bind=self.engine)
 
-    def get_user(self, discord_id):
+    def get_user(self, discord_id: str) -> Optional[dict[str, Any]]:
         query = text("""
             SELECT *
             FROM gold.users_base
@@ -26,7 +32,7 @@ class Database:
             user = result.mappings().first()
             return dict(user) if user else None
 
-    def get_user_fact(self, discord_id, days_back=30):
+    def get_user_fact(self, discord_id: str, days_back: int = 30) -> list[dict[str, Any]]:
         days_ago = datetime.now() - timedelta(days=days_back)
         
         query = text("""
@@ -40,9 +46,9 @@ class Database:
         with self.engine.connect() as conn:
             result = conn.execute(query, {"discord_id": discord_id, "days_ago": days_ago})
             facts = result.mappings().all()
-            return facts
+            return [dict(fact) for fact in facts]
 
-    def set_user_fact(self, discord_id, fact_text):
+    def set_user_fact(self, discord_id: str, fact_text: str) -> None:
         # Find user first
         user_query = text("""
             SELECT id
