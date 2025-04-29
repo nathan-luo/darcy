@@ -9,11 +9,11 @@ It processes:
 
 import os
 import sys
+from typing import Optional
 
 import discord
 from config import DiscordBotConfig
 from session_manager import SessionManager
-from typing import Optional
 
 # Add the parent directory to the path so we can import from sibling directories
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../.."))
