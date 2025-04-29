@@ -121,7 +121,7 @@ class MemoryTracker:
         from types import ModuleType, FunctionType
         
         self.obj = obj
-        self._size : float = 0
+        self._size : int = 0
         self._detailed : Dict[str, Any] = {}
         
         # Get the size of the object itself

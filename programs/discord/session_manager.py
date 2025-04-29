@@ -47,7 +47,7 @@ class SessionManager:
     def __init__(self, bot):
         self.bot = bot
         self.active_sessions: Dict[str, Dict[str, Any]] = {}
-        self.id_length = 5
+        self.id_length : int = 5
 
     def generate_session_id(self) -> str:
         """Generate a random alphanumeric session ID"""
