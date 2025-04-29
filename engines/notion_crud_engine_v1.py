@@ -1,8 +1,8 @@
-import asyncio
-import uuid
-import os
 import json
-from typing import Any, Callable, Dict, List, Optional
+import os
+import uuid
+from dataclasses import dataclass
+from typing import List, Optional
 
 from llmgine.bus.bus import MessageBus
 from llmgine.llm.context.memory import SimpleChatHistory
@@ -10,20 +10,12 @@ from llmgine.llm.providers.response import OpenAIManager
 from llmgine.llm.tools.tool_manager import ToolManager
 from llmgine.llm.tools.types import ToolCall
 from llmgine.messages.commands import Command, CommandResult
-from llmgine.messages.events import LLMResponse, Event
-from dataclasses import dataclass, field
-from tools.notion.notion import (
-    get_all_users,
-    get_active_tasks,
-    get_active_projects,
-    create_task,
-    update_task,
-)
+from llmgine.messages.events import Event
 
 from tools.notion.data import (
+    UserData,
     get_user_from_notion_id,
     notion_user_id_type,
-    UserData,
 )
 
 
@@ -196,10 +188,14 @@ class NotionCRUDEngine:
                         ]["name"]
                     if "user_id" in temp:
                         # AI : Get user data using the new function
-                        notion_id = notion_user_id_type(temp["task_in_charge"]) # AI : Type cast
+                        notion_id = notion_user_id_type(
+                            temp["task_in_charge"]
+                        )  # AI : Type cast
                         user_data: UserData | None = get_user_from_notion_id(notion_id)
                         # AI : Use user name if found, otherwise keep original or indicate unknown
-                        temp["task_in_charge"] = user_data.name if user_data else "Unknown User"
+                        temp["task_in_charge"] = (
+                            user_data.name if user_data else "Unknown User"
+                        )
                     result = await self.message_bus.execute(
                         NotionCRUDEngineConfirmationCommand(
                             prompt=f"Updating task {temp}",
@@ -217,12 +213,12 @@ class NotionCRUDEngine:
                 if tool_call_obj.name == "create_task":
                     # patch project name and user name for confirmation request
                     temp = json.loads(tool_call.function.arguments)
-                    if "notion_project_id" in temp and temp["notion_project_id"]:
+                    if temp.get("notion_project_id"):
                         temp["notion_project_id"] = self.temp_project_lookup[
                             temp["notion_project_id"]
                         ]
                     # AI : Get user data using the new function
-                    notion_id = notion_user_id_type(temp["user_id"]) # AI : Type cast
+                    notion_id = notion_user_id_type(temp["user_id"])  # AI : Type cast
                     user_data: UserData | None = get_user_from_notion_id(notion_id)
                     # AI : Use user name if found, otherwise keep original or indicate unknown
                     temp["user_id"] = user_data.name if user_data else "Unknown User"

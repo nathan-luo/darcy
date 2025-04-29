@@ -1,9 +1,10 @@
-from datetime import date, datetime
-from enum import Enum
-from notion_client import Client
 import os
+from datetime import datetime
+from enum import Enum
+from typing import Any, Literal, NewType, Optional
+
 from dotenv import load_dotenv
-from typing import Literal, Optional
+from notion_client import Client
 
 load_dotenv()
 
@@ -40,7 +41,7 @@ class TASK_STATUS(Enum):
 
 
 class NotionClient:
-    _instance = None
+    _instance: Optional[Client] = None
 
     def __new__(cls):
         """
@@ -57,26 +58,27 @@ class NotionClient:
         return cls._instance
 
 
-def get_all_users() -> list[dict]:
+def get_all_users() -> list[dict[str, Any]]:
     """
     Get all users from the users database
     """
     notion_client = NotionClient()
     response = notion_client.users.list()
-    user_list = []
-    for user in response.get("results", []):
+
+    user_list: list[Any] = response.get("results", [])
+    for user in user_list:
         print(user.get("id"), user.get("name"))
         user_list.append({
             "id": user.get("id"),
             "name": user.get("name"),
-        })
+        })  # TODO use userdata?
     return user_list
 
 
 def get_active_tasks(
     notion_user_id: Optional[str] = None,
     notion_project_id: Optional[str] = None,
-) -> list[dict]:
+) -> dict[str, dict[str, Any]]:
     """
     Get all active tasks from the tasks database with provided filters
 
@@ -117,6 +119,7 @@ def get_active_tasks(
         database_id=NOTION_PRODUCTION_DATABASE_ID_TASKS,
         filter=filter_obj,  # should database id be notion_project_id?
     )
+
     tasks = response.get("results", [])
     parsed_tasks = {}
     for task in tasks:
@@ -170,12 +173,16 @@ def get_active_tasks(
     return parsed_tasks
 
 
-def get_active_projects() -> list[dict]:
+project_id_type = NewType("project_id_type", str)
+project_map_type = dict[project_id_type, Any]
+
+
+def get_active_projects() -> project_map_type:
     """
     Get all projects from the projects database
     """
-    notion_client = NotionClient()
-    response = notion_client.databases.query(
+    notion_client: Client = NotionClient()
+    response: Any = notion_client.databases.query(
         database_id=NOTION_PRODUCTION_DATABASE_ID_PROJECTS,
         # TODO filter based on active
         filter={
@@ -186,16 +193,20 @@ def get_active_projects() -> list[dict]:
             ]
         },
     )
-    projects = response.get("results", [])
-    parsed_projects = {}
+
+    projects: list[dict[str, Any]] = response.get("results", [])
+    parsed_projects: project_map_type = {}
     for project in projects:
-        name = None
-        name_prop = project.get("properties", {}).get("Name", {})
-        title_list = name_prop.get("title", [])
+        name: Optional[Any] = None
+        name_prop: Any = project.get("properties", {}).get("Name", {})
+        title_list: list[Any] = name_prop.get("title", [])
         if title_list and len(title_list) > 0:
             text_obj = title_list[0].get("text", {})
             name = text_obj.get("content")
-        parsed_projects[project.get("id")] = name
+
+        project_id: Optional[project_id_type] = project_id_type(project.get("id", None))
+        assert project_id is not None
+        parsed_projects[project_id] = name
 
     return parsed_projects
 
@@ -206,7 +217,7 @@ def create_task(
     due_date: Optional[str] = None,
     notion_project_id: Optional[str] = None,
     # TODO add more
-) -> str:
+) -> Any:
     """
     Create a new task in the tasks database
 
@@ -219,7 +230,7 @@ def create_task(
     Returns:
         str: Success or failure of the creation
     """
-    properties = {
+    properties: dict[str, Any] = {
         "Name": {"title": [{"text": {"content": task_name}}]},
         "In Charge": {"people": [{"object": "user", "id": user_id}]},
     }
@@ -239,13 +250,13 @@ def create_task(
 def update_task(
     notion_task_id: str,
     task_name: Optional[str] = None,
-    task_status: Literal[
-        "Not Started", "In Progress", "Blocked", "To Review", "Done", "Archive"
+    task_status: Optional[
+        Literal["Not Started", "In Progress", "Blocked", "To Review", "Done", "Archive"]
     ] = None,  # TODO should maybe make a property?
     task_due_date: Optional[str] = None,
-    task_in_charge: Optional[list[str]] = None,
+    task_in_charge: Optional[list[Any]] = None,  # TODO define type
     task_event_project: Optional[str] = None,
-) -> str:
+) -> Any:
     """
     Update a task in the tasks database
 
@@ -254,7 +265,7 @@ def update_task(
         task_name: The name of the task
         task_status: The status of the task (to label a task as finished or completed, use Done word)
         task_due_date: The due date of the task ISO 8601 with timezone (we are in AEST)
-        task_in_charge: The user ID of the person in charge of the task
+        task_in_charge: The user of the person in charge of the task
         task_event_project: The ID of the project the task is associated with (need to call get_active_projects to get the list of projects and their ids)
 
     Returns:
@@ -275,25 +286,28 @@ def update_task(
         print("HELLO I AM HERE 3")
 
     if task_in_charge:
+        first_user = task_in_charge[0]
+
         properties["In Charge"] = {
-            "people": [{"object": "user", "id": task_in_charge[0].notion_id}]
+            "people": [{"object": "user", "id": first_user.notion_id}]
         }  # TODO update
 
     if task_event_project:
         properties["Event/Project"] = {"relation": {"contains": task_event_project}}
 
-    notion_client = NotionClient()
-    response = notion_client.pages.update(
+    notion_client: Client = NotionClient()
+    response: Any = notion_client.pages.update(
         page_id=notion_task_id,
         properties=properties,
     )
+
     print(response)
     return response
 
 
 if __name__ == "__main__":
-    from pprint import pprint
     import time
+    from pprint import pprint
 
     start_time = time.time()
     tasks = get_active_tasks()

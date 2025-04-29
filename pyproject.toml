@@ -119,6 +119,10 @@ ignore = [
     "E731",
     # Blank line contains whitespace
     "W293",
+    # Allow assert statements
+    "S101",
+    # Allow os.system()
+    "S605",
 ]
 
 [tool.ruff.lint.per-file-ignores]

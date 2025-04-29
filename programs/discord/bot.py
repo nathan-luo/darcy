@@ -10,23 +10,24 @@ The bot is started here.
 """
 
 import asyncio
-import discord
-from discord.ext import commands
 import logging
 
-from config import DiscordBotConfig
-from session_manager import SessionManager
-from message_processor import MessageProcessor
-from engine_manager import EngineManager
+import discord
+from discord.ext import commands
 from llmgine.bootstrap import ApplicationBootstrap
 from llmgine.bus.bus import MessageBus
+
+from .config import DiscordBotConfig
+from .engine_manager import EngineManager
+from .message_processor import MessageProcessor
+from .session_manager import SessionManager
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 
 
 class DarcyBot:
-    def __init__(self):
+    def __init__(self) -> None:
         # Load configuration
         self.config = DiscordBotConfig.load_from_env()
 
@@ -34,7 +35,7 @@ class DarcyBot:
         intents = discord.Intents.default()
         intents.message_content = True
         intents.messages = True
-        self.bot = commands.Bot(command_prefix="!", intents=intents)
+        self.bot: commands.Bot = commands.Bot(command_prefix="!", intents=intents)
 
         # Initialize managers
         self.session_manager = SessionManager(self.bot)
@@ -45,18 +46,19 @@ class DarcyBot:
         self.bot.event(self.on_ready)
         self.bot.event(self.on_message)
 
-    async def on_ready(self):
+    async def on_ready(self) -> None:
         """Called when the bot is ready to start."""
         print(f"Logged in as {self.bot.user}")
 
-    async def on_message(self, message):
+    async def on_message(self, message: discord.Message) -> None:
         """Handle incoming messages."""
         if message.author == self.bot.user:
             return
-        
+
         if message.mention_everyone:
             return
 
+        assert self.bot.user is not None
         if self.bot.user.mentioned_in(message):
             # Process the message
             processed_message, session_id = await self.message_processor.process_mention(
@@ -71,12 +73,10 @@ class DarcyBot:
 
             # Send response
             if result.result:
-                await message.reply(
-                    f"{result.result[: self.config.max_response_length]}"
-                )
+                await message.reply(f"{result.result[: self.config.max_response_length]}")
             else:
                 await message.reply(
-                    f"❌ An error occurred. Sorry about that, please forgive me!!"
+                    "❌ An error occurred. Sorry about that, please forgive me!!"
                 )
 
             # Complete the session

@@ -9,16 +9,16 @@ This file contains the session manager for the discord bot, including:
 """
 
 import asyncio
+import random
+import string
 from datetime import timedelta
 from enum import Enum
-import random
 from typing import Any, Dict, List, Optional
-import string
 
 import discord
-from components import YesNoView
+from discord.ext import commands
 
-
+from .components import YesNoView
 
 
 # Session status types
@@ -32,6 +32,7 @@ class SessionStatus(Enum):
     COMPLETED = "completed"
     ERROR = "error"
 
+
 STATUS_EMOJI = {
     SessionStatus.STARTING: "🔄",
     SessionStatus.PROCESSING: "🔄",
@@ -43,11 +44,12 @@ STATUS_EMOJI = {
     SessionStatus.ERROR: "❌",
 }
 
+
 class SessionManager:
-    def __init__(self, bot):
+    def __init__(self, bot: commands.Bot):
         self.bot = bot
         self.active_sessions: Dict[str, Dict[str, Any]] = {}
-        self.id_length = 5
+        self.id_length: int = 5
 
     def generate_session_id(self) -> str:
         """Generate a random alphanumeric session ID"""
@@ -70,9 +72,7 @@ class SessionManager:
         session_id = self.generate_session_id()
 
         # Create initial session message
-        session_msg = await message.reply(
-            f"🔄 **Session {session_id} starting...**"
-        )
+        session_msg = await message.reply(f"🔄 **Session {session_id} starting...**")
 
         # Initialize session data
         self.active_sessions[session_id] = {
@@ -132,7 +132,7 @@ class SessionManager:
 
     async def update_session_status(
         self, session_id: str, status: SessionStatus, message: Optional[str] = None
-    ) -> bool:
+    ) -> Optional[bool]:
         """Update a session's status and optionally its message"""
         if session_id not in self.active_sessions:
             return False
@@ -143,14 +143,14 @@ class SessionManager:
 
         # TODO temp solution
         if message == "finished":
-            return
+            return None
 
         if message:
             emoji = STATUS_EMOJI.get(status, "🔄")
             await session["session_status_msg"].edit(
                 content=f"{emoji} **Session {session_id}**: {message}"
             )
-        
+
         if status == SessionStatus.COMPLETED:
             await session["session_status_msg"].delete()
 
@@ -185,7 +185,7 @@ class SessionManager:
             session_id, SessionStatus.REQUESTING_INPUT, "User input requested..."
         )
 
-        result = None
+        result: Optional[bool] = None
 
         if input_type == "yes_no":
             # Create the view for Yes/No input
@@ -201,7 +201,7 @@ class SessionManager:
             # Process the result
             if view.value is None:
                 result = False
-                await prompt_msg.edit(content=f"⏱️ Request timed out", view=None)
+                await prompt_msg.edit(content="⏱️ Request timed out", view=None)
             else:
                 result = view.value
                 resp_text = (
@@ -215,6 +215,7 @@ class SessionManager:
         await self.update_session_status(session_id, SessionStatus.INPUT_RECEIVED)
         await self.update_session_data(session_id, {"last_input": result})
 
+        assert result is not None
         return result
 
     async def complete_session(

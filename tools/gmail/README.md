@@ -65,4 +65,4 @@ The program uses OAuth 2.0 for authentication. On first run, it will open a brow
 - Read recent emails from inbox
 - Reply emails
 - Automatic OAuth2 authentication
-- Credential persistence 
+- Credential persistence

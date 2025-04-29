@@ -1,33 +1,29 @@
 import asyncio
-from types import NoneType
-import uuid
-import os
 import json
-from typing import Any, Callable, Dict, List, Optional
+import uuid
+from dataclasses import dataclass
+from typing import Any, Callable, List, Optional
 
 from llmgine.bus.bus import MessageBus
 from llmgine.llm.context.memory import SimpleChatHistory
-from llmgine.llm.models.gemini_models import Gemini25FlashPreview
 from llmgine.llm.models.openai_models import Gpt41Mini
 from llmgine.llm.providers.providers import Providers
 from llmgine.llm.tools.tool_manager import ToolManager
 from llmgine.llm.tools.types import ToolCall
 from llmgine.messages.commands import Command, CommandResult
 from llmgine.messages.events import Event
-from dataclasses import dataclass, field
-from tools.general.functions import get_all_facts
-from tools.notion.notion import (
-    get_all_users,
-    get_active_tasks,
-    get_active_projects,
-    create_task,
-    update_task,
-)
 
 from tools.notion.data import (
+    UserData,
     get_user_from_notion_id,
     notion_user_id_type,
-    UserData,
+)
+from tools.notion.notion import (
+    create_task,
+    get_active_projects,
+    get_active_tasks,
+    get_all_users,
+    update_task,
 )
 
 
@@ -74,7 +70,7 @@ class NotionCRUDEngineV3:
         self,
         session_id: str,
         system_prompt: Optional[str] = None,
-    ):
+    ) -> None:
         """Initialize the LLM engine.
 
         Args:
@@ -94,12 +90,12 @@ class NotionCRUDEngineV3:
         # Get API key from environment if not provided
 
         # Create tightly coupled components - pass the simple engine
-        self.context_manager = SimpleChatHistory(
+        self.context_manager: SimpleChatHistory = SimpleChatHistory(
             engine_id=self.engine_id, session_id=self.session_id
         )
         self.llm_manager = Gpt41Mini(Providers.OPENAI)
         # self.llm_manager = Gemini25FlashPreview(Providers.OPENROUTER)
-        self.tool_manager = ToolManager(
+        self.tool_manager: ToolManager = ToolManager(
             engine_id=self.engine_id, session_id=self.session_id, llm_model_name="openai"
         )
 
@@ -107,7 +103,7 @@ class NotionCRUDEngineV3:
         if system_prompt:
             self.context_manager.set_system_prompt(system_prompt)
 
-    async def register_tools(self, function_list: List[Callable]):
+    async def register_tools(self, function_list: List[Callable[..., Any]]) -> None:
         """Register tools for the engine."""
         for function in function_list:
             await self.tool_manager.register_tool(function)
@@ -227,7 +223,7 @@ class NotionCRUDEngineV3:
                     if tool_call_obj.name == "create_task":
                         # patch project name and user name for confirmation request
                         temp = json.loads(tool_call.function.arguments)
-                        if "notion_project_id" in temp and temp["notion_project_id"]:
+                        if temp.get("notion_project_id"):
                             temp["notion_project_id"] = self.temp_project_lookup[
                                 temp["notion_project_id"]
                             ]
@@ -315,7 +311,7 @@ class NotionCRUDEngineV3:
         """Clear the conversation context."""
         self.context_manager.clear()
 
-    def set_system_prompt(self, prompt: str):
+    def set_system_prompt(self, prompt: str) -> None:
         """Set the system prompt.
 
         Args:
@@ -323,17 +319,22 @@ class NotionCRUDEngineV3:
         """
         self.context_manager.set_system_prompt(prompt)
 
-    async def register_tool(self, tool: Callable):
+    async def register_tool(self, tool: Callable) -> None:
         await self.tool_manager.register_tool(tool)
 
 
 async def main():
-    from llmgine.ui.cli.cli import EngineCLI
-    from llmgine.ui.cli.components import EngineResultComponent, ToolComponent
-    from llmgine.ui.cli.components import YesNoPrompt, ToolComponentShort
     from llmgine.bootstrap import ApplicationBootstrap, ApplicationConfig
-    from tools.gmail.gmail_client import send_email, read_emails, reply_to_email
+    from llmgine.ui.cli.cli import EngineCLI
+    from llmgine.ui.cli.components import (
+        EngineResultComponent,
+        ToolComponentShort,
+        YesNoPrompt,
+    )
+
     from tools.general.functions import store_fact
+    from tools.gmail.gmail_client import read_emails, reply_to_email, send_email
+
     app = ApplicationBootstrap(ApplicationConfig(enable_console_handler=False))
     await app.bootstrap()
     cli = EngineCLI("test")
@@ -354,7 +355,10 @@ async def main():
     cli.register_loading_event(NotionCRUDEngineStatusEvent)
     cli.register_component_event(NotionCRUDEngineToolResultEvent, ToolComponentShort)
     cli.register_prompt_command(NotionCRUDEngineConfirmationCommand, YesNoPrompt)
-    engine.context_manager.store_string("I am Nathan Luo, AI Director, notion id: f746733c-66cc-4cbc-b553-c5d3f03ed240, discord id: 241085495398891521.", "user")
+    engine.context_manager.store_string(
+        "I am Nathan Luo, AI Director, notion id: f746733c-66cc-4cbc-b553-c5d3f03ed240, discord id: 241085495398891521.",
+        "user",
+    )
     await cli.main()
 
 

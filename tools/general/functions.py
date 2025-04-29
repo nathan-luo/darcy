@@ -1,8 +1,13 @@
+from typing import Any, Optional
+
 from tools.database.database import Database
 
-def store_fact(discord_id: str, fact: str):
+# TODO maybe fact type
+
+
+def store_fact(discord_id: str, fact: str) -> str:
     """
-    Stores a personal fact about a user in memory. A personal fact is a fact about a user's life that is not related to their role in the club. These facts are later retrieved by the bot to understand a user. 
+    Stores a personal fact about a user in memory. A personal fact is a fact about a user's life that is not related to their role in the club. These facts are later retrieved by the bot to understand a user.
     Good facts are:
     - Favorite food
     - Favorite color
@@ -23,7 +28,8 @@ def store_fact(discord_id: str, fact: str):
     print(f"Stored fact for {discord_id}: {fact}")
     return f"Stored fact for {discord_id}: {fact}"
 
-def get_all_facts(discord_id: str):
+
+def get_all_facts(discord_id: str) -> str:
     """
     Retrieves all facts about a user from memory.
     Args:
@@ -32,10 +38,11 @@ def get_all_facts(discord_id: str):
         A string containing all facts about the user.
     """
     db = Database()
-    facts = db.get_user_fact(discord_id)
+    facts: list[dict[str, Any]] = db.get_user_fact(discord_id)
     return str(facts)
 
-def get_user_info(discord_id: str):
+
+def get_user_info(discord_id: str) -> str:
     """
     Retrieves all information about a user from memory.
     Args:
@@ -44,5 +51,5 @@ def get_user_info(discord_id: str):
         A string containing all information about the user.
     """
     db = Database()
-    user_info = db.get_user(discord_id)
+    user_info: Optional[dict[str, Any]] = db.get_user(discord_id)
     return str(user_info)
