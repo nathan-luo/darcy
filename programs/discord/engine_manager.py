@@ -12,7 +12,7 @@ Responsibilities include:
 import os
 import sys
 
-from engines.notion_crud_engine_v2 import NotionCRUDEngineV2
+from engines.notion_crud_engine_v3 import NotionCRUDEngineV3
 from session_manager import SessionManager, SessionStatus
 from config import DiscordBotConfig
 
@@ -21,13 +21,20 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../.."))
 
 from llmgine.bus.bus import MessageBus
 from llmgine.messages.commands import CommandResult
-from engines.notion_crud_engine_v2 import (
+from engines.notion_crud_engine_v3 import (
     NotionCRUDEngineConfirmationCommand,
     NotionCRUDEnginePromptCommand,
     NotionCRUDEngineStatusEvent,
 )
-from tools.notion.notion import get_active_tasks, get_active_projects, create_task, update_task, get_all_users
+from tools.notion.notion import (
+    get_active_tasks,
+    get_active_projects,
+    create_task,
+    update_task,
+    get_all_users,
+)
 from tools.gmail.gmail_client import send_email, read_emails, reply_to_email
+
 
 class EngineManager:
     def __init__(self, config: DiscordBotConfig, session_manager: SessionManager):
@@ -35,7 +42,9 @@ class EngineManager:
         self.session_manager = session_manager
         self.bus = MessageBus()
 
-    async def handle_confirmation_command(self, command: NotionCRUDEngineConfirmationCommand) -> CommandResult:
+    async def handle_confirmation_command(
+        self, command: NotionCRUDEngineConfirmationCommand
+    ) -> CommandResult:
         """Handle confirmation commands from the engine."""
         response = await self.session_manager.request_user_input(
             command.session_id, command.prompt, timeout=30
@@ -48,25 +57,28 @@ class EngineManager:
             event.session_id, SessionStatus.PROCESSING, event.status
         )
 
-    async def use_engine(self, command: NotionCRUDEnginePromptCommand, session_id: str) -> CommandResult:
+    async def use_engine(
+        self, command: NotionCRUDEnginePromptCommand, session_id: str
+    ) -> CommandResult:
         """Create and configure a new engine for this command."""
         async with self.bus.create_session(id_input=session_id) as session:
             # Create a new engine for this command
-            engine = NotionCRUDEngineV2(
+            engine = NotionCRUDEngineV3(
                 session_id=session_id,
                 system_prompt=self._get_system_prompt(),
-                api_key=os.getenv("OPENAI_API_KEY"),
             )
-            await engine.register_tools(function_list=[
-                get_active_tasks,
-                get_active_projects,
-                create_task,
-                update_task,
-                get_all_users,
-                send_email,
-                read_emails,
-                reply_to_email,
-            ])
+            await engine.register_tools(
+                function_list=[
+                    get_active_tasks,
+                    get_active_projects,
+                    create_task,
+                    update_task,
+                    get_all_users,
+                    send_email,
+                    read_emails,
+                    reply_to_email,
+                ]
+            )
 
             # Register handlers
             self.bus.register_command_handler(
@@ -75,9 +87,9 @@ class EngineManager:
                 session_id=session_id,
             )
             self.bus.register_event_handler(
-                NotionCRUDEngineStatusEvent, 
+                NotionCRUDEngineStatusEvent,
                 self.handle_status_event,
-                session_id=session_id, 
+                session_id=session_id,
             )
 
             # Set the session_id on the command if not already set
@@ -85,11 +97,12 @@ class EngineManager:
                 command.session_id = session_id
 
             # Process the command and return the result
-            return await engine.handle_prompt_command(command)
+            return await engine.handle_command(command)
 
     def _get_system_prompt(self) -> str:
         """Get the system prompt for the engine."""
         from datetime import datetime
+
         return f"""
         You are Daryl, a AI personality for the Data Science Student Society (DSCubed) @ the University of Melbourne. Specifically, you are from the AI @ DSCUBED sub-division. DSCubed focuses on all of data science, and AI @ DSCubed only on generative ai. You are sassy, playful and chaotic, often just crashing out. But do not be cringe, do not try really hard to use puns or emojis. You have to text as if you are a nonchalant human. 
 
@@ -108,4 +121,4 @@ class EngineManager:
         When a user mentions multiple people, they probably mean do an action for each person. 
 
         The current date and time is {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}, we operate in AEST.
-        """ 
+        """

@@ -23,22 +23,24 @@ from llmgine.bus.bus import MessageBus
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
+
+
 class DarcyBot:
     def __init__(self):
         # Load configuration
         self.config = DiscordBotConfig.load_from_env()
-        
+
         # Initialize Discord bot
         intents = discord.Intents.default()
         intents.message_content = True
         intents.messages = True
         self.bot = commands.Bot(command_prefix="!", intents=intents)
-        
+
         # Initialize managers
         self.session_manager = SessionManager(self.bot)
         self.message_processor = MessageProcessor(self.config, self.session_manager)
         self.engine_manager = EngineManager(self.config, self.session_manager)
-        
+
         # Set up event handlers
         self.bot.event(self.on_ready)
         self.bot.event(self.on_message)
@@ -54,23 +56,26 @@ class DarcyBot:
 
         if self.bot.user.mentioned_in(message):
             # Process the message
-            processed_message, session_id = await self.message_processor.process_mention(message)
-            
+            processed_message, session_id = await self.message_processor.process_mention(
+                message
+            )
+
             # Create command and use engine
-            from engines.notion_crud_engine_v2 import NotionCRUDEnginePromptCommand
+            from engines.notion_crud_engine_v3 import NotionCRUDEnginePromptCommand
+
             command = NotionCRUDEnginePromptCommand(prompt=processed_message.content)
             result = await self.engine_manager.use_engine(command, session_id)
-            
+
             # Send response
             if result.result:
                 await message.channel.send(
-                    f"🎁 **Session {session_id} Result**: \n\n{result.result[:self.config.max_response_length]}"
+                    f"🎁 **Session {session_id} Result**: \n\n{result.result[: self.config.max_response_length]}"
                 )
             else:
                 await message.channel.send(
                     f"❌ **Session {session_id} Error**: An error occurred, please be more specific. Or I just messed up Lol."
                 )
-            
+
             # Complete the session
             await self.session_manager.complete_session(session_id, "Session completed")
 
@@ -93,10 +98,12 @@ class DarcyBot:
             # Ensure the bus is stopped when the application ends
             await bus.stop()
 
+
 async def main():
     """Main entry point for the bot."""
     bot = DarcyBot()
     await bot.start()
 
+
 if __name__ == "__main__":
-    asyncio.run(main()) 
+    asyncio.run(main())
