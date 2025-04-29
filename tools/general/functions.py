@@ -24,11 +24,25 @@ def store_fact(discord_id: str, fact: str):
     return f"Stored fact for {discord_id}: {fact}"
 
 def get_all_facts(discord_id: str):
+    """
+    Retrieves all facts about a user from memory.
+    Args:
+        discord_id: The Discord ID of the user to retrieve facts for.
+    Returns:
+        A string containing all facts about the user.
+    """
     db = Database()
     facts = db.get_user_fact(discord_id)
     return str(facts)
 
 def get_user_info(discord_id: str):
+    """
+    Retrieves all information about a user from memory.
+    Args:
+        discord_id: The Discord ID of the user to retrieve information for.
+    Returns:
+        A string containing all information about the user.
+    """
     db = Database()
     user_info = db.get_user(discord_id)
     return str(user_info)

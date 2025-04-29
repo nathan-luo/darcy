@@ -15,6 +15,7 @@ from llmgine.llm.tools.types import ToolCall
 from llmgine.messages.commands import Command, CommandResult
 from llmgine.messages.events import Event
 from dataclasses import dataclass, field
+from tools.general.functions import get_all_facts
 from tools.notion.notion import (
     get_all_users,
     get_active_tasks,
@@ -343,6 +344,7 @@ async def main():
     await engine.register_tool(update_task)
     await engine.register_tool(get_all_users)
     await engine.register_tool(store_fact)
+    await engine.register_tool(get_all_facts)
     await engine.register_tool(send_email)
     await engine.register_tool(read_emails)
     await engine.register_tool(reply_to_email)
