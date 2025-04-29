@@ -69,7 +69,7 @@ class NotionCRUDEngineV3:
         self,
         session_id: str,
         system_prompt: Optional[str] = None,
-    ):
+    ) -> None:
         """Initialize the LLM engine.
 
         Args:
@@ -102,7 +102,7 @@ class NotionCRUDEngineV3:
         if system_prompt:
             self.context_manager.set_system_prompt(system_prompt)
 
-    async def register_tools(self, function_list: List[Callable[..., Any]]):
+    async def register_tools(self, function_list: List[Callable[..., Any]]) -> None:
         """Register tools for the engine."""
         for function in function_list:
             await self.tool_manager.register_tool(function)
@@ -310,7 +310,7 @@ class NotionCRUDEngineV3:
         """Clear the conversation context."""
         self.context_manager.clear()
 
-    def set_system_prompt(self, prompt: str):
+    def set_system_prompt(self, prompt: str) -> None:
         """Set the system prompt.
 
         Args:
@@ -318,7 +318,7 @@ class NotionCRUDEngineV3:
         """
         self.context_manager.set_system_prompt(prompt)
 
-    async def register_tool(self, tool: Callable):
+    async def register_tool(self, tool: Callable) -> None:
         await self.tool_manager.register_tool(tool)
 
 
