@@ -4,10 +4,10 @@ import os
 import sys
 
 # Import the individual tools
-import log_search
-import log_stats
-import log_viewer
-import traceviz
+from . import log_search
+from . import log_stats
+from . import log_viewer
+from . import traceviz
 
 
 def parse_args():
