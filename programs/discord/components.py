@@ -19,13 +19,17 @@ class YesNoView(discord.ui.View):
         return interaction.user == self.original_author
 
     @discord.ui.button(label="Yes", style=discord.ButtonStyle.green)
-    async def yes_button(self, interaction: discord.Interaction, button) -> None:
+    async def yes_button(
+        self, interaction: discord.Interaction, button: discord.ui.Button[discord.ui.View]
+    ) -> None:
         self.value = True
         await interaction.response.defer()
         self.stop()
 
     @discord.ui.button(label="No", style=discord.ButtonStyle.red)
-    async def no_button(self, interaction: discord.Interaction, button) -> None:
+    async def no_button(
+        self, interaction: discord.Interaction, button: discord.ui.Button[discord.ui.View]
+    ) -> None:
         self.value = False
         await interaction.response.defer()
         self.stop()
