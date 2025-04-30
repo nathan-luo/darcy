@@ -2,7 +2,7 @@
 import argparse
 import re
 
-import log_parser
+from . import log_parser
 from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table

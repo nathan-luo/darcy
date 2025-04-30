@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 import argparse
 from datetime import datetime
+from collections import defaultdict
 
-import log_parser
+from . import log_parser
 from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
