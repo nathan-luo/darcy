@@ -9,8 +9,8 @@ from typing import Optional
 import discord
 
 
-class YesNoView(discord.ui.View):
-    def __init__(self, timeout: Optional[float], original_author: discord.Member):
+class YesNoView(discord.ui.View) -> None:
+    def __init__(self, timeout: Optional[float], original_author: discord.Member) -> None:
         super().__init__(timeout=timeout)
         self.value: Optional[bool] = None
         self.original_author: discord.Member = original_author
@@ -19,13 +19,13 @@ class YesNoView(discord.ui.View):
         return interaction.user == self.original_author
 
     @discord.ui.button(label="Yes", style=discord.ButtonStyle.green)
-    async def yes_button(self, interaction: discord.Interaction, button):
+    async def yes_button(self, interaction: discord.Interaction, button) -> None:
         self.value = True
         await interaction.response.defer()
         self.stop()
 
     @discord.ui.button(label="No", style=discord.ButtonStyle.red)
-    async def no_button(self, interaction: discord.Interaction, button):
+    async def no_button(self, interaction: discord.Interaction, button) -> None:
         self.value = False
         await interaction.response.defer()
         self.stop()
