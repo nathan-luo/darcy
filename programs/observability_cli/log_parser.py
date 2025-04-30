@@ -83,16 +83,16 @@ def filter_logs(
 
 
 # TODO add types to this function
-def get_unique_values(logs: List[Dict], field: str) -> Set:
+def get_unique_values(logs: List[log_dict_type], field: str) -> Set[Any]:
     """Get unique values for a specific field in logs."""
-    values = set()
+    values : Set[Any] = set()
     for log in logs:
         if field in log:
             values.add(log[field])
         elif "." in field:
             # Handle nested fields
             parts = field.split(".")
-            current = log
+            current : Any = log
             for part in parts:
                 if isinstance(current, dict) and part in current:
                     current = current[part]
