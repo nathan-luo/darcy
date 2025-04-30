@@ -1,13 +1,15 @@
 #!/usr/bin/env python3
 import argparse
 from datetime import datetime, timedelta
+from typing import Any
 
-from . import log_parser
 from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
 from rich.text import Text
-from typing import Any
+
+from . import log_parser
+
 console = Console()
 
 
@@ -38,23 +40,23 @@ def generate_stats(args: argparse.Namespace) -> None:
     metrics = log_parser.calculate_metrics(logs)
 
     # Header
-    header_text = Text()
+    header_text: Text = Text()
     header_text.append("\n📊 Log Statistics Summary\n", style="bold blue")
     header_text.append(f"Total logs: {metrics['total_logs']}", style="green")
     console.print(header_text)
 
     # Calculate log rate over time
-    log_times : list[datetime] = [datetime.fromisoformat(log["timestamp"]) for log in logs]
+    log_times: list[datetime] = [datetime.fromisoformat(log["timestamp"]) for log in logs]
     log_times.sort()
 
     if log_times:
-        start_time : datetime = log_times[0]
-        end_time : datetime = log_times[-1]
-        duration : float = (end_time - start_time).total_seconds()
-        overall_rate : float = len(logs) / duration if duration > 0 else 0
+        start_time: datetime = log_times[0]
+        end_time: datetime = log_times[-1]
+        duration: float = (end_time - start_time).total_seconds()
+        overall_rate: float = len(logs) / duration if duration > 0 else 0
 
         # Calculate rates in time windows
-        window_rates : list[Any] = []
+        window_rates: list[Any] = []
         current_time = start_time
         while current_time <= end_time:
             window_end = current_time + timedelta(seconds=args.time_window)
@@ -67,7 +69,7 @@ def generate_stats(args: argparse.Namespace) -> None:
             current_time = window_end
 
         # Create rate panel with simple bars
-        rate_lines : list[str] = []
+        rate_lines: list[str] = []
         if window_rates:
             max_rate = max(rate for _, rate in window_rates)
 
