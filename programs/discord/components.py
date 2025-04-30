@@ -9,7 +9,7 @@ from typing import Optional
 import discord
 
 
-class YesNoView(discord.ui.View) -> None:
+class YesNoView(discord.ui.View):
     def __init__(self, timeout: Optional[float], original_author: discord.Member) -> None:
         super().__init__(timeout=timeout)
         self.value: Optional[bool] = None
