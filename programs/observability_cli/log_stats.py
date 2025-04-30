@@ -7,11 +7,11 @@ from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
 from rich.text import Text
-
+from typing import Any
 console = Console()
 
 
-def parse_args():
+def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Generate statistics and metrics from logs."
     )
@@ -29,7 +29,7 @@ def parse_args():
     return parser.parse_args()
 
 
-def generate_stats(args):
+def generate_stats(args: argparse.Namespace) -> None:
     # Load logs
     logs = log_parser.load_logs(args.log_file)
     console.print(f"[bold]Loaded [green]{len(logs)}[/green] log entries[/bold]")
@@ -44,17 +44,17 @@ def generate_stats(args):
     console.print(header_text)
 
     # Calculate log rate over time
-    log_times = [datetime.fromisoformat(log["timestamp"]) for log in logs]
+    log_times : list[datetime] = [datetime.fromisoformat(log["timestamp"]) for log in logs]
     log_times.sort()
 
     if log_times:
-        start_time = log_times[0]
-        end_time = log_times[-1]
-        duration = (end_time - start_time).total_seconds()
-        overall_rate = len(logs) / duration if duration > 0 else 0
+        start_time : datetime = log_times[0]
+        end_time : datetime = log_times[-1]
+        duration : float = (end_time - start_time).total_seconds()
+        overall_rate : float = len(logs) / duration if duration > 0 else 0
 
         # Calculate rates in time windows
-        window_rates = []
+        window_rates : list[Any] = []
         current_time = start_time
         while current_time <= end_time:
             window_end = current_time + timedelta(seconds=args.time_window)
@@ -67,7 +67,7 @@ def generate_stats(args):
             current_time = window_end
 
         # Create rate panel with simple bars
-        rate_lines = []
+        rate_lines : list[str] = []
         if window_rates:
             max_rate = max(rate for _, rate in window_rates)
 
@@ -226,7 +226,7 @@ def generate_stats(args):
     console.print(f"• Traces: {len(metrics['traces'])} distinct trace IDs")
 
 
-def main():
+def main() -> None:
     args = parse_args()
     generate_stats(args)
 
