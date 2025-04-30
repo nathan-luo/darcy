@@ -7,11 +7,12 @@ from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
 from rich.text import Text
+from typing import Any, Optional
 
 console = Console()
 
 
-def parse_args():
+def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Search logs with advanced query capabilities."
     )
@@ -38,18 +39,18 @@ def parse_args():
     return parser.parse_args()
 
 
-def search_logs(args):
+def search_logs(args: argparse.Namespace) -> None:
     # Load logs
-    logs = log_parser.load_logs(args.log_file)
+    logs : list[Any]= log_parser.load_logs(args.log_file)
     console.print(f"[bold]Loaded [green]{len(logs)}[/green] log entries[/bold]")
 
     # Parse query
-    field_queries = {}
-    text_query = args.query
+    field_queries : dict[str, str] = {}
+    text_query : str = args.query
 
     if args.query and ":" in args.query and not args.field:
         # Parse field:value syntax
-        parts = re.findall(r"(\w+):([^\s]+)", args.query)
+        parts : list[Any] = re.findall(r"(\w+):([^\s]+)", args.query)
         for field_name, value in parts:
             field_queries[field_name] = value
             text_query = text_query.replace(f"{field_name}:{value}", "").strip()
@@ -57,9 +58,9 @@ def search_logs(args):
     # Filter logs
     if not args.query:
         console.print("[yellow]No search query provided. Showing sample logs:[/yellow]")
-        results = logs[: args.limit]
+        results : list[Any] = logs[: args.limit]
     else:
-        results = []
+        results : list[Any] = []
         for log in logs:
             match = True
 
@@ -102,12 +103,12 @@ def search_logs(args):
             if match and text_query:
                 if args.field:
                     # Search in specific field
-                    field_value = None
+                    field_value : Optional[str] = None
 
                     # Handle nested fields
                     if "." in args.field:
-                        parts = args.field.split(".")
-                        current = log
+                        parts : list[Any] = args.field.split(".")
+                        current : Any = log
                         for part in parts:
                             if isinstance(current, dict) and part in current:
                                 current = current[part]
@@ -162,9 +163,9 @@ def search_logs(args):
         return
 
     # Show results with context
-    context_logs = []
+    context_logs : list[Any] = []
     if args.context > 0:
-        log_indices = []
+        log_indices : list[Any] = []
         for result in results:
             try:
                 log_indices.append(logs.index(result))

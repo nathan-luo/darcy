@@ -1,19 +1,20 @@
 #!/usr/bin/env python3
 import argparse
 from datetime import datetime
-from collections import defaultdict
 
-from . import log_parser
+from log_parser import log_dict_type, trace_map_type
 from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
 from rich.text import Text
 from rich.tree import Tree
 
-console = Console()
+from . import log_parser
+
+console: Console = Console()
 
 
-def parse_args():
+def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Visualize and explore distributed traces."
     )
@@ -33,13 +34,13 @@ def parse_args():
     return parser.parse_args()
 
 
-def visualize_traces(args):
+def visualize_traces(args: argparse.Namespace) -> None:
     # Load logs
-    logs = log_parser.load_logs(args.log_file)
+    logs: list[log_dict_type] = log_parser.load_logs(args.log_file)
     console.print(f"[bold]Loaded [green]{len(logs)}[/green] log entries[/bold]")
 
     # Get trace information
-    trace_info = log_parser.get_all_traces(logs)
+    trace_info: trace_map_type = log_parser.get_all_traces(logs)
 
     if args.list_traces or not args.trace_id:
         # Show a list of traces
@@ -108,7 +109,7 @@ def visualize_traces(args):
     # Create a rich Tree visualization
     rich_tree = Tree(f"[bold]Trace: {args.trace_id}[/bold]")
 
-    def add_spans_to_tree(tree_node, span_id, depth=0):
+    def add_spans_to_tree(tree_node: Tree, span_id: str, depth: int = 0) -> None:
         span = trace_tree["spans"][span_id]
 
         # Calculate duration
@@ -125,13 +126,13 @@ def visualize_traces(args):
         }.get(span.get("status", ""), "white")
 
         # Format attributes as a string
-        attrs = []
+        attrs: list[str] = []
         for k, v in span.get("attributes", {}).items():
             attrs.append(f"{k}={v}")
-        attrs_text = f" [dim]{', '.join(attrs)}[/dim]" if attrs else ""
+        attrs_text: str = f" [dim]{', '.join(attrs)}[/dim]" if attrs else ""
 
         # Create node text
-        span_text = f"[bold]{span['name']}[/bold]{duration_text} [bold {status_style}]({span.get('status', 'unknown')})[/bold {status_style}]{attrs_text}"
+        span_text: str = f"[bold]{span['name']}[/bold]{duration_text} [bold {status_style}]({span.get('status', 'unknown')})[/bold {status_style}]{attrs_text}"
 
         # Add to tree
         child_node = tree_node.add(span_text)
@@ -147,19 +148,22 @@ def visualize_traces(args):
     console.print(rich_tree)
 
     # Display span count by status
-    status_counts = {}
-    for span_id, span in trace_tree["spans"].items():
-        status = span.get("status", "unknown")
+    status_counts: dict[str, int] = {}
+    for _span_id, span in trace_tree["spans"].items():
+        status: str = span.get("status", "unknown")
         status_counts[status] = status_counts.get(status, 0) + 1
 
-    status_table = Table(
+    status_table: Table = Table(
         title="Span Status Summary", show_header=True, header_style="bold"
     )
     status_table.add_column("Status")
     status_table.add_column("Count")
 
     for status, count in status_counts.items():
-        status_style = {
+        status: str = status
+        count: int = count
+
+        status_style: str = {
             "OK": "green",
             "success": "green",
             "warning": "yellow",

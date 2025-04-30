@@ -32,15 +32,15 @@ class DarcyBot:
         self.config = DiscordBotConfig.load_from_env()
 
         # Initialize Discord bot
-        intents = discord.Intents.default()
+        intents : discord.Intents = discord.Intents.default()
         intents.message_content = True
         intents.messages = True
         self.bot: commands.Bot = commands.Bot(command_prefix="!", intents=intents)
 
         # Initialize managers
-        self.session_manager = SessionManager(self.bot)
-        self.message_processor = MessageProcessor(self.config, self.session_manager)
-        self.engine_manager = EngineManager(self.config, self.session_manager)
+        self.session_manager : SessionManager = SessionManager(self.bot)
+        self.message_processor : MessageProcessor = MessageProcessor(self.config, self.session_manager)
+        self.engine_manager : EngineManager = EngineManager(self.config, self.session_manager)
 
         # Set up event handlers
         self.bot.event(self.on_ready)
@@ -91,7 +91,7 @@ class DarcyBot:
         await bootstrap.bootstrap()
 
         # Start the message bus
-        bus = MessageBus()
+        bus : MessageBus = MessageBus()
         await bus.start()
 
         try:
@@ -104,7 +104,7 @@ class DarcyBot:
 
 async def main():
     """Main entry point for the bot."""
-    bot = DarcyBot()
+    bot : DarcyBot = DarcyBot()
     await bot.start()
 
 

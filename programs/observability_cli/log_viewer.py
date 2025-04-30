@@ -7,11 +7,13 @@ from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
 from rich.text import Text
+from log_parser import log_dict_type
+from typing import Any, Optional, Set
 
 console = Console()
 
 
-def parse_args():
+def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="View and filter logs with rich formatting."
     )
@@ -40,17 +42,19 @@ def parse_args():
     return parser.parse_args()
 
 
-def view_logs(args):
+
+
+def view_logs(args: argparse.Namespace) -> None:
     # Load logs
-    logs = log_parser.load_logs(args.log_file)
+    logs : list[log_dict_type] = log_parser.load_logs(args.log_file)
     console.print(f"[bold]Loaded [green]{len(logs)}[/green] log entries[/bold]")
 
     # Parse datetime filters
-    after_dt = datetime.fromisoformat(args.after) if args.after else None
-    before_dt = datetime.fromisoformat(args.before) if args.before else None
+    after_dt : Optional[datetime] = datetime.fromisoformat(args.after) if args.after else None
+    before_dt : Optional[datetime] = datetime.fromisoformat(args.before) if args.before else None
 
     # Filter logs
-    filtered_logs = log_parser.filter_logs(
+    filtered_logs : list[log_dict_type] = log_parser.filter_logs(
         logs,
         args.level,
         args.event_type,
@@ -71,7 +75,7 @@ def view_logs(args):
     )
 
     # Display logs
-    table = Table(show_header=True, header_style="bold", expand=True)
+    table : Table = Table(show_header=True, header_style="bold", expand=True)
     table.add_column("Time", width=12, no_wrap=True)
     table.add_column("Level", width=8, no_wrap=True)
     table.add_column("Component", width=15)
@@ -118,9 +122,9 @@ def view_logs(args):
         and args.message is None
     ):
         # Show quick stats
-        levels = log_parser.get_unique_values(logs, "level")
-        components = log_parser.get_unique_values(logs, "context.component")
-        event_types = log_parser.get_unique_values(logs, "event_type")
+        levels : Set[Any] = log_parser.get_unique_values(logs, "level")
+        components : Set[Any] = log_parser.get_unique_values(logs, "context.component")
+        event_types : Set[Any] = log_parser.get_unique_values(logs, "event_type")
 
         console.print("\n[bold]Available filters:[/bold]")
         console.print(

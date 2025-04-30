@@ -2,7 +2,7 @@ import json
 from datetime import datetime
 
 # types
-from typing import Any, Dict, List, NewType, Optional, Set
+from typing import Any, List, NewType, Optional, Set
 
 span_id_type = NewType("span_id_type", str)
 trace_id_type = NewType("trace_id_type", str)
@@ -83,16 +83,16 @@ def filter_logs(
 
 
 # TODO add types to this function
-def get_unique_values(logs: List[Dict], field: str) -> Set:
+def get_unique_values(logs: List[log_dict_type], field: str) -> Set[Any]:
     """Get unique values for a specific field in logs."""
-    values = set()
+    values: Set[Any] = set()
     for log in logs:
         if field in log:
             values.add(log[field])
         elif "." in field:
             # Handle nested fields
             parts = field.split(".")
-            current = log
+            current: Any = log
             for part in parts:
                 if isinstance(current, dict) and part in current:
                     current = current[part]
@@ -291,23 +291,31 @@ def get_all_traces(logs: List[log_dict_type]) -> trace_map_type:
                 start_time = min(start_times)
 
                 # Find end_time for spans that have it
-                end_spans = [span for span in trace_spans if span.get("end_time")]
-                end_times = [
-                    datetime.fromisoformat(span.get("end_time")) for span in end_spans
+                end_spans: list[log_dict_type] = [
+                    span for span in trace_spans if span.get("end_time")
                 ]
-                end_time = max(end_times) if end_times else None
 
-                duration = (
+                end_times: list[datetime] = [
+                    datetime.fromisoformat(span.get("end_time", None))
+                    for span in end_spans
+                    if span.get("end_time", None)
+                ]
+
+                end_time: Optional[datetime] = max(end_times) if end_times else None
+
+                duration: Optional[float] = (
                     (end_time - start_time).total_seconds() * 1000 if end_time else None
                 )
 
-                trace_info[tid] = {
+                trace_tmp: trace_dict_type = trace_dict_type({
                     "name": trace_name,
                     "start_time": start_time,
                     "end_time": end_time,
                     "duration": duration,
                     "span_count": len(trace_spans),
-                }
+                })
+
+                trace_info[tid] = trace_tmp
 
     return trace_info
 
