@@ -52,15 +52,19 @@ def generate_stats(args: argparse.Namespace) -> None:
     if log_times:
         start_time: datetime = log_times[0]
         end_time: datetime = log_times[-1]
+
+        assert start_time is not None
+        assert end_time is not None
+
         duration: float = (end_time - start_time).total_seconds()
         overall_rate: float = len(logs) / duration if duration > 0 else 0
 
         # Calculate rates in time windows
         window_rates: list[Any] = []
-        current_time = start_time
+        current_time: datetime = start_time
         while current_time <= end_time:
-            window_end = current_time + timedelta(seconds=args.time_window)
-            window_logs = [
+            window_end: datetime = current_time + timedelta(seconds=args.time_window)
+            window_logs: list[log_parser.log_dict_type] = [
                 log
                 for log in logs
                 if current_time <= datetime.fromisoformat(log["timestamp"]) < window_end
