@@ -21,6 +21,20 @@ cat temp_key.pem
 chmod 600 temp_key.pem || true
 
 
+
+# assert cat temp_key.pem is not empty
+if [ -z "$EC2_PRIVATE_KEY" ]; then
+    echo "Error: EC2_PRIVATE_KEY is empty"
+fi
+
+
+
+# assert cat $EC2_HOST is not empty
+if [ -z "$EC2_HOST" ]; then
+    echo "Error: EC2_HOST is empty"
+fi
+
+
 # ------------------------------------------------------------------------------------------------
 # Connect to EC2 instance and execute commands
 
