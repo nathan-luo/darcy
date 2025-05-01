@@ -14,13 +14,13 @@ source .env
 set +a
 
 # check not empty
-echo "$EC2_PRIVATE_KEY" 
+echo "$EC2_PRIVATE_KEY"
 
 # write to a file, strings dont work
-echo "$EC2_PRIVATE_KEY" > temp_key.pem 
+echo "$EC2_PRIVATE_KEY" > temp_key.pem
 
 # SSH requires strict permissions
-chmod 600 temp_key.pem || true  
+chmod 600 temp_key.pem || true
 
 
 # ------------------------------------------------------------------------------------------------
