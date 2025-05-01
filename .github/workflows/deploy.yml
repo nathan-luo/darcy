@@ -37,4 +37,4 @@ jobs:
       # AI : Step 5: Run the deployment script
       - name: Run deploy script
         run: ./deploy.sh
-        shell: bash 
+        shell: bash
