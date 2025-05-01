@@ -40,22 +40,20 @@ scp -i temp_key.pem ./.env "ec2-user@$EC2_HOST:$REMOTE_PATH"
 ssh -i temp_key.pem -t "ec2-user@$EC2_HOST" << 'EOF'
 # -----IN EC2 INSTANCE -----
 
-# AI : Attempt to reattach to an existing screen session, or start a new one if none exists
-screen -r || screen -S darcy-session
-
 # AI : Navigate to the project directory
 cd darcy
+
+# AI : Kill any existing instances of the application
+# Use pkill -f to match the full command line
+pkill -f "run.py --mode production" || true # Use '|| true' to prevent script exit if no process is found
 
 # AI : Synchronize dependencies
 uv sync
 
-# AI : Run the application in production mode (Corrected argument)
-uv run run.py --mode production
+# AI : Run the application in the background using nohup, redirecting output
+nohup uv run run.py --mode production > darcy.log 2>&1 &
 
-# AI : Detach from the screen session (optional, depends on desired behavior)
-# screen -d
-
-# AI : Exit the SSH session
+# AI : Exit the SSH session immediately after launching the background process
 exit
 EOF
 
