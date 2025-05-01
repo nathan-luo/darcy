@@ -37,7 +37,7 @@ scp -i temp_key.pem ./.env "ec2-user@$EC2_HOST:$REMOTE_PATH"
 
 # Add -t to force pseudo-terminal allocation for screen
 
-ssh -i temp_key.pem -t "ec2-user@$EC2_HOST" << 'EOF'
+ssh -vvv -i temp_key.pem -t "ec2-user@$EC2_HOST" << 'EOF'
 # -----IN EC2 INSTANCE -----
 
 # AI : Navigate to the project directory

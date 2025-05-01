@@ -27,7 +27,7 @@ chmod 600 temp_key.pem || true
 # Add -t to force pseudo-terminal allocation for screen
 
 
-ssh -i temp_key.pem "ec2-user@$EC2_HOST"
+ssh -vvv -i temp_key.pem "ec2-user@$EC2_HOST"
 
 
 
