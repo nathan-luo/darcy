@@ -1,0 +1,40 @@
+name: Deploy to EC2
+
+# AI : Trigger this workflow on pushes to the 'deployment' branch
+on:
+  push:
+    branches:
+      - deployment
+
+jobs:
+  deploy:
+    # AI : Use the latest ubuntu runner
+    runs-on: ubuntu-latest
+
+    steps:
+      # AI : Step 1: Check out the repository code
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # AI : Step 2: Create .env file from secret
+      # AI : The deploy.sh script expects a local .env file to scp
+      - name: Create .env file
+        run: echo "${{ secrets.DOT_ENV }}" > .env
+        shell: bash
+
+      # AI : Step 3: Set up SSH key and host info
+      # AI : The deploy.sh script expects these as environment variables
+      - name: Set up environment variables for deploy script
+        run: |
+          echo "EC2_HOST=${{ secrets.EC2_HOST }}" >> $GITHUB_ENV
+          echo "EC2_PRIVATE_KEY=\"${{ secrets.EC2_PRIVATE_KEY }}\"" >> $GITHUB_ENV # Ensure multi-line key is handled
+        shell: bash
+
+      # AI : Step 4: Make deploy script executable
+      - name: Make deploy script executable
+        run: chmod +x deploy.sh
+
+      # AI : Step 5: Run the deployment script
+      - name: Run deploy script
+        run: ./deploy.sh
+        shell: bash 

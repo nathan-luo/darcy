@@ -43,6 +43,9 @@ ssh -i temp_key.pem -t "ec2-user@$EC2_HOST" << 'EOF'
 # AI : Navigate to the project directory
 cd darcy
 
+# AI : Record the deployment time
+date > last_deployment.txt
+
 # AI : Kill any existing instances of the application
 # Use pkill -f to match the full command line
 pkill -f "run.py --mode production" || true # Use '|| true' to prevent script exit if no process is found
