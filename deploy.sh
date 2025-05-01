@@ -52,18 +52,18 @@ screen -r
 cd darcy
 uv sync
 uv run run.py --production
-
+exit
 
 
 
 # -----OUT OF EC2 INSTANCE -----
 
 
-exit
+
 
 
 
 # ------------------------------------------------------------------------------------------------
 # cleanup
 
-rm temp_key.pem        # Clean up the temporary file
+rm temp_key.pem || true        # Clean up the temporary file
