@@ -266,3 +266,10 @@ my_llm_app/
 ## Run with
 
 uv run python -m programs.discord.bot
+
+
+## refresh LLMngine 
+without UV
+
+cp -r ../llmgine/src/llmgine .venv/lib/python3.13/site-packages/
+

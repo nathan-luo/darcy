@@ -2,16 +2,17 @@ import json
 import os
 import uuid
 from dataclasses import dataclass
-from typing import Callable, List, Optional
+from typing import List, Optional
 
 from llmgine.bus.bus import MessageBus
 from llmgine.llm.context.memory import SimpleChatHistory
 from llmgine.llm.models.gemini_models import Gemini25FlashPreview
 from llmgine.llm.providers.providers import Providers
 from llmgine.llm.tools.tool_manager import ToolManager
-from llmgine.llm.tools.types import ToolCall
+from llmgine.llm.tools.types import ToolCall, AsyncOrSyncToolFunction
 from llmgine.messages.commands import Command, CommandResult
 from llmgine.messages.events import Event
+
 
 from tools.notion.data import (
     UserData,
@@ -101,7 +102,7 @@ class NotionCRUDEngineV2:
             self.session_id, NotionCRUDEnginePromptCommand, self.handle_prompt_command
         )
 
-    async def register_tools(self, function_list: List[Callable]):
+    async def register_tools(self, function_list: List[AsyncOrSyncToolFunction]):
         """Register tools for the engine."""
         for function in function_list:
             await self.tool_manager.register_tool(function)
