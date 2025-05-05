@@ -1,0 +1,15 @@
+[program:darcy]
+command=uv run run.py --mode production ; The command to run your application
+directory=/home/ec2-user/darcy          ; The directory to run the command from
+user=ec2-user                           ; The user to run the process as
+autostart=true                          ; Start the app automatically when supervisord starts
+autorestart=true                        ; Restart the app automatically if it crashes
+stderr_logfile=/home/ec2-user/darcy/darcy_stderr.log ; Log file for stderr
+stdout_logfile=/home/ec2-user/darcy/darcy_stdout.log ; Log file for stdout
+environment=PYTHONUNBUFFERED=1          ; Ensure Python output isn't buffered (good for logging)
+; Add other environment variables if needed, e.g.:
+; environment=VAR1="value1",VAR2="value2"
+; Note: Supervisor doesn't automatically load .env files. You might need to
+; either source it in the command (e.g., command=bash -c "source .env && uv run ...")
+; or explicitly list variables here, or have your Python app load the .env.
+; Since your script already copies .env, your Python app might already load it.
