@@ -102,7 +102,7 @@ class DarcyBot:
             await bus.stop()
 
 
-async def main():
+async def main() -> None:
     """Main entry point for the bot."""
     bot : DarcyBot = DarcyBot()
     await bot.start()

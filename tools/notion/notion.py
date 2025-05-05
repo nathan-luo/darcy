@@ -62,7 +62,7 @@ def get_all_users() -> list[dict[str, Any]]:
     """
     Get all users from the users database
     """
-    notion_client = NotionClient()
+    notion_client : Client = NotionClient()
     response = notion_client.users.list()
 
     user_list: list[Any] = response.get("results", [])
@@ -89,7 +89,7 @@ def get_active_tasks(
     Returns:
         A list of tasks
     """
-    notion_client = NotionClient()
+    notion_client : Client = NotionClient()
     # filter by Project AND UserID
     filter_obj = {
         "and": [
@@ -239,8 +239,8 @@ def create_task(
     if notion_project_id:
         properties["Event/Project"] = {"relation": [{"id": notion_project_id}]}
 
-    notion_client = NotionClient()
-    response = notion_client.pages.create(
+    notion_client: Client = NotionClient()
+    response: Any = notion_client.pages.create(
         parent={"database_id": NOTION_PRODUCTION_DATABASE_ID_TASKS},
         properties=properties,
     )

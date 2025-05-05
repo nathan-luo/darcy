@@ -2,16 +2,17 @@ import asyncio
 import json
 import uuid
 from dataclasses import dataclass
-from typing import Any, Callable, List, Optional
+from typing import Any, Callable, List, Optional, Union
 
 from llmgine.bus.bus import MessageBus
 from llmgine.llm.context.memory import SimpleChatHistory
 from llmgine.llm.models.openai_models import Gpt41Mini
 from llmgine.llm.providers.providers import Providers
 from llmgine.llm.tools.tool_manager import ToolManager
-from llmgine.llm.tools.types import ToolCall
+from llmgine.llm.tools.types import ToolCall, AsyncOrSyncToolFunction
 from llmgine.messages.commands import Command, CommandResult
 from llmgine.messages.events import Event
+from llmgine.llm.providers.openai_provider import OpenAIResponse
 
 from tools.notion.data import (
     UserData,
@@ -103,7 +104,7 @@ class NotionCRUDEngineV3:
         if system_prompt:
             self.context_manager.set_system_prompt(system_prompt)
 
-    async def register_tools(self, function_list: List[Callable[..., Any]]) -> None:
+    async def register_tools(self, function_list: List[AsyncOrSyncToolFunction]) -> None:
         """Register tools for the engine."""
         for function in function_list:
             await self.tool_manager.register_tool(function)
@@ -140,9 +141,11 @@ class NotionCRUDEngineV3:
                         session_id=self.session_id,
                     )
                 )
-                response = await self.llm_manager.generate(
+                response : Any = await self.llm_manager.generate(
                     messages=current_context, tools=tools
                 )
+
+                assert isinstance(response, OpenAIResponse)
 
                 # 5. Extract the first choice's message object
                 # Important: Access the underlying OpenAI object structure
@@ -174,7 +177,7 @@ class NotionCRUDEngineV3:
 
                 # 8. Process tool call
                 for tool_call in response_message.tool_calls:
-                    tool_call_obj = ToolCall(
+                    tool_call_obj : ToolCall = ToolCall(
                         id=tool_call.id,
                         name=tool_call.function.name,
                         arguments=tool_call.function.arguments,
@@ -305,9 +308,11 @@ class NotionCRUDEngineV3:
         if not result.success:
             raise RuntimeError(f"Failed to process message: {result.error}")
 
-        return result.result
+        ret = result.result
+        assert isinstance(ret, str)
+        return ret
 
-    async def clear_context(self):
+    async def clear_context(self) -> None:
         """Clear the conversation context."""
         self.context_manager.clear()
 
@@ -319,11 +324,11 @@ class NotionCRUDEngineV3:
         """
         self.context_manager.set_system_prompt(prompt)
 
-    async def register_tool(self, tool: Callable) -> None:
+    async def register_tool(self, tool: AsyncOrSyncToolFunction) -> None:
         await self.tool_manager.register_tool(tool)
 
 
-async def main():
+async def main() -> None:
     from llmgine.bootstrap import ApplicationBootstrap, ApplicationConfig
     from llmgine.ui.cli.cli import EngineCLI
     from llmgine.ui.cli.components import (
@@ -350,7 +355,7 @@ async def main():
     await engine.register_tool(read_emails)
     await engine.register_tool(reply_to_email)
     cli.register_engine(engine)
-    cli.register_engine_command(NotionCRUDEnginePromptCommand, engine.handle_command)
+    cli.register_engine_command(NotionCRUDEnginePromptCommand, engine.handle_command) # TODO 
     cli.register_engine_result_component(EngineResultComponent)
     cli.register_loading_event(NotionCRUDEngineStatusEvent)
     cli.register_component_event(NotionCRUDEngineToolResultEvent, ToolComponentShort)

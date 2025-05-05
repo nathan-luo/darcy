@@ -35,6 +35,13 @@ def parse_args() -> argparse.Namespace:
 
 
 def visualize_traces(args: argparse.Namespace) -> None:
+    
+
+
+    status : str
+    count : int
+    
+
     # Load logs
     logs: list[log_dict_type] = log_parser.load_logs(args.log_file)
     console.print(f"[bold]Loaded [green]{len(logs)}[/green] log entries[/bold]")
@@ -150,7 +157,7 @@ def visualize_traces(args: argparse.Namespace) -> None:
     # Display span count by status
     status_counts: dict[str, int] = {}
     for _span_id, span in trace_tree["spans"].items():
-        status: str = span.get("status", "unknown")
+        status = span.get("status", "unknown")
         status_counts[status] = status_counts.get(status, 0) + 1
 
     status_table: Table = Table(
@@ -160,8 +167,6 @@ def visualize_traces(args: argparse.Namespace) -> None:
     status_table.add_column("Count")
 
     for status, count in status_counts.items():
-        status: str = status
-        count: int = count
 
         status_style: str = {
             "OK": "green",
@@ -176,7 +181,7 @@ def visualize_traces(args: argparse.Namespace) -> None:
     console.print(status_table)
 
 
-def main():
+def main() -> None:
     args = parse_args()
     visualize_traces(args)
 
