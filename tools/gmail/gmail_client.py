@@ -2,12 +2,14 @@ import base64
 import os
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
-from typing import Optional
+from typing import Any, Optional
 
-from google.auth.transport.requests import Request
-from google.oauth2.credentials import Credentials
-from google_auth_oauthlib.flow import InstalledAppFlow
-from googleapiclient.discovery import build
+
+# there are no types for googleapis bruh
+from google.auth.transport.requests import Request  # type: ignore
+from google.oauth2.credentials import Credentials  # type: ignore
+from google_auth_oauthlib.flow import InstalledAppFlow  # type: ignore
+from googleapiclient.discovery import build  # type: ignore
 
 SCOPES = [
     "https://www.googleapis.com/auth/gmail.send",
@@ -21,14 +23,16 @@ CLIENT_SECRET_PATH = os.path.join(SCRIPT_DIR, "secrets/client_secret.json")
 TOKEN_PATH = os.path.join(SCRIPT_DIR, "secrets/token.json")
 
 
-def __authenticate():
+def __authenticate() -> Any:
+    
     """Authenticate with Gmail API using OAuth2."""
     # Check if token.json exists
     if os.path.exists(TOKEN_PATH):
-        creds = Credentials.from_authorized_user_file(TOKEN_PATH, SCOPES)
+        creds : Credentials = Credentials.from_authorized_user_file(TOKEN_PATH, SCOPES)  # type: ignore
 
         # If credentials are not valid or don't exist, get new ones
         if not creds or not creds.valid:
+            
             if creds and creds.expired and creds.refresh_token:
                 creds.refresh(Request())
             else:
@@ -41,7 +45,7 @@ def __authenticate():
             with open(TOKEN_PATH, "w") as token:
                 token.write(creds.to_json())
 
-    service = build("gmail", "v1", credentials=creds)
+    service: Any = build("gmail", "v1", credentials=creds)  # type: ignore
     return service
 
 
@@ -73,7 +77,11 @@ def send_email(to: str, subject: str, body: str, is_html: bool = False) -> bool:
         return False
 
 
-def read_emails(max_results: int = 10) -> list[dict]:
+
+email_dict_type = dict[Any, Any]
+
+
+def read_emails(max_results: int = 10) -> list[email_dict_type]:
     """
     Read recent emails from the inbox.
 
@@ -90,22 +98,23 @@ def read_emails(max_results: int = 10) -> list[dict]:
             service.users().messages().list(userId="me", maxResults=max_results).execute()
         )
         messages = results.get("messages", [])
-        emails = []
+        emails : list[email_dict_type] = []
 
         # Get the email details
         for message in messages:
             msg = service.users().messages().get(userId="me", id=message["id"]).execute()
 
-            processed_email = __process_email(msg)
+            processed_email : email_dict_type = __process_email(msg)
             emails.append(processed_email)
 
         return emails
+    
     except Exception as e:
         print(f"Error reading emails: {e!s}")
         return []
 
 
-def __process_email(email: dict):
+def __process_email(email: email_dict_type) -> email_dict_type:
     """
     Process an email and extract relevant information.
 
@@ -116,7 +125,7 @@ def __process_email(email: dict):
         Dictionary containing processed email information
     """
 
-    processed_email = {}
+    processed_email : email_dict_type = {}
 
     # Get the id
     processed_email["id"] = email["id"]
@@ -125,6 +134,7 @@ def __process_email(email: dict):
     processed_email["headers"] = []
     for header in email["payload"]["headers"]:
         if not header["name"].startswith("X-"):
+
             processed_email["headers"].append(header)
 
     # Get message body
@@ -160,7 +170,7 @@ def reply_to_email(email_id: str, body: str, is_html: bool = False) -> bool:
         headers = email["payload"]["headers"]
 
         # Get the original message ID
-        original_message_id = next(
+        original_message_id : Optional[str] = next(
             (
                 header["value"]
                 for header in headers
@@ -170,7 +180,7 @@ def reply_to_email(email_id: str, body: str, is_html: bool = False) -> bool:
         )
 
         # Get the references chain
-        references = next(
+        references : Optional[str] = next(
             (
                 header["value"]
                 for header in headers
@@ -206,6 +216,9 @@ def reply_to_email(email_id: str, body: str, is_html: bool = False) -> bool:
         )
         if not subject.lower().startswith("re:"):
             subject = f"Re: {subject}"
+
+
+        assert references is not None
 
         # Create the email message with threading information
         message: dict[str, str] = __create_message(

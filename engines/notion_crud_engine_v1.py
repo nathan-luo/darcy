@@ -101,7 +101,7 @@ class NotionCRUDEngine:
             self.session_id, NotionCRUDEnginePromptCommand, self.handle_prompt_command
         )
 
-    async def register_tools(self):
+    async def register_tools(self) -> None:
         await self.tool_manager.register_tools(["notion"])
 
     async def handle_prompt_command(
@@ -262,7 +262,7 @@ class NotionCRUDEngine:
                 elif tool_call_obj.name == "get_active_tasks":
                     self.temp_task_lookup = result
         except Exception as e:
-            return CommandResult(success=False, original_command=command, error=str(e))
+            return CommandResult(success=False, original_command=command, error=str(e)) # type: ignore # TODO what is original_command
 
     async def process_message(self, message: str) -> str:
         """Process a user message and return the response.
@@ -281,13 +281,15 @@ class NotionCRUDEngine:
         if not result.success:
             raise RuntimeError(f"Failed to process message: {result.error}")
 
-        return result.result
+        ret = result.result
+        assert isinstance(ret, str)
+        return ret
 
-    async def clear_context(self):
+    async def clear_context(self) -> None:
         """Clear the conversation context."""
         self.context_manager.clear()
 
-    def set_system_prompt(self, prompt: str):
+    def set_system_prompt(self, prompt: str) -> None:
         """Set the system prompt.
 
         Args:

@@ -55,12 +55,18 @@ def search_logs(args: argparse.Namespace) -> None:
             field_queries[field_name] = value
             text_query = text_query.replace(f"{field_name}:{value}", "").strip()
 
+
     # Filter logs
+
+    field_value : Optional[str]
+
+
+    results : list[Any]
     if not args.query:
         console.print("[yellow]No search query provided. Showing sample logs:[/yellow]")
-        results : list[Any] = logs[: args.limit]
+        results = logs[: args.limit]
     else:
-        results : list[Any] = []
+        results = []
         for log in logs:
             match = True
 
@@ -103,7 +109,7 @@ def search_logs(args: argparse.Namespace) -> None:
             if match and text_query:
                 if args.field:
                     # Search in specific field
-                    field_value : Optional[str] = None
+                    field_value = None
 
                     # Handle nested fields
                     if "." in args.field:
