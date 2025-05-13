@@ -9,10 +9,12 @@ from llmgine.llm.context.memory import SimpleChatHistory
 from llmgine.llm.models.openai_models import Gpt41Mini
 from llmgine.llm.providers.providers import Providers
 from llmgine.llm.tools.tool_manager import ToolManager
-from llmgine.llm.tools.types import ToolCall, AsyncOrSyncToolFunction
+from llmgine.llm.tools.toolCall import ToolCall
+from llmgine.llm import AsyncOrSyncToolFunction, SessionID
 from llmgine.messages.commands import Command, CommandResult
 from llmgine.messages.events import Event
 from llmgine.llm.providers.openai_provider import OpenAIResponse
+from llmgine.llm.providers.openai_provider import OpenAIProvider
 
 from tools.notion.data import (
     UserData,
@@ -91,11 +93,15 @@ class NotionCRUDEngineV3:
         # Get API key from environment if not provided
 
         # Create tightly coupled components - pass the simple engine
-        self.context_manager: SimpleChatHistory = SimpleChatHistory(
-            engine_id=self.engine_id, session_id=self.session_id
+        self.context_manager = SimpleChatHistory(
+            engine_id=self.engine_id, 
+            session_id=SessionID(self.session_id), 
+            system_prompt="""You are an expert assistant managing Notion tasks. You can create, update, and query tasks using the available tools. Be concise and clear. Always confirm actions like creating or updating tasks with the user before executing them unless explicitly told not to. Infer dates and times only if explicitly mentioned or absolutely necessary."""
         )
-        self.llm_manager = Gpt41Mini(Providers.OPENAI)
-        # self.llm_manager = Gemini25FlashPreview(Providers.OPENROUTER)
+        self.llm_manager = OpenAIProvider(
+            model=Gpt41Mini(),
+            session_id=SessionID(self.session_id)
+        )
         self.tool_manager: ToolManager = ToolManager(
             engine_id=self.engine_id, session_id=self.session_id, llm_model_name="openai"
         )
@@ -138,7 +144,7 @@ class NotionCRUDEngineV3:
                 await self.message_bus.publish(
                     NotionCRUDEngineStatusEvent(
                         status="Calling LLM...",
-                        session_id=self.session_id,
+                        session_id=SessionID(self.session_id),
                     )
                 )
                 response : Any = await self.llm_manager.generate(
@@ -162,7 +168,7 @@ class NotionCRUDEngineV3:
                     await self.message_bus.publish(
                         NotionCRUDEngineStatusEvent(
                             status="finished",
-                            session_id=self.session_id,
+                            session_id=SessionID(self.session_id),
                         )
                     )
                     await self.message_bus.publish(
@@ -170,7 +176,7 @@ class NotionCRUDEngineV3:
                             prompt=command.prompt,
                             response=final_content,
                             tool_calls=None,  # No tool calls in the final response
-                            session_id=self.session_id,
+                            session_id=SessionID(self.session_id),
                         )
                     )
                     return CommandResult(success=True, result=final_content)
@@ -212,7 +218,7 @@ class NotionCRUDEngineV3:
                         result = await self.message_bus.execute(
                             NotionCRUDEngineConfirmationCommand(
                                 prompt=f"Updating task {temp}",
-                                session_id=self.session_id,
+                                session_id=SessionID(self.session_id),
                             )
                         )
                         if not result.result:
@@ -239,7 +245,7 @@ class NotionCRUDEngineV3:
                         result = await self.message_bus.execute(
                             NotionCRUDEngineConfirmationCommand(
                                 prompt=f"Creating task {temp}",
-                                session_id=self.session_id,
+                                session_id=SessionID(self.session_id),
                             )
                         )
                         if not result.result:
@@ -254,7 +260,7 @@ class NotionCRUDEngineV3:
                     await self.message_bus.publish(
                         NotionCRUDEngineStatusEvent(
                             status=f"Executing tool {tool_call_obj.name}",
-                            session_id=self.session_id,
+                            session_id=SessionID(self.session_id),
                         )
                     )
                     result = await self.tool_manager.execute_tool_call(tool_call_obj)
@@ -274,7 +280,7 @@ class NotionCRUDEngineV3:
                         NotionCRUDEngineToolResultEvent(
                             tool_name=tool_call_obj.name,
                             result=result_str,
-                            session_id=self.session_id,
+                            session_id=SessionID(self.session_id),
                         )
                     )
                     if tool_call_obj.name == "get_active_projects":
@@ -286,7 +292,7 @@ class NotionCRUDEngineV3:
             await self.message_bus.publish(
                 NotionCRUDEngineStatusEvent(
                     status="finished",
-                    session_id=self.session_id,
+                    session_id=SessionID(self.session_id),
                 )
             )
             return CommandResult(success=False, error=str(e))

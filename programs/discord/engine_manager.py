@@ -9,8 +9,21 @@ Responsibilities include:
 - System prompt
 """
 
+import sys
+import os
+
+
+# T
+
+# as these files are not installed as packages with uv we need to go to the parent directory
+
+PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
+if PROJECT_ROOT not in sys.path:
+    sys.path.insert(0, PROJECT_ROOT)
+
 from llmgine.bus.bus import MessageBus
 from llmgine.messages.commands import CommandResult
+from llmgine.llm import SessionID
 
 from engines.notion_crud_engine_v3 import (
     NotionCRUDEngineConfirmationCommand,
@@ -28,8 +41,8 @@ from tools.notion.notion import (
     update_task,
 )
 
-from .config import DiscordBotConfig
-from .session_manager import SessionManager, SessionStatus
+from config import DiscordBotConfig
+from session_manager import SessionManager, SessionStatus
 
 
 class EngineManager:
@@ -96,12 +109,12 @@ class EngineManager:
             self.bus.register_event_handler(
                 NotionCRUDEngineStatusEvent,
                 self.handle_status_event,
-                session_id=session_id,
+                session_id=SessionID(session_id),
             )
 
             # Set the session_id on the command if not already set
             if not command.session_id:
-                command.session_id = session_id
+                command.session_id = SessionID(session_id)
 
             # Process the command and return the result
             return await engine.handle_command(command)
