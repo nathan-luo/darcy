@@ -8,7 +8,7 @@ from llmgine.bus.bus import MessageBus
 from llmgine.llm.context.memory import SimpleChatHistory
 from llmgine.llm.providers.response import OpenAIManager
 from llmgine.llm.tools.tool_manager import ToolManager
-from llmgine.llm.tools.types import ToolCall
+from llmgine.llm.tools.toolCall import ToolCall
 from llmgine.messages.commands import Command, CommandResult
 from llmgine.messages.events import Event
 

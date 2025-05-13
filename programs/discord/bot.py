@@ -17,10 +17,10 @@ from discord.ext import commands
 from llmgine.bootstrap import ApplicationBootstrap
 from llmgine.bus.bus import MessageBus
 
-from .config import DiscordBotConfig
-from .engine_manager import EngineManager
-from .message_processor import MessageProcessor
-from .session_manager import SessionManager
+from config import DiscordBotConfig
+from engine_manager import EngineManager
+from message_processor import MessageProcessor
+from session_manager import SessionManager
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
