@@ -15,6 +15,7 @@ from llmgine.messages.commands import Command, CommandResult
 from llmgine.messages.events import Event
 from llmgine.llm.providers.openai_provider import OpenAIResponse
 from llmgine.llm.providers.openai_provider import OpenAIProvider
+import os
 
 from tools.notion.data import (
     UserData,
@@ -71,7 +72,7 @@ class NotionCRUDEngineToolResultEvent(Event):
 class NotionCRUDEngineV3:
     def __init__(
         self,
-        session_id: str,
+        session_id: SessionID,
         system_prompt: Optional[str] = None,
     ) -> None:
         """Initialize the LLM engine.
@@ -96,12 +97,22 @@ class NotionCRUDEngineV3:
         self.context_manager = SimpleChatHistory(
             engine_id=self.engine_id, 
             session_id=SessionID(self.session_id), 
-            system_prompt="""You are an expert assistant managing Notion tasks. You can create, update, and query tasks using the available tools. Be concise and clear. Always confirm actions like creating or updating tasks with the user before executing them unless explicitly told not to. Infer dates and times only if explicitly mentioned or absolutely necessary."""
         )
+
+        system_prompt="""You are an expert assistant managing Notion tasks. You can create, update, and query tasks using the available tools. Be concise and clear. Always confirm actions like creating or updating tasks with the user before executing them unless explicitly told not to. Infer dates and times only if explicitly mentioned or absolutely necessary."""
+        self.context_manager.set_system_prompt(system_prompt)
+
+
+
+
+
         self.llm_manager = OpenAIProvider(
-            model=Gpt41Mini(),
-            session_id=SessionID(self.session_id)
+            model='gpt-4o-mini',
+            model_component_id=self.engine_id,
+            api_key=os.getenv("OPENAI_API_KEY"),
+           
         )
+
         self.tool_manager: ToolManager = ToolManager(
             engine_id=self.engine_id, session_id=self.session_id, llm_model_name="openai"
         )

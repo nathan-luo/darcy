@@ -39,6 +39,7 @@ def main():
         setup_environment(args.mode)
 
         # Run the bot using uv
+        # TODO this is broken on my machine atm
         os.system("uv run -m programs/discord/bot.py")
 
     except FileNotFoundError as e:
