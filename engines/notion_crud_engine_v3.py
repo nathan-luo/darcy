@@ -85,11 +85,11 @@ class NotionCRUDEngineV3:
             message_bus: Optional MessageBus instance (from bootstrap)
         """
         # Use the provided message bus or create a new one
-        self.message_bus = MessageBus()
-        self.engine_id = str(uuid.uuid4())
-        self.session_id = session_id
-        self.temp_project_lookup = {}
-        self.temp_task_lookup = {}
+        self.message_bus : MessageBus = MessageBus()
+        self.engine_id : str = str(uuid.uuid4())
+        self.session_id : SessionID = session_id
+        self.temp_project_lookup : dict[str, Any] = {}
+        self.temp_task_lookup : dict[str, Any] = {}
 
         # Get API key from environment if not provided
 
